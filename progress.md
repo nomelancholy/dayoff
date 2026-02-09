@@ -24,11 +24,11 @@
 - [x] Layout 컴포넌트 구현 (Header + `Outlet` + Footer) — `_reference_ui` 레이아웃 참고 (`app/common/components/`)
 
 ### 1.4 상태 관리 & 데이터
-- [ ] Zustand 설치, `app/common/store` 구조
-- [ ] Tanstack Query 설치 및 QueryClient 설정
-- [ ] Supabase 프로젝트 생성/연결, 환경 변수 설정
-- [ ] Drizzle ORM 설치, 스키마·마이그레이션 폴더 구성
-- [ ] Supabase Generated Types 또는 Drizzle 스키마 기반 타입 사용 원칙 확정
+- [x] Zustand 설치, `app/common/store` 구조 (`store/ui.ts`, `store/index.ts`)
+- [x] Tanstack Query 설치 및 QueryClient 설정 (`app/common/lib/queryClient.ts`, `QueryClientProvider` in `main.tsx`)
+- [x] Supabase 프로젝트 생성/연결, 환경 변수 설정 (`app/common/lib/supabase.ts`, `.env.example`)
+- [x] Drizzle ORM 설치, 스키마·마이그레이션 폴더 구성 (`app/db/schema/`, `app/db/migrations/`, `drizzle.config.ts`)
+- [x] 타입 사용 원칙: Drizzle 스키마 추론 타입 / Supabase Generated Types (`app/db/README.md` 참고)
 
 ### 1.5 인증
 - [ ] Supabase Auth 설정 (이메일, 카카오, 구글, 애플)
