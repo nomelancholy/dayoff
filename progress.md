@@ -35,8 +35,8 @@
 - [ ] Auth Context/Provider 구현, RLS 연동 시 전달 확인
 
 ### 1.6 개발 환경
-- [ ] ESLint/Prettier 설정 (선택)
-- [ ] `spec.md` Data Structure 정리 후 Drizzle 스키마 초안 작성
+- [x] ESLint/Prettier 설정 (선택) — Prettier + `eslint-config-prettier`, `npm run format`
+- [x] `spec.md` Data Structure 기반 Drizzle 스키마 초안 — feature별 `schema/` (auth, shop, order, coupon, class, contact)
 
 ---
 

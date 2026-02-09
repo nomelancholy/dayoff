@@ -4,3 +4,7 @@
  */
 export * from '../../features/auth/schema'
 export * from '../../features/shop/schema'
+export * from '../../features/coupon/schema'
+export * from '../../features/order/schema'
+export * from '../../features/class/schema'
+export * from '../../features/contact/schema'

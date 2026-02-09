@@ -1,0 +1,5 @@
+dist
+node_modules
+_reference_ui
+*.min.js
+app/db/migrations
