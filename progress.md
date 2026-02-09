@@ -13,10 +13,10 @@
 - [x] `app` 폴더 생성 및 진입점 이동 (`.cursorrules` 기준: 모든 소스는 `app` 내)
 
 ### 1.2 스타일링
-- [ ] Tailwind CSS 설치 및 설정
-- [ ] Shadcn UI 초기화 (`npx shadcn@latest init`)
-- [ ] Magic UI 컴포넌트 연동 (필요 시)
-- [ ] `cn()` 유틸 (`app/common/lib/utils.ts`) — `clsx` + `tailwind-merge`
+- [x] Tailwind CSS 설치 및 설정 (Tailwind v4 + `@tailwindcss/postcss`)
+- [x] Shadcn UI 초기화 (`npx shadcn@latest init`), 컴포넌트 경로 `@/common/components/ui`
+- [ ] Magic UI 컴포넌트 연동 (필요 시 — 컴포넌트 추가할 때 연동)
+- [x] `cn()` 유틸 (`app/common/lib/utils.ts`) — `clsx` + `tailwind-merge`
 
 ### 1.3 라우팅 & 레이아웃
 - [ ] React-Router v6 설치 및 설정
