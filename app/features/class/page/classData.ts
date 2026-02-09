@@ -14,11 +14,12 @@ export type ClassItemData = {
   bookingUrl: string
 }
 
-/** 네이버 예약 링크 – 실제 운영 시 .env (VITE_CLASS_BOOKING_*) 로 교체 권장 */
+/** 네이버 예약 링크 – .env (VITE_CLASS_BOOKING_*) 로 오버라이드 가능 */
+const NAVER_BASE = 'https://m.booking.naver.com/booking/6/bizes/1177496'
 const booking = {
-  wheel: import.meta.env.VITE_CLASS_BOOKING_WHEEL,
-  colorClay: import.meta.env.VITE_CLASS_BOOKING_COLOR_CLAY,
-  freeForm: import.meta.env.VITE_CLASS_BOOKING_FREE_FORM,
+  wheel: (import.meta.env.VITE_CLASS_BOOKING_WHEEL as string) || `${NAVER_BASE}/items/6731133?area=ple&lang=ko&tab=book&theme=place`,
+  colorClay: (import.meta.env.VITE_CLASS_BOOKING_COLOR_CLAY as string) || `${NAVER_BASE}/items/6581778?area=bmp&lang=ko&tab=book&theme=place`,
+  freeForm: (import.meta.env.VITE_CLASS_BOOKING_FREE_FORM as string) || `${NAVER_BASE}/items/5955427?area=ple&lang=ko&tab=book&theme=place`,
 } as const
 
 export const CLASS_ITEMS: ClassItemData[] = [
@@ -27,8 +28,8 @@ export const CLASS_ITEMS: ClassItemData[] = [
     slug: 'wheel',
     monoLabel: 'WHEEL THROWING',
     name: '물레 클래스',
-    image: 'https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?auto=format&fit=crop&q=80&w=1000',
-    imageAlt: 'Wheel Class',
+    image: '/class/pottery_wheel_thumbnail.jpg',
+    imageAlt: '물레 클래스',
     infoRows: [
       { label: 'TIME', value: '90분' },
       { label: 'ITEMS', value: '1인 2기물 제작' },
@@ -43,8 +44,8 @@ export const CLASS_ITEMS: ClassItemData[] = [
     slug: 'color-clay',
     monoLabel: 'COLOR CLAY',
     name: '컬러 클레이 클래스',
-    image: 'https://images.unsplash.com/photo-1565191999001-551c187427bb?auto=format&fit=crop&q=80&w=1000',
-    imageAlt: 'Color Clay Class',
+    image: '/class/color_thumbnail.jpg',
+    imageAlt: '컬러 클레이 클래스',
     infoRows: [
       { label: 'TIME', value: '90 - 120분' },
       { label: 'METHOD', value: '연리문 기법' },
@@ -59,8 +60,8 @@ export const CLASS_ITEMS: ClassItemData[] = [
     slug: 'free',
     monoLabel: 'FREE FORMING',
     name: '자유 원데이 클래스',
-    image: 'https://images.unsplash.com/photo-1525673812760-73892330773b?auto=format&fit=crop&q=80&w=1000',
-    imageAlt: 'Free Class',
+    image: '/class/free_thumbnail.jpg',
+    imageAlt: '자유 원데이 클래스',
     infoRows: [
       { label: 'TIME', value: '120분' },
       { label: 'ITEMS', value: '대형 1개 또는 중소형 2개' },
