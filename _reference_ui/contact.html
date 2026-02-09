@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --accent: #A8A095;
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .logo {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+        }
+
+        .mono {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .glaze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+            mix-blend-mode: soft-light;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 2rem 4rem;
+            z-index: 1000;
+            background: rgba(249, 248, 246, 0.01);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            padding: 1.2rem 4rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .nav-user a {
+            color: var(--text-primary);
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        /* Contact Hero */
+        .contact-hero {
+            padding: 12rem 4rem 6rem;
+            text-align: center;
+            background: #E8E6E1;
+        }
+
+        .contact-hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Contact Grid */
+        .contact-content {
+            padding: 8rem 4rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8rem;
+        }
+
+        .info-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .info-item {
+            margin-bottom: 3rem;
+        }
+
+        .info-item h3 {
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-item p, .info-item a {
+            font-size: 1.2rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 300;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 2rem;
+            margin-top: 4rem;
+        }
+
+        .social-links a {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .social-links a:hover {
+            color: var(--accent);
+        }
+
+        /* Map Section */
+        .map-wrapper {
+            width: 100%;
+            height: 500px;
+            background: #EEE;
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        /* Wayfinding Section */
+        .section-wayfinding {
+            padding: 10rem 4rem;
+            background: var(--surface);
+        }
+
+        .wayfinding-header {
+            text-align: center;
+            margin-bottom: 6rem;
+        }
+
+        .wayfinding-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            margin-bottom: 4rem;
+            border-bottom: 1px solid #EEE;
+        }
+
+        .way-tab-btn {
+            background: none;
+            border: none;
+            padding: 1.5rem 0;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .way-tab-btn.active {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .way-tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--text-primary);
+        }
+
+        .way-content {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .way-content.active {
+            display: block;
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .step-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .step-img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #F9F9F9;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .step-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 1.2s ease;
+        }
+
+        .step-card:hover .step-img img {
+            transform: scale(1.05);
+        }
+
+        .step-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .step-number {
+            font-size: 0.7rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem;
+            background: var(--bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1024px) {
+            .contact-content { grid-template-columns: 1fr; gap: 4rem; }
+            .step-grid { grid-template-columns: 1fr 1fr; }
+            nav { padding: 1.5rem 2rem; }
+            .contact-hero h1 { font-size: 3rem; }
+        }
+
+        @media (max-width: 600px) {
+            .step-grid { grid-template-columns: 1fr; }
+            .wayfinding-tabs { gap: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glaze-overlay"></div>
+
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+        </div>
+    </nav>
+
+    <header class="contact-hero">
+        <span class="mono">GET IN TOUCH</span>
+        <h1>Visit Our Studio</h1>
+        <p class="mono" style="opacity: 0.6;">A quiet space for ceramic art in the heart of the city</p>
+    </header>
+
+    <main class="contact-content">
+        <div class="info-section">
+            <span class="mono">LOCATION & CONTACT</span>
+            <h2>숨어있는 조용한 감각,<br>공방 DOT.로 오시는 길</h2>
+            
+            <div class="info-item">
+                <h3 class="mono">ADDRESS</h3>
+                <p>서울특별시 중구 을지로동 (충무로역/을지로3가역 인근)</p>
+            </div>
+
+            <div class="info-item">
+                <h3 class="mono">EMAIL</h3>
+                <a href="mailto:hello@dotceramic.com">hello@dotceramic.com</a>
+            </div>
+
+            <div class="info-item">
+                <h3 class="mono">OPENING HOURS</h3>
+                <p>Tue - Sun | 11:00 - 20:00<br>Monday Closed</p>
+            </div>
+
+            <div class="social-links mono">
+                <a href="#"><i data-lucide="instagram" size="18"></i> INSTAGRAM</a>
+                <a href="#"><i data-lucide="link" size="18"></i> BLOG</a>
+            </div>
+        </div>
+
+        <div class="map-section">
+            <div class="map-wrapper">
+                <!-- 실제 지도가 들어갈 자리 (Google Maps iframe or Static Image) -->
+                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #999;">
+                    <div style="text-align: center;">
+                        <i data-lucide="map-pin" size="32" style="margin-bottom: 1rem;"></i>
+                        <p class="mono">MAP VIEW</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section class="section-wayfinding">
+        <div class="wayfinding-header">
+            <span class="mono">HOW TO FIND US</span>
+            <h2>골목 사이로 찾아오는 특별한 여정</h2>
+        </div>
+
+        <div class="wayfinding-tabs mono">
+            <button class="way-tab-btn active" data-way="chungmuro">충무로역 7번 출구 기준</button>
+            <button class="way-tab-btn" data-way="euljiro">을지로3가역 8번 출구 기준</button>
+        </div>
+
+        <!-- Chungmuro Route -->
+        <div class="way-content active" id="chungmuro">
+            <div class="step-grid">
+                <div class="step-card">
+                    <span class="step-number mono">STEP 01</span>
+                    <div class="step-img">
+                        <img src="https://images.unsplash.com/photo-1542640244-7e672d6cef21?auto=format&fit=crop&q=80&w=800" alt="Step 1">
+                    </div>
+                    <p class="step-text">충무로역 7번 출구로 나와서 직진합니다.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-number mono">STEP 02</span>
+                    <div class="step-img">
+                        <img src="https://images.unsplash.com/photo-1514924013411-cbf25faa35bb?auto=format&fit=crop&q=80&w=800" alt="Step 2">
+                    </div>
+                    <p class="step-text">간판 가게를 끼고 오른쪽 골목으로 들어오세요.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-number mono">STEP 03</span>
+                    <div class="step-img">
+                        <img src="https://images.unsplash.com/photo-1565191999001-551c187427bb?auto=format&fit=crop&q=80&w=800" alt="Step 3">
+                    </div>
+                    <p class="step-text">통일집 간판 뒤 DOT 간판을 찾으시면 계단을 올라오세요.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Euljiro Route -->
+        <div class="way-content" id="euljiro">
+            <div class="step-grid">
+                <div class="step-card">
+                    <span class="step-number mono">STEP 01</span>
+                    <div class="step-img">
+                        <img src="https://images.unsplash.com/photo-1449444004900-5895743c3917?auto=format&fit=crop&q=80&w=800" alt="Step 1">
+                    </div>
+                    <p class="step-text">을지로3가역 8번 출구에서 직진하여 첫 번째 골목으로 들어오세요.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-number mono">STEP 02</span>
+                    <div class="step-img">
+                        <img src="https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&q=80&w=800" alt="Step 2">
+                    </div>
+                    <p class="step-text">첫 번째 골목에서 왼쪽을 보시면 골목 안쪽에 DOT이 있습니다.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-number mono">STEP 03</span>
+                    <div class="step-img">
+                        <img src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=800" alt="Step 3">
+                    </div>
+                    <p class="step-text">골목 끝까지 들어오셔서 계단을 올라오시면 DOT 스튜디오입니다.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2026 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Navbar effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Wayfinding Tab Logic
+        const tabBtns = document.querySelectorAll('.way-tab-btn');
+        const contents = document.querySelectorAll('.way-content');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-way');
+
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                contents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === target) {
+                        content.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

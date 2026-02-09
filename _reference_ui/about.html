@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --accent: #A8A095;
+            --glaze-sheen: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .logo {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+        }
+
+        .mono {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .glaze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+            mix-blend-mode: soft-light;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 2rem 4rem;
+            z-index: 1000;
+            background: rgba(249, 248, 246, 0.01);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            padding: 1.2rem 4rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background: var(--text-primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .nav-user a {
+            color: var(--text-primary);
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        .nav-user a:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero-about {
+            height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #E0DDD7;
+            text-align: center;
+            position: relative;
+            padding-top: 80px;
+        }
+
+        .hero-about h1 {
+            font-size: 4.5rem;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: reveal 1.5s forwards 0.5s;
+        }
+
+        /* Story Section */
+        .section-story {
+            padding: 10rem 4rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .story-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6rem;
+            align-items: flex-start;
+        }
+
+        .story-text h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            line-height: 1.3;
+        }
+
+        .story-text p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .reveal-element {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: var(--transition);
+        }
+
+        .reveal-element.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Gallery Section */
+        .section-gallery {
+            padding: 5rem 4rem 10rem;
+            background: var(--surface);
+        }
+
+        .gallery-header {
+            text-align: center;
+            margin-bottom: 6rem;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: repeat(2, 400px);
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 1.2s ease;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+
+        .item-1 { grid-column: 1 / 6; grid-row: 1 / 2; }
+        .item-2 { grid-column: 6 / 13; grid-row: 1 / 2; }
+        .item-3 { grid-column: 1 / 8; grid-row: 2 / 3; }
+        .item-4 { grid-column: 8 / 13; grid-row: 2 / 3; }
+
+        /* Philosophy Section */
+        .section-philosophy {
+            padding: 10rem 4rem;
+            background: #1A1A1A;
+            color: #F9F8F6;
+            text-align: center;
+        }
+
+        .section-philosophy h2 {
+            font-size: 3rem;
+            margin-bottom: 3rem;
+            color: #F9F8F6;
+        }
+
+        .philosophy-content {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 1.2rem;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem;
+            background: var(--bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        @keyframes reveal {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1024px) {
+            .story-grid { grid-template-columns: 1fr; }
+            .gallery-grid { grid-template-rows: repeat(4, 300px); }
+            .item-1, .item-2, .item-3, .item-4 { grid-column: 1 / 13; }
+            .hero-about h1 { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glaze-overlay"></div>
+
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+        </div>
+    </nav>
+
+    <header class="hero-about">
+        <div class="reveal-element active">
+            <span class="mono">DISCOVER OUR JOURNEY</span>
+            <h1>Crafted Silence</h1>
+        </div>
+    </header>
+
+    <section class="section-story">
+        <div class="story-grid">
+            <div class="story-image reveal-element">
+                <img src="https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?auto=format&fit=crop&q=80&w=1000" alt="Potter working" style="width: 100%; border-radius: 2px;">
+            </div>
+            <div class="story-text reveal-element">
+                <span class="mono">SINCE 2018</span>
+                <h2>진심을 빚는 시간,<br>공방 DOT.의 이야기</h2>
+                <p>
+                    공방 DOT.는 바쁜 현대인의 일상 속에 작은 쉼표를 찍고자 시작되었습니다. 
+                    우리는 흙이라는 가장 정직한 재료를 통해, 인위적이지 않은 자연스러운 아름다움을 탐구합니다.
+                </p>
+                <p>
+                    모든 기물은 작가의 손길을 거쳐 하나하나 다르게 태어납니다. 
+                    미세한 질감의 차이, 가마 속 불의 흐름이 만들어낸 우연한 무늬는 
+                    오직 그 기물만이 가진 고유한 서사가 됩니다.
+                </p>
+                <p>
+                    우리는 단순히 물건을 판매하는 것을 넘어, 
+                    그 물건이 놓인 공간의 분위기와 그를 사용하는 사람의 마음까지 
+                    따스하게 채울 수 있기를 바랍니다.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-gallery">
+        <div class="gallery-header reveal-element">
+            <span class="mono">ARCHIVE</span>
+            <h2>OUR CREATIONS</h2>
+        </div>
+        <div class="gallery-grid">
+            <div class="gallery-item item-1 reveal-element">
+                <img src="https://images.unsplash.com/photo-1565191999001-551c187427bb?auto=format&fit=crop&q=80&w=1000" alt="Process">
+            </div>
+            <div class="gallery-item item-2 reveal-element">
+                <img src="https://images.unsplash.com/photo-1502159212845-f3169998e367?auto=format&fit=crop&q=80&w=1200" alt="Pottery collection">
+            </div>
+            <div class="gallery-item item-3 reveal-element">
+                <img src="https://images.unsplash.com/photo-1525673812760-73892330773b?auto=format&fit=crop&q=80&w=1200" alt="Mugs">
+            </div>
+            <div class="gallery-item item-4 reveal-element">
+                <img src="https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=800" alt="Vase">
+            </div>
+        </div>
+    </section>
+
+    <section class="section-philosophy">
+        <div class="reveal-element">
+            <span class="mono" style="color: #A8A095;">PHILOSOPHY</span>
+            <h2>Less, but Better.</h2>
+            <div class="philosophy-content">
+                <p>복잡한 수식보다는 간결한 선을, 화려한 색채보다는 흙 본연의 색을 지향합니다. 불필요한 것을 덜어내고 남은 본질적인 아름다움이 당신의 일상에 깊이 스며들기를 바랍니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2024 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-element').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

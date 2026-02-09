@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --accent: #A8A095;
+            --glaze-sheen: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .logo {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+        }
+
+        .mono {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .glaze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+            mix-blend-mode: soft-light;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 2rem 4rem;
+            z-index: 1000;
+            background: rgba(249, 248, 246, 0.01);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            padding: 1.2rem 4rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background: var(--text-primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .nav-user a {
+            color: var(--text-primary);
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        .nav-user a:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+
+        /* Shop Header */
+        .shop-hero {
+            padding: 12rem 4rem 6rem;
+            text-align: center;
+            background: #EBE9E4;
+        }
+
+        .shop-hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            padding: 4rem 4rem 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            position: sticky;
+            top: 80px;
+            background: var(--bg);
+            z-index: 900;
+            transition: var(--transition);
+        }
+
+        .filter-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            transition: var(--transition);
+            position: relative;
+            color: var(--text-secondary);
+        }
+
+        .filter-btn.active {
+            color: var(--text-primary);
+        }
+
+        .filter-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background: var(--text-primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .filter-btn.active::after {
+            width: 100%;
+        }
+
+        /* Shop Grid */
+        .section-shop-main {
+            padding: 4rem;
+            max-width: 1400px;
+            margin: 0 auto 10rem;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4rem 2rem;
+        }
+
+        .product-card {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            opacity: 1;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .product-card.hidden {
+            display: none;
+        }
+
+        .product-img {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: #F2F2F2;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .product-card:hover .product-img img {
+            transform: scale(1.05);
+        }
+
+        .product-img::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: var(--glaze-sheen);
+            transform: skewX(-25deg);
+            transition: 0.75s;
+        }
+
+        .product-card:hover .product-img::after {
+            left: 150%;
+        }
+
+        .product-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-info h3 {
+            font-size: 0.95rem;
+            letter-spacing: 0.05em;
+        }
+
+        .product-price {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .product-category {
+            font-size: 0.6rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem;
+            background: var(--bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .reveal-element {
+            animation: fadeIn 0.8s forwards;
+        }
+
+        @media (max-width: 1024px) {
+            .shop-grid { grid-template-columns: repeat(2, 1fr); }
+            nav { padding: 1.5rem 2rem; }
+            .shop-hero h1 { font-size: 2.5rem; }
+        }
+
+        @media (max-width: 600px) {
+            .shop-grid { grid-template-columns: 1fr; }
+            .filter-section { gap: 1rem; overflow-x: auto; padding: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glaze-overlay"></div>
+
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+        </div>
+    </nav>
+
+    <header class="shop-hero">
+        <span class="mono">COLLECTIONS</span>
+        <h1>Shop the Edition</h1>
+        <p class="mono" style="opacity: 0.6; margin-top: 1rem;">Essential pieces for your daily ritual</p>
+    </header>
+
+    <div class="filter-section">
+        <button class="filter-btn active mono" data-filter="all">All</button>
+        <button class="filter-btn mono" data-filter="cup">Cups</button>
+        <button class="filter-btn mono" data-filter="plate">Plates</button>
+        <button class="filter-btn mono" data-filter="object">Objects</button>
+    </div>
+
+    <main class="section-shop-main">
+        <div class="shop-grid">
+            <!-- Cups -->
+            <a href="product-detail.html" class="product-card" data-category="cup">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&q=80&w=800" alt="Tea Cup">
+                </div>
+                <span class="product-category mono">CUP</span>
+                <div class="product-info">
+                    <h3>MOONLIGHT TEA CUP</h3>
+                    <span class="product-price">₩24,000</span>
+                </div>
+            </a>
+
+            <a href="product-detail.html" class="product-card" data-category="cup">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800" alt="Ceramic Mug">
+                </div>
+                <span class="product-category mono">CUP</span>
+                <div class="product-info">
+                    <h3>SAND MUG</h3>
+                    <span class="product-price">₩28,000</span>
+                </div>
+            </a>
+
+            <!-- Plates -->
+            <a href="product-detail.html" class="product-card" data-category="plate">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1449444004900-5895743c3917?auto=format&fit=crop&q=80&w=800" alt="Hand-built Plate">
+                </div>
+                <span class="product-category mono">PLATE</span>
+                <div class="product-info">
+                    <h3>PALE MIST PLATE</h3>
+                    <span class="product-price">₩45,000</span>
+                </div>
+            </a>
+
+            <a href="product-detail.html" class="product-card" data-category="plate">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1622325985060-64259b38031e?auto=format&fit=crop&q=80&w=800" alt="Rustic Plate">
+                </div>
+                <span class="product-category mono">PLATE</span>
+                <div class="product-info">
+                    <h3>DEEP FOREST DISH</h3>
+                    <span class="product-price">₩38,000</span>
+                </div>
+            </a>
+
+            <!-- Objects -->
+            <a href="product-detail.html" class="product-card" data-category="object">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=800" alt="Ceramic Vase">
+                </div>
+                <span class="product-category mono">OBJECT</span>
+                <div class="product-info">
+                    <h3>MOONLIGHT VASE</h3>
+                    <span class="product-price">₩82,000</span>
+                </div>
+            </a>
+
+            <a href="product-detail.html" class="product-card" data-category="object">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1601918774946-25832a4be0d6?auto=format&fit=crop&q=80&w=800" alt="Incense Holder">
+                </div>
+                <span class="product-category mono">OBJECT</span>
+                <div class="product-info">
+                    <h3>STONE INCENSE HOLDER</h3>
+                    <span class="product-price">₩32,000</span>
+                </div>
+            </a>
+            
+            <a href="product-detail.html" class="product-card" data-category="object">
+                <div class="product-img">
+                    <img src="https://images.unsplash.com/photo-1605345758117-062e08c8e19c?auto=format&fit=crop&q=80&w=800" alt="Clay Vase">
+                </div>
+                <span class="product-category mono">OBJECT</span>
+                <div class="product-info">
+                    <h3>TERRACOTTA OBJECT</h3>
+                    <span class="product-price">₩56,000</span>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2024 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Filter Logic
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const productCards = document.querySelectorAll('.product-card');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Active button state
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.getAttribute('data-filter');
+
+                productCards.forEach(card => {
+                    const category = card.getAttribute('data-category');
+                    
+                    if (filter === 'all' || filter === category) {
+                        card.style.display = 'block';
+                        setTimeout(() => {
+                            card.style.opacity = '1';
+                            card.style.transform = 'translateY(0)';
+                        }, 10);
+                    } else {
+                        card.style.opacity = '0';
+                        card.style.transform = 'translateY(20px)';
+                        setTimeout(() => {
+                            card.style.display = 'none';
+                        }, 400);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

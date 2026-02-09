@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --accent: #A8A095;
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .logo {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+        }
+
+        .mono {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .glaze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+            mix-blend-mode: soft-light;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 2rem 4rem;
+            z-index: 1000;
+            background: rgba(249, 248, 246, 0.01);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            padding: 1.2rem 4rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .nav-user a {
+            color: var(--text-primary);
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        /* Account Page Layout */
+        .account-container {
+            padding: 12rem 4rem 10rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 6rem;
+        }
+
+        .account-header {
+            grid-column: 1 / -1;
+            margin-bottom: 4rem;
+            border-bottom: 1px solid #EEE;
+            padding-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .account-header h1 {
+            font-size: 3rem;
+        }
+
+        .logout-btn {
+            color: var(--text-secondary);
+            text-decoration: underline;
+            font-size: 0.8rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Sidebar Navigation */
+        .account-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .account-nav-btn {
+            background: none;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .account-nav-btn.active {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .account-nav-btn.active::after {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            width: 6px;
+            height: 6px;
+            background: var(--text-primary);
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+
+        /* Account Sections */
+        .account-section {
+            display: none;
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        .account-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #F0F0F0;
+            padding-bottom: 1rem;
+        }
+
+        /* Profile Form */
+        .profile-form {
+            max-width: 600px;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.8rem;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #EEE;
+            background: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--text-primary);
+            outline: none;
+        }
+
+        .save-btn {
+            margin-top: 2rem;
+            padding: 1rem 3rem;
+            background: var(--text-primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .save-btn:hover {
+            background: #333;
+        }
+
+        /* Order List */
+        .order-item {
+            border: 1px solid #EEE;
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 2px;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px dotted #EEE;
+        }
+
+        .order-id {
+            font-weight: 500;
+        }
+
+        .order-status {
+            color: var(--accent);
+            font-size: 0.8rem;
+        }
+
+        .order-products {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .order-img {
+            width: 80px;
+            aspect-ratio: 1/1;
+            background: #F9F9F9;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .order-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .order-info h4 {
+            font-size: 1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .order-info p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem;
+            background: var(--bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 1024px) {
+            .account-container { grid-template-columns: 1fr; gap: 4rem; }
+            .account-header h1 { font-size: 2.2rem; }
+            nav { padding: 1.5rem 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glaze-overlay"></div>
+
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+        </div>
+    </nav>
+
+    <main class="account-container">
+        <header class="account-header">
+            <div>
+                <span class="mono">WELCOME BACK</span>
+                <h1>My Account</h1>
+            </div>
+            <button class="logout-btn mono">LOGOUT</button>
+        </header>
+
+        <aside class="account-nav">
+            <button class="account-nav-btn active mono" data-section="profile">PROFILE</button>
+            <button class="account-nav-btn mono" data-section="orders">ORDER HISTORY</button>
+            <button class="account-nav-btn mono" data-section="address">ADDRESS BOOK</button>
+        </aside>
+
+        <div class="account-content">
+            <!-- Profile Section -->
+            <section class="account-section active" id="profile">
+                <h2 class="section-title mono">PERSONAL INFORMATION</h2>
+                <form class="profile-form">
+                    <div class="form-group">
+                        <label class="form-label mono">FULL NAME</label>
+                        <input type="text" class="form-input" value="김민수">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label mono">EMAIL ADDRESS</label>
+                        <input type="email" class="form-input" value="minsu.kim@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label mono">PHONE NUMBER</label>
+                        <input type="tel" class="form-input" value="010-1234-5678">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label mono">PASSWORD</label>
+                        <input type="password" class="form-input" placeholder="••••••••">
+                        <p style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.5rem;">Leave blank to keep current password</p>
+                    </div>
+                    <button type="submit" class="save-btn mono">SAVE CHANGES</button>
+                </form>
+            </section>
+
+            <!-- Orders Section -->
+            <section class="account-section" id="orders">
+                <h2 class="section-title mono">ORDER HISTORY</h2>
+                <div class="order-list">
+                    <div class="order-item">
+                        <div class="order-header">
+                            <span class="order-id mono">#DOT-2024-0120</span>
+                            <span class="order-status mono">SHIPPED</span>
+                        </div>
+                        <div class="order-products">
+                            <div class="order-img">
+                                <img src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=200" alt="Product">
+                            </div>
+                            <div class="order-info">
+                                <h4>MOONLIGHT VASE</h4>
+                                <p>Qty: 1 | ₩82,000</p>
+                                <span class="mono" style="font-size: 0.7rem;">Ordered on Jan 20, 2024</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="order-item">
+                        <div class="order-header">
+                            <span class="order-id mono">#DOT-2023-1215</span>
+                            <span class="order-status mono">DELIVERED</span>
+                        </div>
+                        <div class="order-products">
+                            <div class="order-img">
+                                <img src="https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&q=80&w=200" alt="Product">
+                            </div>
+                            <div class="order-info">
+                                <h4>MOONLIGHT TEA CUP</h4>
+                                <p>Qty: 2 | ₩48,000</p>
+                                <span class="mono" style="font-size: 0.7rem;">Ordered on Dec 15, 2023</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Address Section -->
+            <section class="account-section" id="address">
+                <h2 class="section-title mono">ADDRESS BOOK</h2>
+                <div class="order-item">
+                    <div class="order-info">
+                        <h4>HOME (DEFAULT)</h4>
+                        <p>서울특별시 성동구 성수동2가 123-45</p>
+                        <p>010-1234-5678</p>
+                        <button class="logout-btn mono" style="margin-top: 1rem;">EDIT</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2024 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Navbar effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Sidebar Navigation Logic
+        const navBtns = document.querySelectorAll('.account-nav-btn');
+        const sections = document.querySelectorAll('.account-section');
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-section');
+
+                navBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === target) {
+                        section.classList.add('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

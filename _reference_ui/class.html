@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --accent: #A8A095;
+            --glaze-sheen: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .logo {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+        }
+
+        .mono {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .glaze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+            mix-blend-mode: soft-light;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 2rem 4rem;
+            z-index: 1000;
+            background: rgba(249, 248, 246, 0.01);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            padding: 1.2rem 4rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background: var(--text-primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .nav-user a {
+            color: var(--text-primary);
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        .nav-user a:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+
+        /* Class Hero */
+        .class-hero {
+            padding: 12rem 4rem 6rem;
+            text-align: center;
+            background: #E4E0D9;
+        }
+
+        .class-hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Class Sections */
+        .section-classes {
+            padding: 8rem 4rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .class-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6rem;
+            align-items: center;
+            margin-bottom: 10rem;
+        }
+
+        .class-item:nth-child(even) {
+            direction: rtl;
+        }
+
+        .class-item:nth-child(even) .class-text {
+            direction: ltr;
+        }
+
+        .class-image {
+            width: 100%;
+            aspect-ratio: 4/5;
+            overflow: hidden;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .class-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 1.2s ease;
+        }
+
+        .class-item:hover .class-image img {
+            transform: scale(1.05);
+        }
+
+        .class-text h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .class-info {
+            margin: 2rem 0;
+            padding: 1.5rem 0;
+            border-top: 1px solid #EEE;
+            border-bottom: 1px solid #EEE;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-label {
+            width: 80px;
+            color: var(--accent);
+        }
+
+        .class-description {
+            color: var(--text-secondary);
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .booking-btn {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: var(--text-primary);
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .booking-btn:hover {
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        /* Review Section */
+        .section-reviews {
+            padding: 10rem 4rem;
+            background: var(--surface);
+        }
+
+        .review-header {
+            text-align: center;
+            margin-bottom: 6rem;
+        }
+
+        .review-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .review-card {
+            padding: 3rem 2rem;
+            background: var(--bg);
+            border-radius: 2px;
+            text-align: center;
+        }
+
+        .review-card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 1.5rem;
+        }
+
+        .review-author {
+            font-weight: 500;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem;
+            background: var(--bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .reveal-element {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: var(--transition);
+        }
+
+        .reveal-element.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1024px) {
+            .class-item { grid-template-columns: 1fr; gap: 3rem; }
+            .class-item:nth-child(even) { direction: ltr; }
+            .review-grid { grid-template-columns: 1fr; }
+            nav { padding: 1.5rem 2rem; }
+            .class-hero h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glaze-overlay"></div>
+
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+        </div>
+    </nav>
+
+    <header class="class-hero">
+        <span class="mono">ONE DAY EXPERIENCE</span>
+        <h1>Handmade Ritual</h1>
+        <p class="mono" style="opacity: 0.6; margin-top: 1rem;">Touch the clay, find your stillness</p>
+    </header>
+
+    <main class="section-classes">
+        <!-- Wheel Class -->
+        <div class="class-item reveal-element">
+            <div class="class-image">
+                <img src="https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?auto=format&fit=crop&q=80&w=1000" alt="Wheel Class">
+            </div>
+            <div class="class-text">
+                <span class="mono">WHEEL THROWING</span>
+                <h2>물레 클래스</h2>
+                <div class="class-info">
+                    <div class="info-row">
+                        <span class="info-label mono">TIME</span>
+                        <span>90분</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label mono">ITEMS</span>
+                        <span>1인 2기물 제작</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label mono">LEVEL</span>
+                        <span>입문자 가능</span>
+                    </div>
+                </div>
+                <p class="class-description">
+                    빙글빙글 돌아가는 물레 위에서 흙의 중심을 잡으며 오롯이 손끝의 감각에 집중합니다. 
+                    도자공예 전공 선생님의 지도 아래, 백자 흙으로 자신만의 기물을 빚어보세요. 
+                    유광 또는 무광 중 선택하여 마감할 수 있습니다.
+                </p>
+                <a href="https://m.booking.naver.com/booking/6/bizes/1177496/items/6731133?area=ple&lang=ko&startDate=2026-01-26&tab=book&theme=place" target="_blank" class="booking-btn mono">BOOK NOW</a>
+            </div>
+        </div>
+
+        <!-- Color Clay Class -->
+        <div class="class-item reveal-element">
+            <div class="class-image">
+                <img src="https://images.unsplash.com/photo-1565191999001-551c187427bb?auto=format&fit=crop&q=80&w=1000" alt="Color Clay Class">
+            </div>
+            <div class="class-text">
+                <span class="mono">COLOR CLAY</span>
+                <h2>컬러 클레이 클래스</h2>
+                <div class="class-info">
+                    <div class="info-row">
+                        <span class="info-label mono">TIME</span>
+                        <span>90 - 120분</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label mono">METHOD</span>
+                        <span>연리문 기법</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label mono">RESULT</span>
+                        <span>자유로운 패턴의 그릇</span>
+                    </div>
+                </div>
+                <p class="class-description">
+                    색을 입힌 흙들을 조합해 우연한 무늬를 만들어내는 '연리문' 기법을 배웁니다. 
+                    알록달록한 색소지를 활용해 캐릭터나 꽃, 기하학 패턴 등 
+                    자신만의 개성을 듬뿍 담은 그릇을 완성할 수 있는 디오티의 인기 클래스입니다.
+                </p>
+                <a href="https://m.booking.naver.com/booking/6/bizes/1177496/items/6581778?area=bmp&lang=ko&service-target=map-pc&startDate=2026-01-26&tab=book&theme=place" target="_blank" class="booking-btn mono">BOOK NOW</a>
+            </div>
+        </div>
+
+        <!-- Free One-day Class -->
+        <div class="class-item reveal-element">
+            <div class="class-image">
+                <img src="https://images.unsplash.com/photo-1525673812760-73892330773b?auto=format&fit=crop&q=80&w=1000" alt="Free Class">
+            </div>
+            <div class="class-text">
+                <span class="mono">FREE FORMING</span>
+                <h2>자유 원데이 클래스</h2>
+                <div class="class-info">
+                    <div class="info-row">
+                        <span class="info-label mono">TIME</span>
+                        <span>120분</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label mono">ITEMS</span>
+                        <span>대형 1개 또는 중소형 2개</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label mono">STYLE</span>
+                        <span>핸드빌딩 & 페인팅</span>
+                    </div>
+                </div>
+                <p class="class-description">
+                    정해진 형식 없이 자유롭게 흙을 만지며 원하는 오브제를 만듭니다. 
+                    화병, 큰 접시, 소쿠리 등 다양한 형태를 시도해 볼 수 있으며, 
+                    물감을 이용해 직접 그림을 그리거나 무늬를 새기는 작업도 가능합니다.
+                </p>
+                <a href="https://m.booking.naver.com/booking/6/bizes/1177496/items/5955427?area=ple&lang=ko&startDate=2026-01-26&tab=book&theme=place" target="_blank" class="booking-btn mono">BOOK NOW</a>
+            </div>
+        </div>
+    </main>
+
+    <section class="section-reviews">
+        <div class="review-header reveal-element">
+            <span class="mono">TESTIMONIALS</span>
+            <h2>Our Students</h2>
+        </div>
+        <div class="review-grid">
+            <div class="review-card reveal-element">
+                <p>"처음 물레를 돌려봤는데 선생님이 친절하게 가르쳐주셔서 너무 즐거웠어요. 완성된 컵도 너무 예뻐요!"</p>
+                <div class="review-author mono">Minsu Kim</div>
+            </div>
+            <div class="review-card reveal-element">
+                <p>"컬러 클레이 클래스에서 만든 접시 볼 때마다 기분이 좋아져요. 흙을 만지는 시간 자체가 힐링이었습니다."</p>
+                <div class="review-author mono">Sarah Lee</div>
+            </div>
+            <div class="review-card reveal-element">
+                <p>"자유 클래스에서 화병을 만들었는데, 제 손으로 직접 만든 거라 더 애착이 가네요. 조만간 또 가려구요."</p>
+                <div class="review-author mono">Jihoo Park</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2024 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.reveal-element').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>

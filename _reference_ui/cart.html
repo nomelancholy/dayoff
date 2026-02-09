@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --surface: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --accent: #A8A095;
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .logo {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            letter-spacing: 0.12em;
+        }
+
+        .mono {
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+        }
+
+        .glaze-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+            mix-blend-mode: soft-light;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 2rem 4rem;
+            z-index: 1000;
+            background: rgba(249, 248, 246, 0.01);
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        nav.scrolled {
+            padding: 1.2rem 4rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 400;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            width: 0;
+            height: 1px;
+            background: var(--text-primary);
+            transition: var(--transition);
+            transform: translateX(-50%);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-user {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .nav-user a {
+            color: var(--text-primary);
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        .nav-user a:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+
+        /* Cart Page Layout */
+        .cart-container {
+            padding: 12rem 4rem 10rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 4rem;
+        }
+
+        .cart-header {
+            grid-column: 1 / -1;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #EEE;
+            padding-bottom: 1rem;
+        }
+
+        .cart-header h1 {
+            font-size: 2.5rem;
+        }
+
+        /* Cart Items */
+        .cart-items {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .cart-item {
+            display: grid;
+            grid-template-columns: 120px 1fr auto;
+            gap: 2rem;
+            align-items: center;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #EEE;
+        }
+
+        .item-img {
+            width: 120px;
+            aspect-ratio: 1/1;
+            background: #F2F2F2;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .item-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .item-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-info p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid #EEE;
+            width: fit-content;
+            padding: 0.3rem 0.8rem;
+        }
+
+        .quantity-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .item-price-remove {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .item-price {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            text-decoration: underline;
+            font-size: 0.8rem;
+            transition: var(--transition);
+        }
+
+        .remove-btn:hover {
+            color: var(--text-primary);
+        }
+
+        /* Summary */
+        .cart-summary {
+            background: var(--surface);
+            padding: 3rem;
+            height: fit-content;
+            position: sticky;
+            top: 120px;
+        }
+
+        .summary-title {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #EEE;
+            padding-bottom: 1rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .summary-total {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #EEE;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .checkout-btn {
+            display: block;
+            width: 100%;
+            padding: 1.2rem;
+            background: var(--text-primary);
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 2.5rem;
+            transition: var(--transition);
+        }
+
+        .checkout-btn:hover {
+            background: #333;
+        }
+
+        .empty-cart-msg {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 10rem 0;
+            display: none;
+        }
+
+        .empty-cart-msg h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .continue-shopping {
+            display: inline-block;
+            padding: 1rem 2rem;
+            border: 1px solid var(--text-primary);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .continue-shopping:hover {
+            background: var(--text-primary);
+            color: white;
+        }
+
+        /* Footer */
+        footer {
+            padding: 4rem;
+            background: var(--bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        @media (max-width: 1024px) {
+            .cart-container { grid-template-columns: 1fr; }
+            .cart-summary { position: static; }
+            nav { padding: 1.5rem 2rem; }
+        }
+
+        @media (max-width: 600px) {
+            .cart-item { grid-template-columns: 80px 1fr; }
+            .item-price-remove { grid-column: 1 / -1; flex-direction: row; align-items: center; border-top: 1px solid #F9F9F9; padding-top: 1rem; }
+            .item-img { width: 80px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glaze-overlay"></div>
+
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+        </div>
+    </nav>
+
+    <main class="cart-container">
+        <header class="cart-header">
+            <span class="mono">YOUR SELECTION</span>
+            <h1>Shopping Cart</h1>
+        </header>
+
+        <div class="cart-items" id="cart-items-container">
+            <!-- Item 1 -->
+            <div class="cart-item" data-price="82000">
+                <div class="item-img">
+                    <img src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=800" alt="Ceramic Vase">
+                </div>
+                <div class="item-info">
+                    <span class="product-category mono">OBJECT</span>
+                    <h3>MOONLIGHT VASE</h3>
+                    <p>Color: Sand White</p>
+                    <div class="quantity-control">
+                        <button class="quantity-btn minus"><i data-lucide="minus" size="14"></i></button>
+                        <span class="quantity">1</span>
+                        <button class="quantity-btn plus"><i data-lucide="plus" size="14"></i></button>
+                    </div>
+                </div>
+                <div class="item-price-remove">
+                    <span class="item-price">₩82,000</span>
+                    <button class="remove-btn mono">REMOVE</button>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="cart-item" data-price="24000">
+                <div class="item-img">
+                    <img src="https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&q=80&w=800" alt="Tea Cup">
+                </div>
+                <div class="item-info">
+                    <span class="product-category mono">CUP</span>
+                    <h3>MOONLIGHT TEA CUP</h3>
+                    <p>Finish: Matte</p>
+                    <div class="quantity-control">
+                        <button class="quantity-btn minus"><i data-lucide="minus" size="14"></i></button>
+                        <span class="quantity">2</span>
+                        <button class="quantity-btn plus"><i data-lucide="plus" size="14"></i></button>
+                    </div>
+                </div>
+                <div class="item-price-remove">
+                    <span class="item-price">₩48,000</span>
+                    <button class="remove-btn mono">REMOVE</button>
+                </div>
+            </div>
+        </div>
+
+        <aside class="cart-summary">
+            <h2 class="summary-title mono">ORDER SUMMARY</h2>
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="subtotal">₩130,000</span>
+            </div>
+            <div class="summary-row">
+                <span>Shipping</span>
+                <span>₩3,000</span>
+            </div>
+            <div class="summary-total">
+                <span>Total</span>
+                <span id="total">₩133,000</span>
+            </div>
+            <a href="#" class="checkout-btn mono">PROCEED TO CHECKOUT</a>
+        </aside>
+
+        <div class="empty-cart-msg" id="empty-msg">
+            <h2>Your cart is currently empty.</h2>
+            <p style="margin-bottom: 3rem; color: var(--text-secondary);">Discover our handcrafted collections and find something special.</p>
+            <a href="shop.html" class="continue-shopping mono">CONTINUE SHOPPING</a>
+        </div>
+    </main>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2024 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Cart Logic
+        const updateTotals = () => {
+            let subtotal = 0;
+            const items = document.querySelectorAll('.cart-item');
+            
+            items.forEach(item => {
+                const price = parseInt(item.getAttribute('data-price'));
+                const quantity = parseInt(item.querySelector('.quantity').innerText);
+                const itemTotal = price * quantity;
+                item.querySelector('.item-price').innerText = `₩${itemTotal.toLocaleString()}`;
+                subtotal += itemTotal;
+            });
+
+            const shipping = subtotal > 0 ? 3000 : 0;
+            const total = subtotal + shipping;
+
+            document.getElementById('subtotal').innerText = `₩${subtotal.toLocaleString()}`;
+            document.getElementById('total').innerText = `₩${total.toLocaleString()}`;
+
+            if (items.length === 0) {
+                document.getElementById('cart-items-container').style.display = 'none';
+                document.querySelector('.cart-summary').style.display = 'none';
+                document.getElementById('empty-msg').style.display = 'block';
+            }
+        };
+
+        document.querySelectorAll('.cart-item').forEach(item => {
+            const minusBtn = item.querySelector('.minus');
+            const plusBtn = item.querySelector('.plus');
+            const removeBtn = item.querySelector('.remove-btn');
+            const quantitySpan = item.querySelector('.quantity');
+
+            minusBtn.addEventListener('click', () => {
+                let q = parseInt(quantitySpan.innerText);
+                if (q > 1) {
+                    quantitySpan.innerText = q - 1;
+                    updateTotals();
+                }
+            });
+
+            plusBtn.addEventListener('click', () => {
+                let q = parseInt(quantitySpan.innerText);
+                quantitySpan.innerText = q + 1;
+                updateTotals();
+            });
+
+            removeBtn.addEventListener('click', () => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateX(20px)';
+                setTimeout(() => {
+                    item.remove();
+                    updateTotals();
+                }, 400);
+            });
+        });
+
+        updateTotals();
+    </script>
+</body>
+</html>
