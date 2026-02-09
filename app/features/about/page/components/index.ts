@@ -1,0 +1,6 @@
+export { AboutHero } from './AboutHero'
+export { GallerySection } from './GallerySection'
+export { PhilosophySection } from './PhilosophySection'
+export { SectionImage } from './SectionImage'
+export { SectionText } from './SectionText'
+export { StorySection } from './StorySection'
