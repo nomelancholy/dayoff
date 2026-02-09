@@ -23,28 +23,28 @@ export const Header = () => {
   return (
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-[1000] grid grid-cols-[1fr_2fr_1fr] items-center transition-all duration-300 ease-out',
-        'px-8 py-8 md:px-8 md:py-6 lg:px-16 lg:py-8',
+        'fixed top-0 left-0 right-0 z-[1000] grid grid-cols-[1fr_2fr_1fr] items-center transition-[padding,background,border] duration-500 ease-dot',
+        'px-6 py-6 md:px-8 md:py-6 lg:px-16 lg:py-8',
         scrolled
-          ? 'border-b border-black/5 bg-white/80 py-4 backdrop-blur-md md:py-5'
+          ? 'border-b border-black/5 bg-white/80 py-3 backdrop-blur-md md:py-5 lg:py-4'
           : 'bg-[rgba(249,248,246,0.01)] backdrop-blur-md'
       )}
     >
       <Link
         to="/"
-        className="font-serif text-[1.8rem] font-normal text-[#1A1A1A] no-underline"
+        className="font-serif text-[1.8rem] font-normal text-dot-primary no-underline tracking-[0.12em]"
       >
         DOT.
       </Link>
 
-      <div className="flex justify-center gap-12">
+      <div className="flex justify-center gap-6 md:gap-8 lg:gap-12">
         {NAV_LINKS.map(({ to, label }) => (
           <Link
             key={to}
             to={to}
             className={cn(
-              'relative text-[0.85rem] uppercase tracking-[0.1em] text-[#1A1A1A] no-underline transition-all duration-300',
-              'after:absolute after:bottom-[-4px] after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[#1A1A1A] after:transition-all after:duration-300',
+              'relative text-[0.85rem] uppercase tracking-widest text-dot-primary no-underline transition-all duration-500 ease-dot',
+              'after:absolute after:bottom-[-4px] after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-dot-primary after:transition-all after:duration-500 after:ease-dot',
               'hover:after:w-full',
               location.pathname === to && 'after:w-full'
             )}
@@ -54,17 +54,17 @@ export const Header = () => {
         ))}
       </div>
 
-      <div className="flex justify-end gap-6">
+      <div className="flex justify-end gap-4 md:gap-6">
         <Link
           to="/cart"
-          className="text-[#1A1A1A] opacity-80 transition-all duration-300 hover:translate-y-[-2px] hover:opacity-100"
+          className="text-dot-primary opacity-80 transition-all duration-500 ease-dot hover:-translate-y-0.5 hover:opacity-100"
           aria-label="장바구니"
         >
           <ShoppingCart size={20} />
         </Link>
         <Link
           to="/account"
-          className="text-[#1A1A1A] opacity-80 transition-all duration-300 hover:translate-y-[-2px] hover:opacity-100"
+          className="text-dot-primary opacity-80 transition-all duration-500 ease-dot hover:-translate-y-0.5 hover:opacity-100"
           aria-label="내 정보"
         >
           <User size={20} />
