@@ -19,9 +19,9 @@
 - [x] `cn()` 유틸 (`app/common/lib/utils.ts`) — `clsx` + `tailwind-merge`
 
 ### 1.3 라우팅 & 레이아웃
-- [ ] React-Router v6 설치 및 설정
-- [ ] `app/routes` 폴더에 라우트 설정
-- [ ] Layout 컴포넌트 구현 (Header + `Outlet` + Footer) — `_reference_ui` 레이아웃 참고
+- [x] React-Router v6 설치 및 설정 (`createBrowserRouter` + `RouterProvider`)
+- [x] Feature별 페이지 구조 (`app/features/[feature]/page/Page.tsx`), 라우트 설정은 `app/router.tsx`
+- [x] Layout 컴포넌트 구현 (Header + `Outlet` + Footer) — `_reference_ui` 레이아웃 참고 (`app/common/components/`)
 
 ### 1.4 상태 관리 & 데이터
 - [ ] Zustand 설치, `app/common/store` 구조
@@ -105,12 +105,21 @@ app/
 │   ├── lib/             # utils.ts, supabase
 │   └── store/           # Zustand
 ├── features/
-│   ├── auth/
+│   ├── home/
+│   │   └── page/
+│   │       └── Page.tsx
+│   ├── about/
+│   │   └── page/
+│   │       └── Page.tsx
 │   ├── shop/
+│   │   └── page/
+│   │       └── Page.tsx
 │   ├── class/
 │   ├── contact/
+│   ├── cart/
+│   ├── account/
 │   └── ...
-├── routes/
+├── router.tsx           # React-Router 라우트 설정
 public/
 _reference_ui/
 ```
