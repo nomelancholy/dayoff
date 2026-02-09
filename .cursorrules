@@ -50,8 +50,14 @@
 - **app/features**: 도메인/기능 단위 격리 (Feature-Sliced Design)
   - 구조: `app/features/[feature-name]/`
     - `components/`: 해당 기능 전용 컴포넌트
+    - `schema/`: 해당 기능의 Drizzle 스키마 (테이블 정의). 마이그레이션 시 `app/db/schema/index.ts`에서 re-export하여 사용
     - `api/`: 해당 기능의 Drizzle 쿼리 및 Mutation 함수 (React Query에서 호출)
     - `types/`: 해당 기능 전용 타입 정의
+    - `page/`: 해당 기능의 페이지 컴포넌트 (예: `page/Page.tsx`)
     - `routes.tsx`: 해당 기능의 라우트 정의 (선택 사항)
+
+- **app/db**: 마이그레이션 전용
+  - `schema/index.ts`: 각 feature의 `schema/`를 re-export (Drizzle Kit이 참조)
+  - `migrations/`: Drizzle Kit으로 생성된 마이그레이션 파일
 
 - **public**: 정적 애셋 (이미지, 폰트 등)
