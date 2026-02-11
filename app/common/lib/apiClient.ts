@@ -26,10 +26,10 @@ apiClient.interceptors.response.use(
     const message = error.response?.data?.message || '알 수 없는 에러가 발생했습니다.';
     console.error('API Error:', message);
     
-    // 401 Unauthorized 처리 (로그아웃 등)
+    // 401 Unauthorized 처리 (토큰 제거 후 로그인 페이지로)
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
-      // window.location.href = '/login';
+      window.location.href = '/login';
     }
     
     return Promise.reject(error);

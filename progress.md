@@ -46,9 +46,9 @@
 
 ### 1.6 인증 (NestJS Auth)
 
-- [ ] NestJS Passport + JWT 인증 시스템 구현
-- [ ] 소셜 로그인 연동 (카카오, 구글, 애플)
-- [ ] Auth Guard 및 세션/토큰 관리 로직 구현
+- [x] NestJS Passport + JWT 인증 시스템 구현 (이메일 회원가입/로그인, JWT 발급)
+- [x] 소셜 로그인 연동 (카카오, 구글, 네이버) — OAuth 리다이렉트 후 콜백에서 JWT 발급
+- [x] Auth Guard 및 세션/토큰 관리 로직 구현 (JwtAuthGuard, LocalAuthGuard, CurrentUser 데코레이터, apiClient Bearer/401 처리)
 
 ### 1.7 개발 환경
 
@@ -97,9 +97,10 @@
 
 ### 2.7 회원 (Auth & Account)
 
-- [ ] 로그인/회원가입: 이메일 + 소셜(카카오, 구글, 애플)
-- [ ] 내 정보 페이지: 프로필 수정, 주문 내역, 주소록 (`_reference_ui/account.html`)
-- [ ] 로그아웃
+- [x] 로그인/회원가입: 이메일 + 소셜(카카오, 구글) — `/login`, `/register` 페이지, 소셜 버튼 및 콜백 token 처리
+- [x] 내 정보 페이지: 로그인 시 이메일/이름/권한 표시, 로그아웃 (`/account`)
+- [x] 로그아웃
+- [ ] 프로필 수정, 주문 내역, 주소록 (`_reference_ui/account.html`) — 추후 구현
 
 ### 2.8 쿠폰 (회원 할인)
 
@@ -160,3 +161,27 @@ _reference_ui/
 - **컴포넌트**: 함수형, Named Export, `props` 인터페이스 명시.
 - **Shadcn 추가**: `npx shadcn@latest add [component]` 사용.
 - **Backend**: NestJS를 사용하여 비즈니스 로직 및 보안(Guard) 처리.
+
+---
+
+## 5. 후순위 — 직접 진행할 작업
+
+> 코드/인프라 준비는 되어 있고, 개발자 콘솔·키 설정·콘텐츠 등 **내가 해야 할 일**만 정리한 목록.
+
+### 5.1 소셜 로그인 설정
+
+- [ ] **구글 로그인**: [Google Cloud Console](https://console.cloud.google.com/)에서 OAuth 2.0 클라이언트 ID 생성 → `server/.env`에 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback` 등록 후 서버 재시작
+- [ ] **카카오 로그인**: [카카오 개발자 콘솔](https://developers.kakao.com/)에서 앱 생성, 로그인 활성화 → `server/.env`에 `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_CALLBACK_URL=http://localhost:4000/auth/kakao/callback` 등록 후 서버 재시작
+- [ ] **네이버 로그인**: [네이버 개발자 센터](https://developer.naver.com/)에서 애플리케이션 등록, 로그인 API 사용 설정 → `server/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_CALLBACK_URL=http://localhost:4000/auth/naver/callback` 등록 후 서버 재시작
+
+### 5.2 회원·계정 확장
+
+- [ ] 프로필 수정 (이름, 전화번호 등) API 및 `/account` UI
+- [ ] 주소록 CRUD (`addresses` 테이블 연동)
+- [ ] 주문 내역 조회 (주문 기능 구현 후)
+
+### 5.3 그 외
+
+- [ ] Magic UI 컴포넌트 연동 (필요 시)
+- [ ] 배포 시 `FRONTEND_URL`, `DATABASE_URL`, `JWT_SECRET` 등 환경 변수 설정
+- [ ] 반응형 전 구간 점검 및 Admin 권한 최종 확인

@@ -8,6 +8,8 @@ import { ClassPage } from '@/features/class/page/Page'
 import { ContactPage } from '@/features/contact/page/Page'
 import { CartPage } from '@/features/cart/page/Page'
 import { AccountPage } from '@/features/account/page/Page'
+import { LoginPage } from '@/features/auth/page/LoginPage'
+import { RegisterPage } from '@/features/auth/page/RegisterPage'
 
 export const router = createBrowserRouter([
   {
@@ -22,6 +24,8 @@ export const router = createBrowserRouter([
       { path: 'contact', element: <ContactPage /> },
       { path: 'cart', element: <CartPage /> },
       { path: 'account', element: <AccountPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'register', element: <RegisterPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
