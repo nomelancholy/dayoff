@@ -1,0 +1,25 @@
+# 로컬 개발용 PostgreSQL (Supabase 대신 사용)
+# 사용: docker compose up -d
+# 중지: docker compose down
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dayoff-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dayoff
+    ports:
+      - "5432:5432"
+    volumes:
+      - dayoff_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dayoff_pgdata:

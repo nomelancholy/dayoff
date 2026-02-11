@@ -1,27 +1,26 @@
 # Project Context
-- **Framework**: React (Vite), TypeScript
+- **Framework**: React (Vite), NestJS (Backend), TypeScript
 - **Styling**: Tailwind CSS, Shadcn UI, Magic UI
 - **State Management**: Zustand (Client Global State), Tanstack Query (Server State)
-- **Database & Auth**: Supabase, Drizzle ORM
+- **Database & Auth**: PostgreSQL (Supabase Hosted), Drizzle ORM, NestJS Auth (Passport/JWT)
 - **Routing**: React-Router
 - **Package Manager**: npm
 
 # Coding Standards
 - **Component**: 
-  - 함수형 컴포넌트 사용. `const`로 정의하고 Named Export 사용 (`export const ComponentName = ...`).
-  - 컴포넌트는 `props` 타입을 명시적으로 정의 (Interface 사용 권장).
+ - 함수형 컴포넌트 사용. `const`로 정의하고 Named Export 사용 (`export const ComponentName = ...`).
+ - 컴포넌트는 `props` 타입을 명시적으로 정의 (Interface 사용 권장).
 - **Styling**: 
-  - Tailwind CSS 유틸리티 클래스 우선 사용.
-  - 조건부 스타일링은 `clsx`와 `tailwind-merge`를 조합한 `cn()` 유틸리티 함수 사용.
-- **Database (Supabase & Drizzle)**: 
-  - **모든 DB 쿼리는 Drizzle ORM을 사용한다.** (Supabase Client 직접 호출 지양)
-  - 데이터 페칭 로직은 Tanstack Query의 `useQuery`, `useMutation` 내에서 실행한다.
-  - 항상 Drizzle 을 활용해 RLS 적용을 권장한다.
-  - RLS(Row Level Security)가 적용된 테이블을 다룰 때는 Auth Context가 올바르게 전달되는지 확인한다.
-  - Supabase 에서 적용해야 하는 View나 function도 Drizzle로 정의하여 프로젝트 폴더 안에 저장한다
+ - Tailwind CSS 유틸리티 클래스 우선 사용.
+ - 조건부 스타일링은 `clsx`와 `tailwind-merge`를 조합한 `cn()` 유틸리티 함수 사용.
+- **Database (PostgreSQL & Drizzle)**: 
+ - **모든 DB 쿼리는 Drizzle ORM을 사용한다.**
+ - 데이터 페칭 로직은 Tanstack Query의 `useQuery`, `useMutation` 내에서 실행하며, NestJS API 엔드포인트를 호출한다.
+ - RLS(Row Level Security) 대신 NestJS의 Guard와 Interceptor를 활용하여 권한 및 보안 로직을 처리한다.
+ - DB 스키마는 NestJS 서버 프로젝트 내에서 관리하며, Drizzle Kit을 사용하여 마이그레이션을 수행한다.
 - **Type Safety**: 
-  - `any` 사용 금지. 
-  - Supabase Generated Types 또는 Drizzle Schema에서 추론된 타입을 사용한다.
+ - `any` 사용 금지. 
+ - Drizzle Schema에서 추론된 타입 또는 공유된 DTO(Data Transfer Object) 타입을 사용한다.
 - **Import Paths**: 
   - 상대 경로(`../../`) 대신 Path Alias(`@/common`, `@/features`)를 적극 사용한다.
 
@@ -44,20 +43,19 @@
   - `components/ui`: Shadcn UI 컴포넌트 저장소
   - `components`: 그 외 공통 컴포넌트 (Header, Footer 등)
   - `hooks`: 전역 커스텀 훅
-  - `lib`: `utils.ts` (cn 함수 포함), Supabase Client 설정
+  - `lib`: `utils.ts` (cn 함수 포함), API Client 설정 (Axios/Fetch)
   - `store`: Zustand 전역 스토어
 
 - **app/features**: 도메인/기능 단위 격리 (Feature-Sliced Design)
   - 구조: `app/features/[feature-name]/`
     - `components/`: 해당 기능 전용 컴포넌트
-    - `schema/`: 해당 기능의 Drizzle 스키마 (테이블 정의). 마이그레이션 시 `app/db/schema/index.ts`에서 re-export하여 사용
-    - `api/`: 해당 기능의 Drizzle 쿼리 및 Mutation 함수 (React Query에서 호출)
-    - `types/`: 해당 기능 전용 타입 정의
+    - `api/`: NestJS 서버 API 호출 함수 (React Query에서 호출)
+    - `types/`: 해당 기능 전용 타입 및 DTO 정의
     - `page/`: 해당 기능의 페이지 컴포넌트 (예: `page/Page.tsx`)
     - `routes.tsx`: 해당 기능의 라우트 정의 (선택 사항)
 
-- **app/db**: 마이그레이션 전용
-  - `schema/index.ts`: 각 feature의 `schema/`를 re-export (Drizzle Kit이 참조)
-  - `migrations/`: Drizzle Kit으로 생성된 마이그레이션 파일
+- **server**: NestJS 백엔드 (별도 프로젝트 구조)
+  - `src/`: NestJS 소스 코드
+  - `db/`: Drizzle 스키마 및 마이그레이션 파일
 
 - **public**: 정적 애셋 (이미지, 폰트 등)
