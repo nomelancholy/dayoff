@@ -175,12 +175,6 @@ _reference_ui/
 - [ ] **카카오 로그인**: [카카오 개발자 콘솔](https://developers.kakao.com/)에서 앱 생성, 로그인 활성화 → `server/.env`에 `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_CALLBACK_URL=http://localhost:4000/auth/kakao/callback` 등록 후 서버 재시작
 - [ ] **네이버 로그인**: [네이버 개발자 센터](https://developer.naver.com/)에서 애플리케이션 등록, 로그인 API 사용 설정 → `server/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_CALLBACK_URL=http://localhost:4000/auth/naver/callback` 등록 후 서버 재시작
 
-### 5.2 회원·계정 확장
-
-- [ ] 프로필 수정 (이름, 전화번호 등) API 및 `/account` UI
-- [ ] 주소록 CRUD (`addresses` 테이블 연동)
-- [ ] 주문 내역 조회 (주문 기능 구현 후)
-
 ### 5.3 그 외
 
 - [ ] Magic UI 컴포넌트 연동 (필요 시)

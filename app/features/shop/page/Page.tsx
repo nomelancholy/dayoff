@@ -33,18 +33,7 @@ export const ShopPage = () => {
   return (
     <div className="min-h-screen bg-dot-bg">
       {/* Shop Hero - reference: .shop-hero #EBE9E4, 12rem 4rem 6rem */}
-      <header className="relative bg-[#EBE9E4] px-6 pb-24 pt-48 text-center md:px-16 md:pb-32 md:pt-52">
-        {isAdmin && (
-          <div className="absolute right-6 top-12 md:right-16 md:top-16">
-            <Link
-              to="/shop/admin/new"
-              className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.25em] text-dot-primary transition-colors hover:underline"
-            >
-              <Plus size={12} />
-              Add product
-            </Link>
-          </div>
-        )}
+      <header className="bg-[#EBE9E4] px-6 pb-24 pt-48 text-center md:px-16 md:pb-32 md:pt-52">
         <span className="mono text-dot-primary">COLLECTIONS</span>
         <h1 className="mt-2 font-serif text-4xl font-normal tracking-[0.12em] text-dot-primary md:text-5xl lg:text-[3.5rem]">
           Shop the Edition
@@ -53,6 +42,19 @@ export const ShopPage = () => {
           Essential pieces for your daily ritual
         </p>
       </header>
+
+      {/* Admin: Add product (Hero와 카테고리 탭 사이, 우측 정렬) */}
+      {isAdmin && (
+        <div className="flex justify-end bg-dot-bg px-6 py-4 md:px-16">
+          <Link
+            to="/shop/admin/new"
+            className="mono flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.25em] text-dot-primary no-underline transition-colors hover:underline"
+          >
+            <Plus size={12} />
+            Add product
+          </Link>
+        </div>
+      )}
 
       {/* Filter Section - reference: sticky, padding 4rem 4rem 2rem, gap 2rem */}
       <div className="sticky top-20 z-[900] flex justify-center gap-8 border-b border-transparent bg-dot-bg px-6 py-8 md:px-16 md:py-10">
