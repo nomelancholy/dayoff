@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
 } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 
 /** 상품 카테고리 */
 export const productCategories = pgTable('product_categories', {
@@ -14,6 +15,13 @@ export const productCategories = pgTable('product_categories', {
   name: text('name').notNull(),
   sortOrder: integer('sort_order').default(0),
 });
+
+export const productCategoriesRelations = relations(
+  productCategories,
+  ({ many }) => ({
+    products: many(products),
+  }),
+);
 
 /** 상품 */
 export const products = pgTable('products', {
@@ -26,6 +34,10 @@ export const products = pgTable('products', {
   description: text('description'),
   price: integer('price').notNull(),
   isActive: boolean('is_active').notNull().default(true),
+  /** 구매 전 안내사항 */
+  purchaseNotice: text('purchase_notice'),
+  /** 취급 및 구매 주의사항 */
+  handlingNotice: text('handling_notice'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -33,6 +45,16 @@ export const products = pgTable('products', {
     .notNull()
     .defaultNow(),
 });
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  category: one(productCategories, {
+    fields: [products.categoryId],
+    references: [productCategories.id],
+  }),
+  images: many(productImages),
+  options: many(productOptions),
+  detailImages: many(productDetailImages),
+}));
 
 /** 상품 이미지 */
 export const productImages = pgTable('product_images', {
@@ -45,6 +67,13 @@ export const productImages = pgTable('product_images', {
   sortOrder: integer('sort_order').default(0),
 });
 
+export const productImagesRelations = relations(productImages, ({ one }) => ({
+  product: one(products, {
+    fields: [productImages.productId],
+    references: [products.id],
+  }),
+}));
+
 /** 상품 옵션 */
 export const productOptions = pgTable('product_options', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -55,3 +84,32 @@ export const productOptions = pgTable('product_options', {
   value: text('value').notNull(),
   sortOrder: integer('sort_order').default(0),
 });
+
+export const productOptionsRelations = relations(productOptions, ({ one }) => ({
+  product: one(products, {
+    fields: [productOptions.productId],
+    references: [products.id],
+  }),
+}));
+
+/** 상품 상세 페이지 하단 이미지 (추가 상세 이미지) */
+export const productDetailImages = pgTable('product_detail_images', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  url: text('url').notNull(),
+  alt: text('alt'),
+  sortOrder: integer('sort_order').default(0),
+});
+
+export const productDetailImagesRelations = relations(
+  productDetailImages,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [productDetailImages.productId],
+      references: [products.id],
+    }),
+  }),
+);
+

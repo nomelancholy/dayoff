@@ -4,6 +4,7 @@ export interface AuthUser {
   id: string
   email: string
   fullName: string | null
+  phone: string | null
   role: string
 }
 
@@ -67,6 +68,70 @@ export async function register(data: RegisterInput): Promise<AuthResult> {
 export async function fetchMe(): Promise<AuthUser> {
   const res = await apiClient.get<AuthUser>('/auth/me')
   return res as unknown as AuthUser
+}
+
+/** 프로필 수정 (JWT 필요) */
+export async function updateProfile(data: {
+  fullName?: string
+  phone?: string
+  currentPassword?: string
+  newPassword?: string
+}): Promise<AuthUser> {
+  const res = await apiClient.patch<AuthUser>('/auth/me', data)
+  return res as unknown as AuthUser
+}
+
+export interface AddressRow {
+  id: string
+  userId: string
+  label: string
+  recipientName: string | null
+  phone: string | null
+  postalCode: string | null
+  addressLine1: string
+  addressLine2: string | null
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** 내 주소 목록 */
+export async function fetchAddresses(): Promise<AddressRow[]> {
+  return apiClient.get<AddressRow[]>('/auth/addresses')
+}
+
+/** 주소 추가 */
+export async function createAddress(data: {
+  label: string
+  recipientName?: string
+  phone?: string
+  postalCode?: string
+  addressLine1: string
+  addressLine2?: string
+  isDefault?: boolean
+}): Promise<AddressRow> {
+  return apiClient.post<AddressRow>('/auth/addresses', data)
+}
+
+/** 주소 수정 */
+export async function updateAddress(
+  id: string,
+  data: {
+    label?: string
+    recipientName?: string
+    phone?: string
+    postalCode?: string
+    addressLine1?: string
+    addressLine2?: string
+    isDefault?: boolean
+}
+): Promise<AddressRow> {
+  return apiClient.patch<AddressRow>(`/auth/addresses/${id}`, data)
+}
+
+/** 주소 삭제 */
+export async function deleteAddress(id: string): Promise<void> {
+  await apiClient.delete(`/auth/addresses/${id}`)
 }
 
 /** 소셜 로그인 시작 — 브라우저를 이 URL로 보내면 됨 */

@@ -16,8 +16,8 @@ shop 페이지의 상품 등록은 admin만 할 수 있다.
 
 ### 2.1 사용자·권한 (Auth & Profile)
 
-- **users (Supabase Auth 확장 또는 profiles)**
-  - `id` (UUID, PK, Supabase Auth 연동)
+- **users**
+  - `id` (UUID, PK)
   - `email` (unique, not null)
   - `full_name` (이름, 프로필용)
   - `phone` (전화번호)

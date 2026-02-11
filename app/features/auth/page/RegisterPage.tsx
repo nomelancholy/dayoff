@@ -46,51 +46,50 @@ export const RegisterPage = () => {
   return (
     <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
       <div className="mx-auto max-w-md">
-        <h1 className="font-serif text-4xl tracking-[0.12em] text-dot-primary">
-          회원가입
+        <h1 className="font-serif text-3xl tracking-[0.15em] text-dot-primary">
+          Register
         </h1>
-        <p className="mt-2 text-sm text-[#666]">
-          이미 계정이 있으시면{' '}
-          <Link to="/login" className="underline hover:opacity-80">
-            로그인
+        <p className="mt-3 text-[10px] uppercase tracking-[0.2em] text-[#aaa]">
+          Already have an account?{' '}
+          <Link to="/login" className="text-dot-primary underline underline-offset-4 hover:opacity-70 transition-opacity">
+            Login
           </Link>
-          해 주세요.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="mt-12 flex flex-col gap-6">
           {error && (
-            <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p className="rounded border border-red-100 bg-red-50/50 px-3 py-2 text-[10px] text-red-600">
               {error}
             </p>
           )}
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-widest text-[#666]">
-              이메일 <span className="text-red-500">*</span>
+          <label className="flex flex-col gap-2">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#aaa]">
+              Email <span className="text-red-400">*</span>
             </span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={cn(
-                'rounded border border-[#ddd] bg-white px-3 py-2.5 text-dot-primary',
-                'focus:border-dot-primary focus:outline-none focus:ring-1 focus:ring-dot-primary'
+                'border-b border-[#eee] bg-transparent py-2 text-[11px] tracking-wide text-dot-primary',
+                'focus:border-dot-primary focus:outline-none transition-colors'
               )}
               placeholder="you@example.com"
               autoComplete="email"
               required
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-widest text-[#666]">
-              비밀번호 <span className="text-red-500">*</span> (8자 이상)
+          <label className="flex flex-col gap-2">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#aaa]">
+              Password <span className="text-red-400">*</span> (8+ chars)
             </span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={cn(
-                'rounded border border-[#ddd] bg-white px-3 py-2.5 text-dot-primary',
-                'focus:border-dot-primary focus:outline-none focus:ring-1 focus:ring-dot-primary'
+                'border-b border-[#eee] bg-transparent py-2 text-[11px] tracking-wide text-dot-primary',
+                'focus:border-dot-primary focus:outline-none transition-colors'
               )}
               placeholder="••••••••"
               autoComplete="new-password"
@@ -98,46 +97,46 @@ export const RegisterPage = () => {
               required
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-widest text-[#666]">
-              이름
+          <label className="flex flex-col gap-2">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#aaa]">
+              Name
             </span>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className={cn(
-                'rounded border border-[#ddd] bg-white px-3 py-2.5 text-dot-primary',
-                'focus:border-dot-primary focus:outline-none focus:ring-1 focus:ring-dot-primary'
+                'border-b border-[#eee] bg-transparent py-2 text-[11px] tracking-wide text-dot-primary',
+                'focus:border-dot-primary focus:outline-none transition-colors'
               )}
-              placeholder="홍길동"
+              placeholder="Your Name"
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-widest text-[#666]">
-              전화번호
+          <label className="flex flex-col gap-2">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#aaa]">
+              Phone
             </span>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className={cn(
-                'rounded border border-[#ddd] bg-white px-3 py-2.5 text-dot-primary',
-                'focus:border-dot-primary focus:outline-none focus:ring-1 focus:ring-dot-primary'
+                'border-b border-[#eee] bg-transparent py-2 text-[11px] tracking-wide text-dot-primary',
+                'focus:border-dot-primary focus:outline-none transition-colors'
               )}
               placeholder="010-0000-0000"
             />
           </label>
-          <button
-            type="submit"
-            disabled={registerMutation.isPending}
-            className={cn(
-              'mt-2 rounded border border-dot-primary bg-dot-primary px-4 py-3 text-sm font-medium uppercase tracking-widest text-white',
-              'transition-opacity hover:opacity-90 disabled:opacity-50'
-            )}
-          >
-            {registerMutation.isPending ? '가입 중…' : '회원가입'}
-          </button>
+            <button
+              type="submit"
+              disabled={registerMutation.isPending}
+              className={cn(
+                'mt-6 bg-[#1A1A1A] py-3.5 text-[10px] font-medium uppercase tracking-[0.3em] text-white!',
+                'transition-opacity hover:opacity-90 disabled:opacity-50'
+              )}
+            >
+              {registerMutation.isPending ? 'Registering…' : 'Register'}
+            </button>
         </form>
       </div>
     </div>

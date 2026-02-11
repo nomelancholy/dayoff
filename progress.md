@@ -35,14 +35,13 @@
 - [x] API Client 설정 (Axios/Fetch) 및 전역 에러 핸들링
 - [x] Drizzle 스키마 정의 및 마이그레이션 (NestJS 내)
 
-### 1.5 DB 인프라: Docker PostgreSQL 전환 (Supabase 의존성 제거)
+### 1.5 DB 인프라: NestJS + PostgreSQL 전용
 
 - [x] **docker-compose.yml** 작성 — PostgreSQL만 단일 서비스로 정의 (포트, 비밀번호, 볼륨 등)
-- [x] **server/.env**의 `DATABASE_URL`을 로컬 Docker Postgres 연결 문자열로 변경
+- [x] **server/.env**의 `DATABASE_URL`을 로컬/배포용 PostgreSQL 연결 문자열로 설정
 - [x] Docker 컨테이너 기동 후 **Drizzle 마이그레이션** 실행 (`db:push` 또는 `db:migrate`) 및 연결 확인
-- [x] (선택) 프론트엔드에서 Supabase 클라이언트(`app/common/lib/supabase.ts`, `@supabase/supabase-js`) 사용처 제거 — Auth/Realtime 등 미사용 시 제거 완료
 
-**방향 요약**: DB는 Supabase 호스팅 대신 **Docker로 PostgreSQL만** 실행. NestJS + Drizzle + `pg` 조합은 그대로 유지하며, `DATABASE_URL`만 로컬/배포 환경에 맞게 변경.
+**방향 요약**: DB는 **NestJS + PostgreSQL만** 사용. NestJS + Drizzle + `pg` 조합으로 `server`에서 스키마·마이그레이션 관리. Supabase 미사용.
 
 ### 1.6 인증 (NestJS Auth)
 
@@ -79,10 +78,11 @@
 
 ### 2.4 Shop (쇼핑)
 
-- [ ] 상품 목록 페이지: 그리드, 카테고리 필터 (컵/그릇/소품 등)
-- [ ] 상품 상세 페이지: 이미지, 옵션, 수량, 장바구니 담기 / 바로 구매
-- [ ] 장바구니 페이지: 수량 변경, 삭제, 주문 요약
-- [ ] **Admin 전용**: 상품 등록/수정/삭제 (권한 체크)
+- [x] 상품 목록 페이지: 그리드, 카테고리 필터 (컵/그릇/소품 등)
+- [x] 상품 상세 페이지: 이미지, 옵션, 수량, 장바구니 담기 / 바로 구매
+- [x] 장바구니 페이지: 수량 변경, 삭제, 주문 요약
+- [x] **Admin 전용**: 상품 등록/수정/삭제 (권한 체크) — 백엔드 구현 완료, 프론트 어드민 상품 등록 페이지(`/shop/admin/new`) 추가 완료
+- [x] 어드민 상품 등록 페이지 추가
 
 ### 2.5 Class (원데이 클래스)
 
@@ -100,7 +100,8 @@
 - [x] 로그인/회원가입: 이메일 + 소셜(카카오, 구글) — `/login`, `/register` 페이지, 소셜 버튼 및 콜백 token 처리
 - [x] 내 정보 페이지: 로그인 시 이메일/이름/권한 표시, 로그아웃 (`/account`)
 - [x] 로그아웃
-- [ ] 프로필 수정, 주문 내역, 주소록 (`_reference_ui/account.html`) — 추후 구현
+- [x] 프로필 수정, 주문 내역, 주소록 (`_reference_ui/account.html`)
+- [x] 네이버 지도 연동
 
 ### 2.8 쿠폰 (회원 할인)
 

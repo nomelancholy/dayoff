@@ -31,6 +31,22 @@
 $ npm install
 ```
 
+## Database (PostgreSQL)
+
+- 스키마/마이그레이션: Drizzle ORM. `DATABASE_URL`은 `.env`에 설정.
+- **스키마 반영**
+  - `npm run db:push` — 코드 스키마를 DB에 그대로 반영 (개발 시 편리).
+  - `npm run db:migrate` — 생성된 SQL 마이그레이션을 순서대로 적용.
+- **`db:migrate` 시 "relation \"users\" already exists" 에러가 나는 경우**  
+  DB에 이미 테이블이 있을 때 발생. 한 번만 부트스트랩 후 migrate 사용:
+  ```bash
+  npm run db:bootstrap
+  npm run db:migrate
+  ```
+- `npm run db:generate` — 스키마 변경 후 새 마이그레이션 SQL 생성.  
+- `npm run db:studio` — Drizzle Studio로 DB 조회.
+- `npm run db:seed-example` — 예시 상품 1개(상세 이미지, 구매 안내, 취급 주의, 구매평 1개 포함) 시드. 한 번만 실행해도 됨.
+
 ## Compile and run the project
 
 ```bash

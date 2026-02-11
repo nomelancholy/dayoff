@@ -41,78 +41,78 @@ export const LoginForm = ({ onSuccess }: LoginFormProps) => {
 
   return (
     <div className="w-full">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         {error && (
-          <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="rounded border border-red-100 bg-red-50/50 px-3 py-2 text-[10px] text-red-600">
             {error}
           </p>
         )}
-        <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-widest text-[#666]">
-            이메일
+        <label className="flex flex-col gap-2">
+          <span className="text-[9px] uppercase tracking-[0.2em] text-[#aaa]">
+            Email
           </span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={cn(
-              'rounded border border-[#ddd] bg-white px-3 py-2.5 text-dot-primary',
-              'focus:border-dot-primary focus:outline-none focus:ring-1 focus:ring-dot-primary'
+              'border-b border-[#eee] bg-transparent py-2 text-[11px] tracking-wide text-dot-primary',
+              'focus:border-dot-primary focus:outline-none transition-colors'
             )}
             placeholder="you@example.com"
             autoComplete="email"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-widest text-[#666]">
-            비밀번호
+        <label className="flex flex-col gap-2">
+          <span className="text-[9px] uppercase tracking-[0.2em] text-[#aaa]">
+            Password
           </span>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={cn(
-              'rounded border border-[#ddd] bg-white px-3 py-2.5 text-dot-primary',
-              'focus:border-dot-primary focus:outline-none focus:ring-1 focus:ring-dot-primary'
+              'border-b border-[#eee] bg-transparent py-2 text-[11px] tracking-wide text-dot-primary',
+              'focus:border-dot-primary focus:outline-none transition-colors'
             )}
             placeholder="••••••••"
             autoComplete="current-password"
           />
         </label>
-        <button
-          type="submit"
-          disabled={loginMutation.isPending}
-          className={cn(
-            'mt-2 rounded border border-dot-primary bg-dot-primary px-4 py-3 text-sm font-medium uppercase tracking-widest text-white',
-            'transition-opacity hover:opacity-90 disabled:opacity-50'
-          )}
-        >
-          {loginMutation.isPending ? '로그인 중…' : '로그인'}
-        </button>
+          <button
+            type="submit"
+            disabled={loginMutation.isPending}
+            className={cn(
+              'mt-4 bg-[#1A1A1A] py-3.5 text-[10px] font-medium uppercase tracking-[0.3em] text-white!',
+              'transition-opacity hover:opacity-90 disabled:opacity-50'
+            )}
+          >
+            {loginMutation.isPending ? 'Logging in…' : 'Login'}
+          </button>
       </form>
 
-      <div className="mt-8 border-t border-[#ddd] pt-8">
-        <p className="mb-4 text-center text-xs uppercase tracking-widest text-[#666]">
-          소셜 로그인
+      <div className="mt-12 border-t border-[#eee] pt-10">
+        <p className="mb-6 text-center text-[9px] uppercase tracking-[0.3em] text-[#bbb]">
+          Social Login
         </p>
         <div className="flex flex-col gap-3">
           <a
             href={socialLoginUrls.google}
-            className="flex items-center justify-center gap-2 rounded border border-[#ddd] bg-white px-4 py-3 text-sm text-dot-primary transition-colors hover:bg-[#f5f5f5]"
+            className="flex items-center justify-center border border-[#eee] bg-white py-3 text-[10px] uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-[#f5f5f5]"
           >
-            Google로 로그인
+            Google
           </a>
           <a
             href={socialLoginUrls.kakao}
-            className="flex items-center justify-center gap-2 rounded border border-[#FEE500] bg-[#FEE500] px-4 py-3 text-sm text-[#191919] transition-opacity hover:opacity-90"
+            className="flex items-center justify-center bg-[#FEE500] py-3 text-[10px] uppercase tracking-[0.2em] text-[#191919] transition-opacity hover:opacity-90"
           >
-            카카오로 로그인
+            Kakao
           </a>
           <a
             href={socialLoginUrls.naver}
-            className="flex items-center justify-center gap-2 rounded border border-[#03C75A] bg-[#03C75A] px-4 py-3 text-sm text-white transition-opacity hover:opacity-90"
+            className="flex items-center justify-center bg-[#03C75A] py-3 text-[10px] uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90"
           >
-            네이버로 로그인
+            Naver
           </a>
         </div>
       </div>

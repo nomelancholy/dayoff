@@ -4,8 +4,10 @@ import {
   Body,
   UseGuards,
   Get,
+  Patch,
+  Delete,
+  Param,
   Res,
-  Req,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
@@ -13,6 +15,8 @@ import * as express from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -51,6 +55,67 @@ export class AuthController {
       phone: user.phone,
       role: user.role,
     };
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @CurrentUser() user: UserRow,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.id, {
+      fullName: dto.fullName,
+      phone: dto.phone,
+      currentPassword: dto.currentPassword,
+      newPassword: dto.newPassword,
+    });
+  }
+
+  @Get('addresses')
+  @UseGuards(JwtAuthGuard)
+  async getAddresses(@CurrentUser() user: UserRow) {
+    return this.authService.getAddresses(user.id);
+  }
+
+  @Post('addresses')
+  @UseGuards(JwtAuthGuard)
+  async createAddress(
+    @CurrentUser() user: UserRow,
+    @Body() dto: CreateAddressDto,
+  ) {
+    return this.authService.createAddress(user.id, {
+      label: dto.label,
+      recipientName: dto.recipientName,
+      phone: dto.phone,
+      postalCode: dto.postalCode,
+      addressLine1: dto.addressLine1,
+      addressLine2: dto.addressLine2,
+      isDefault: dto.isDefault,
+    });
+  }
+
+  @Patch('addresses/:id')
+  @UseGuards(JwtAuthGuard)
+  async updateAddress(
+    @CurrentUser() user: UserRow,
+    @Param('id') id: string,
+    @Body() dto: UpdateAddressDto,
+  ) {
+    return this.authService.updateAddress(user.id, id, {
+      label: dto.label,
+      recipientName: dto.recipientName,
+      phone: dto.phone,
+      postalCode: dto.postalCode,
+      addressLine1: dto.addressLine1,
+      addressLine2: dto.addressLine2,
+      isDefault: dto.isDefault,
+    });
+  }
+
+  @Delete('addresses/:id')
+  @UseGuards(JwtAuthGuard)
+  async deleteAddress(@CurrentUser() user: UserRow, @Param('id') id: string) {
+    return this.authService.deleteAddress(user.id, id);
   }
 
   /** 구글 로그인: 이 라우트로 리다이렉트하면 구글 로그인 페이지로 이동 */

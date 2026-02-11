@@ -20,6 +20,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:bootstrap": "node scripts/bootstrap-migrations-log.mjs",
+    "db:seed-example": "node scripts/seed-example-product.mjs",
+    "db:seed-orders": "node scripts/seed-order-history.mjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

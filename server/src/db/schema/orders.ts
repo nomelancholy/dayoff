@@ -6,6 +6,7 @@ import {
   timestamp,
   boolean,
 } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
 import { users, addresses } from './users';
 import { products, productOptions } from './products';
 
@@ -90,3 +91,13 @@ export const orderItems = pgTable('order_items', {
   quantity: integer('quantity').notNull(),
   lineTotal: integer('line_total').notNull(),
 });
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(users, { fields: [orders.userId], references: [users.id] }),
+  orderItems: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
+  product: one(products, { fields: [orderItems.productId], references: [products.id] }),
+}));

@@ -32,7 +32,7 @@ export const Header = () => {
     >
       <Link
         to="/"
-        className="font-serif text-[1.8rem] font-normal text-dot-primary no-underline tracking-[0.12em]"
+        className="logo"
       >
         DOT.
       </Link>

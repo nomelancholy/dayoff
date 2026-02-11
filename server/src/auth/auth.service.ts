@@ -8,7 +8,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
@@ -155,6 +155,63 @@ export class AuthService {
     }) as Promise<UserRow | undefined>;
   }
 
+  /** 프로필 수정 (fullName, phone; 이메일 로그인 시 비밀번호 변경 가능) */
+  async updateProfile(
+    userId: string,
+    data: {
+      fullName?: string;
+      phone?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    },
+  ): Promise<{ id: string; email: string; fullName: string | null; phone: string | null; role: string }> {
+    const user = await this.findById(userId);
+    if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
+
+    const updates: Partial<typeof schema.users.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.fullName !== undefined) {
+      updates.fullName = data.fullName?.trim() || null;
+    }
+    if (data.phone !== undefined) {
+      updates.phone = data.phone?.trim() || null;
+    }
+
+    if (data.newPassword) {
+      if (user.provider !== 'email' || !user.password) {
+        throw new BadRequestException('이메일 로그인 회원만 비밀번호를 변경할 수 있습니다.');
+      }
+      if (!data.currentPassword) {
+        throw new BadRequestException('현재 비밀번호를 입력해 주세요.');
+      }
+      const match = await this.comparePassword(data.currentPassword, user.password);
+      if (!match) throw new BadRequestException('현재 비밀번호가 일치하지 않습니다.');
+      updates.password = await this.hashPassword(data.newPassword);
+    }
+
+    const [updated] = await this.db
+      .update(schema.users)
+      .set(updates)
+      .where(eq(schema.users.id, userId))
+      .returning({
+        id: schema.users.id,
+        email: schema.users.email,
+        fullName: schema.users.fullName,
+        phone: schema.users.phone,
+        role: schema.users.role,
+      });
+    if (!updated) throw new BadRequestException('프로필 수정에 실패했습니다.');
+    return {
+      id: updated.id,
+      email: updated.email,
+      fullName: updated.fullName,
+      phone: updated.phone,
+      role: updated.role,
+    };
+  }
+
   /** 소셜 로그인: provider+providerId로 기존 유저 찾거나 새로 생성 */
   async findOrCreateSocialUser(
     provider: AuthProvider,
@@ -180,5 +237,108 @@ export class AuthService {
       .returning();
     if (!created) throw new UnauthorizedException('소셜 계정 생성에 실패했습니다.');
     return created as UserRow;
+  }
+
+  /** 내 주소 목록 */
+  async getAddresses(userId: string) {
+    return this.db.query.addresses.findMany({
+      where: eq(schema.addresses.userId, userId),
+      orderBy: [desc(schema.addresses.isDefault), desc(schema.addresses.createdAt)],
+    });
+  }
+
+  /** 주소 추가 */
+  async createAddress(
+    userId: string,
+    data: {
+      label: string;
+      recipientName?: string;
+      phone?: string;
+      postalCode?: string;
+      addressLine1: string;
+      addressLine2?: string;
+      isDefault?: boolean;
+    },
+  ) {
+    if (data.isDefault) {
+      await this.db
+        .update(schema.addresses)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(eq(schema.addresses.userId, userId));
+    }
+    const [created] = await this.db
+      .insert(schema.addresses)
+      .values({
+        userId,
+        label: data.label.trim(),
+        recipientName: data.recipientName?.trim() || null,
+        phone: data.phone?.trim() || null,
+        postalCode: data.postalCode?.trim() || null,
+        addressLine1: data.addressLine1.trim(),
+        addressLine2: data.addressLine2?.trim() || null,
+        isDefault: data.isDefault ?? false,
+      })
+      .returning();
+    if (!created) throw new BadRequestException('주소 추가에 실패했습니다.');
+    return created;
+  }
+
+  /** 주소 수정 */
+  async updateAddress(
+    userId: string,
+    addressId: string,
+    data: {
+      label?: string;
+      recipientName?: string;
+      phone?: string;
+      postalCode?: string;
+      addressLine1?: string;
+      addressLine2?: string;
+      isDefault?: boolean;
+    },
+  ) {
+    const existing = await this.db.query.addresses.findFirst({
+      where: and(
+        eq(schema.addresses.id, addressId),
+        eq(schema.addresses.userId, userId),
+      ),
+    });
+    if (!existing) throw new BadRequestException('주소를 찾을 수 없습니다.');
+
+    if (data.isDefault === true) {
+      await this.db
+        .update(schema.addresses)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(eq(schema.addresses.userId, userId));
+    }
+
+    const updates: Partial<typeof schema.addresses.$inferInsert> = { updatedAt: new Date() };
+    if (data.label !== undefined) updates.label = data.label.trim();
+    if (data.recipientName !== undefined) updates.recipientName = data.recipientName?.trim() || null;
+    if (data.phone !== undefined) updates.phone = data.phone?.trim() || null;
+    if (data.postalCode !== undefined) updates.postalCode = data.postalCode?.trim() || null;
+    if (data.addressLine1 !== undefined) updates.addressLine1 = data.addressLine1.trim();
+    if (data.addressLine2 !== undefined) updates.addressLine2 = data.addressLine2?.trim() || null;
+    if (data.isDefault !== undefined) updates.isDefault = data.isDefault;
+
+    const [updated] = await this.db
+      .update(schema.addresses)
+      .set(updates)
+      .where(eq(schema.addresses.id, addressId))
+      .returning();
+    return updated;
+  }
+
+  /** 주소 삭제 */
+  async deleteAddress(userId: string, addressId: string) {
+    const existing = await this.db.query.addresses.findFirst({
+      where: and(
+        eq(schema.addresses.id, addressId),
+        eq(schema.addresses.userId, userId),
+      ),
+    });
+    if (!existing) throw new BadRequestException('주소를 찾을 수 없습니다.');
+    await this.db.delete(schema.addresses).where(eq(schema.addresses.id, addressId));
+    return { ok: true };
   }
 }

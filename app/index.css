@@ -75,10 +75,16 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3 {
+h1, h2, h3, .logo {
   font-family: 'DM Serif Display', serif;
   font-weight: 400;
   letter-spacing: 0.12em;
+}
+
+.logo {
+  font-size: 1.8rem;
+  text-decoration: none;
+  color: var(--dot-text-primary);
 }
 
 /* Reference UI: glaze overlay (opalescent sheen) */
@@ -147,21 +153,15 @@ h1, h2, h3 {
   animation: hero-reveal 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards 0.5s;
 }
 
+/* 기본 버튼은 배경 없음. 채운 스타일은 각 컴포넌트에서 Tailwind로 적용 */
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: var(--dot-text-primary);
-  color: var(--dot-bg);
   cursor: pointer;
-  transition: var(--dot-transition);
+  font-family: inherit;
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--dot-text-primary);
+  outline-offset: 2px;
 }
 
 @theme inline {
@@ -172,6 +172,12 @@ button:focus-visible {
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  /* DOT reference UI colors – so bg-dot-primary, text-dot-secondary etc. work */
+  --color-dot-bg: var(--dot-bg);
+  --color-dot-surface: var(--dot-surface);
+  --color-dot-primary: var(--dot-text-primary);
+  --color-dot-secondary: var(--dot-text-secondary);
+  --color-dot-accent: var(--dot-accent);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

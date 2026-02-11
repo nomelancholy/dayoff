@@ -2,7 +2,7 @@
 - **Framework**: React (Vite), NestJS (Backend), TypeScript
 - **Styling**: Tailwind CSS, Shadcn UI, Magic UI
 - **State Management**: Zustand (Client Global State), Tanstack Query (Server State)
-- **Database & Auth**: PostgreSQL (Supabase Hosted), Drizzle ORM, NestJS Auth (Passport/JWT)
+- **Database & Auth**: PostgreSQL (NestJS 서버에서만 사용, Supabase 미사용), Drizzle ORM, NestJS Auth (Passport/JWT)
 - **Routing**: React-Router
 - **Package Manager**: npm
 
