@@ -1,4 +1,12 @@
-import { IsString, IsIn, IsInt, Min, IsOptional, IsBoolean, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsIn,
+  IsInt,
+  Min,
+  IsOptional,
+  IsBoolean,
+  IsDateString,
+} from 'class-validator';
 import { DISCOUNT_TYPES, type DiscountType } from './create-coupon.dto';
 
 export class UpdateCouponDto {

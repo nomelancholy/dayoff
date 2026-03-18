@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import {
@@ -25,6 +25,21 @@ import { cn } from '@/common/lib/utils'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 
 type AccountSection = 'profile' | 'orders' | 'address'
+
+const formatPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '')
+  if (!digits) return ''
+  if (digits.length === 11) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+  }
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  // 입력 중간(12자리 이하)에는 최대한 보기 좋게만 하이픈 처리
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+}
 
 export const AccountPage = () => {
   const navigate = useNavigate()
@@ -56,19 +71,19 @@ export const AccountPage = () => {
           </p>
 
           <div className="mt-12">
-            <LoginForm onSuccess={() => window.location.reload()} />
+            <LoginForm />
           </div>
 
           <div className="mt-12 border-t border-[#eee] pt-10 text-center">
             <p className="mb-6 text-[0.8rem] text-dot-secondary">New to Day Off?</p>
             <Link
-              to="/register"
+              to="/login"
               className={cn(
                 'mono inline-block w-full border border-dot-primary bg-transparent px-4 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary no-underline',
                 'transition-colors hover:bg-dot-primary hover:text-white'
               )}
             >
-              Create Account
+              Login
             </Link>
           </div>
         </div>
@@ -157,7 +172,7 @@ export const AccountPage = () => {
 
         <div className="min-w-0">
           {activeSection === 'profile' && (
-            <ProfileSection user={user} />
+            <ProfileSection key={user.id} user={user} />
           )}
 
           {activeSection === 'orders' && (
@@ -177,36 +192,21 @@ export const AccountPage = () => {
 function ProfileSection({ user }: { user: AuthUser }) {
   const queryClient = useQueryClient()
   const [fullName, setFullName] = useState(user.fullName ?? '')
-  const [phone, setPhone] = useState(user.phone ?? '')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-
-  useEffect(() => {
-    setFullName(user.fullName ?? '')
-    setPhone(user.phone ?? '')
-  }, [user.fullName, user.phone])
+  const [phone, setPhone] = useState(formatPhone(user.phone ?? ''))
 
   const profileMutation = useMutation({
     mutationFn: () =>
       updateProfile({
         fullName: fullName.trim() || undefined,
         phone: phone.trim() || undefined,
-        currentPassword: currentPassword || undefined,
-        newPassword: newPassword || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
-      setCurrentPassword('')
-      setNewPassword('')
     },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (newPassword && newPassword.length < 8) {
-      alert('새 비밀번호는 8자 이상이어야 합니다.')
-      return
-    }
     profileMutation.mutate()
   }
 
@@ -246,39 +246,10 @@ function ProfileSection({ user }: { user: AuthUser }) {
           <input
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
             placeholder="010-1234-5678"
             className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] text-dot-primary placeholder:text-dot-secondary focus:border-dot-primary focus:outline-none"
           />
-        </div>
-        <div>
-          <label className="mono mb-2 block text-[0.85rem] text-dot-primary">
-            PASSWORD
-          </label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] text-dot-primary placeholder:text-dot-secondary focus:border-dot-primary focus:outline-none"
-          />
-          <p className="mt-1 text-[0.7rem] text-dot-secondary">
-            비밀번호를 변경할 때만 입력하세요. (8자 이상)
-          </p>
-          {newPassword ? (
-            <div className="mt-4">
-              <label className="mono mb-2 block text-[0.8rem] text-dot-primary">
-                CURRENT PASSWORD
-              </label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="현재 비밀번호"
-                className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] focus:border-dot-primary focus:outline-none"
-              />
-            </div>
-          ) : null}
         </div>
         <button
           type="submit"
@@ -449,13 +420,90 @@ function AddressForm({
   onCancel: () => void
   isPending: boolean
 }) {
+  type KakaoPostcodeData = {
+    zonecode: string
+    roadAddress: string
+    jibunAddress: string
+    userSelectedType: string
+  }
+
+  type KakaoPostcodeInstance = {
+    open: () => void
+  }
+
+  type KakaoPostcodeConstructor = new (options: { oncomplete: (data: KakaoPostcodeData) => void }) => KakaoPostcodeInstance
+
+  const KAKAO_POSTCODE_SCRIPT_URL =
+    '//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+
+  const ensureKakaoPostcodeLoaded = async (): Promise<void> => {
+    if (typeof window === 'undefined') return
+    const w = window as unknown as { kakao?: { Postcode?: KakaoPostcodeConstructor } }
+    if (w.kakao?.Postcode) return
+
+    const existing = document.getElementById('kakao-postcode-script')
+    if (existing) {
+      // 로딩 중/완료 상태를 알기 위해 promise를 재사용 (id 중복 삽입 방지)
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 400)
+      })
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script')
+      script.id = 'kakao-postcode-script'
+      script.src = KAKAO_POSTCODE_SCRIPT_URL
+      script.async = true
+      script.onload = () => resolve()
+      script.onerror = () => reject(new Error('카카오 우편번호 스크립트 로드에 실패했습니다.'))
+      document.body.appendChild(script)
+    })
+  }
+
   const [label, setLabel] = useState(address?.label ?? '')
   const [recipientName, setRecipientName] = useState(address?.recipientName ?? '')
-  const [phone, setPhone] = useState(address?.phone ?? '')
+  const formatPhone = (value: string): string => {
+    const digits = value.replace(/\D/g, '')
+    if (!digits) return ''
+    if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+    if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+    // 입력 중간(12자리 이하)에는 최대한 보기 좋게만 하이픈 처리
+    if (digits.length <= 3) return digits
+    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+  }
+
+  const [phone, setPhone] = useState(formatPhone(address?.phone ?? ''))
   const [postalCode, setPostalCode] = useState(address?.postalCode ?? '')
   const [addressLine1, setAddressLine1] = useState(address?.addressLine1 ?? '')
   const [addressLine2, setAddressLine2] = useState(address?.addressLine2 ?? '')
   const [isDefault, setIsDefault] = useState(address?.isDefault ?? false)
+  const [postcodeLoading, setPostcodeLoading] = useState(false)
+  const addressLine2Ref = useRef<HTMLInputElement | null>(null)
+
+  const handleOpenPostcode = async () => {
+    if (postcodeLoading) return
+    try {
+      setPostcodeLoading(true)
+      await ensureKakaoPostcodeLoaded()
+      const w = window as unknown as { kakao?: { Postcode?: KakaoPostcodeConstructor } }
+      if (!w.kakao?.Postcode) return
+
+      const Postcode = w.kakao.Postcode
+      new Postcode({
+        oncomplete: (data: KakaoPostcodeData) => {
+          setPostalCode(data.zonecode)
+          const selected =
+            data.userSelectedType === 'J' ? data.jibunAddress : data.roadAddress
+          setAddressLine1(selected || data.roadAddress || data.jibunAddress)
+          setTimeout(() => addressLine2Ref.current?.focus(), 0)
+        },
+      }).open()
+    } finally {
+      setPostcodeLoading(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -506,7 +554,7 @@ function AddressForm({
         <input
           type="tel"
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setPhone(formatPhone(e.target.value))}
           placeholder="010-1234-5678"
           className="w-full border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
         />
@@ -516,19 +564,31 @@ function AddressForm({
         <input
           type="text"
           value={postalCode}
-          onChange={(e) => setPostalCode(e.target.value)}
+          onChange={() => {}}
+          readOnly
+          onClick={handleOpenPostcode}
+          className="w-full cursor-pointer border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
           placeholder="우편번호"
-          className="w-full border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
         />
+        <button
+          type="button"
+          onClick={handleOpenPostcode}
+          disabled={postcodeLoading}
+          className="mono mt-2 w-full border border-dot-primary bg-white py-2.5 text-[0.85rem] text-dot-primary disabled:opacity-50"
+        >
+          {postcodeLoading ? 'LOADING…' : '우편번호 찾기'}
+        </button>
       </div>
       <div>
         <label className="mono mb-1 block text-[0.8rem] text-dot-primary">ADDRESS</label>
         <input
           type="text"
           value={addressLine1}
-          onChange={(e) => setAddressLine1(e.target.value)}
+          onChange={() => {}}
+          readOnly
+          onClick={handleOpenPostcode}
+          className="w-full cursor-pointer border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
           placeholder="도로명 또는 지번 주소"
-          className="w-full border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
           required
         />
       </div>
@@ -539,6 +599,7 @@ function AddressForm({
           value={addressLine2}
           onChange={(e) => setAddressLine2(e.target.value)}
           placeholder="상세 주소, 동/호수"
+          ref={addressLine2Ref}
           className="w-full border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
         />
       </div>

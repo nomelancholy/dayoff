@@ -32,8 +32,7 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
     profile: KakaoProfile,
   ) {
     const email =
-      profile._json?.kakao_account?.email ??
-      `${profile.id}@kakao.placeholder`;
+      profile._json?.kakao_account?.email ?? `${profile.id}@kakao.placeholder`;
     const fullName = profile.displayName ?? profile.username;
     return this.authService.findOrCreateSocialUser(
       'kakao',

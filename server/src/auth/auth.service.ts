@@ -73,7 +73,9 @@ export class AuthService {
     } catch {
       throw new BadRequestException('비밀번호 암호화 중 오류가 발생했습니다.');
     }
-    let user: { id: string; email: string; fullName: string | null; role: string } | undefined;
+    let user:
+      | { id: string; email: string; fullName: string | null; role: string }
+      | undefined;
     try {
       [user] = await this.db
         .insert(schema.users)
@@ -91,7 +93,10 @@ export class AuthService {
           role: schema.users.role,
         });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '회원가입 처리 중 오류가 발생했습니다.';
+      const msg =
+        err instanceof Error
+          ? err.message
+          : '회원가입 처리 중 오류가 발생했습니다.';
       throw new BadRequestException(msg);
     }
     if (!user) throw new UnauthorizedException('회원가입 처리에 실패했습니다.');
@@ -128,7 +133,7 @@ export class AuthService {
     return ok ? user : null;
   }
 
-  async login(user: UserRow): Promise<AuthResult> {
+  login(user: UserRow): AuthResult {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -164,7 +169,13 @@ export class AuthService {
       currentPassword?: string;
       newPassword?: string;
     },
-  ): Promise<{ id: string; email: string; fullName: string | null; phone: string | null; role: string }> {
+  ): Promise<{
+    id: string;
+    email: string;
+    fullName: string | null;
+    phone: string | null;
+    role: string;
+  }> {
     const user = await this.findById(userId);
     if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
 
@@ -181,13 +192,19 @@ export class AuthService {
 
     if (data.newPassword) {
       if (user.provider !== 'email' || !user.password) {
-        throw new BadRequestException('이메일 로그인 회원만 비밀번호를 변경할 수 있습니다.');
+        throw new BadRequestException(
+          '이메일 로그인 회원만 비밀번호를 변경할 수 있습니다.',
+        );
       }
       if (!data.currentPassword) {
         throw new BadRequestException('현재 비밀번호를 입력해 주세요.');
       }
-      const match = await this.comparePassword(data.currentPassword, user.password);
-      if (!match) throw new BadRequestException('현재 비밀번호가 일치하지 않습니다.');
+      const match = await this.comparePassword(
+        data.currentPassword,
+        user.password,
+      );
+      if (!match)
+        throw new BadRequestException('현재 비밀번호가 일치하지 않습니다.');
       updates.password = await this.hashPassword(data.newPassword);
     }
 
@@ -226,6 +243,26 @@ export class AuthService {
       ),
     });
     if (existing) return existing as UserRow;
+
+    // users.email 은 unique이므로, 동일 이메일이 이미 이메일 로그인 계정으로 존재하면
+    // insert 대신 해당 유저의 provider/providerId만 갱신한다.
+    const existingByEmail = await this.db.query.users.findFirst({
+      where: eq(schema.users.email, email),
+    });
+    if (existingByEmail) {
+      const [updated] = await this.db
+        .update(schema.users)
+        .set({
+          provider,
+          providerId,
+          fullName: fullName ?? existingByEmail.fullName ?? null,
+        })
+        .where(eq(schema.users.id, existingByEmail.id))
+        .returning();
+      if (!updated)
+        throw new UnauthorizedException('소셜 계정 업데이트에 실패했습니다.');
+      return updated as UserRow;
+    }
     const [created] = await this.db
       .insert(schema.users)
       .values({
@@ -235,15 +272,19 @@ export class AuthService {
         fullName: fullName ?? null,
       })
       .returning();
-    if (!created) throw new UnauthorizedException('소셜 계정 생성에 실패했습니다.');
-    return created as UserRow;
+    if (!created)
+      throw new UnauthorizedException('소셜 계정 생성에 실패했습니다.');
+    return created;
   }
 
   /** 내 주소 목록 */
   async getAddresses(userId: string) {
     return this.db.query.addresses.findMany({
       where: eq(schema.addresses.userId, userId),
-      orderBy: [desc(schema.addresses.isDefault), desc(schema.addresses.createdAt)],
+      orderBy: [
+        desc(schema.addresses.isDefault),
+        desc(schema.addresses.createdAt),
+      ],
     });
   }
 
@@ -312,13 +353,19 @@ export class AuthService {
         .where(eq(schema.addresses.userId, userId));
     }
 
-    const updates: Partial<typeof schema.addresses.$inferInsert> = { updatedAt: new Date() };
+    const updates: Partial<typeof schema.addresses.$inferInsert> = {
+      updatedAt: new Date(),
+    };
     if (data.label !== undefined) updates.label = data.label.trim();
-    if (data.recipientName !== undefined) updates.recipientName = data.recipientName?.trim() || null;
+    if (data.recipientName !== undefined)
+      updates.recipientName = data.recipientName?.trim() || null;
     if (data.phone !== undefined) updates.phone = data.phone?.trim() || null;
-    if (data.postalCode !== undefined) updates.postalCode = data.postalCode?.trim() || null;
-    if (data.addressLine1 !== undefined) updates.addressLine1 = data.addressLine1.trim();
-    if (data.addressLine2 !== undefined) updates.addressLine2 = data.addressLine2?.trim() || null;
+    if (data.postalCode !== undefined)
+      updates.postalCode = data.postalCode?.trim() || null;
+    if (data.addressLine1 !== undefined)
+      updates.addressLine1 = data.addressLine1.trim();
+    if (data.addressLine2 !== undefined)
+      updates.addressLine2 = data.addressLine2?.trim() || null;
     if (data.isDefault !== undefined) updates.isDefault = data.isDefault;
 
     const [updated] = await this.db
@@ -338,7 +385,9 @@ export class AuthService {
       ),
     });
     if (!existing) throw new BadRequestException('주소를 찾을 수 없습니다.');
-    await this.db.delete(schema.addresses).where(eq(schema.addresses.id, addressId));
+    await this.db
+      .delete(schema.addresses)
+      .where(eq(schema.addresses.id, addressId));
     return { ok: true };
   }
 }

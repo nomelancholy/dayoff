@@ -13,11 +13,8 @@ import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import * as express from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { UserRow } from './auth.service';
@@ -29,25 +26,9 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
-  @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(
-      dto.email,
-      dto.password,
-      dto.fullName,
-      dto.phone,
-    );
-  }
-
-  @Post('login')
-  @UseGuards(LocalAuthGuard)
-  async login(@Body() _dto: LoginDto, @CurrentUser() user: UserRow) {
-    return this.authService.login(user);
-  }
-
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async me(@CurrentUser() user: UserRow) {
+  me(@CurrentUser() user: UserRow) {
     return {
       id: user.id,
       email: user.email,

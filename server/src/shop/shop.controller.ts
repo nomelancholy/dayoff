@@ -26,10 +26,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserRow } from '../auth/auth.service';
 
 const getBaseUrl = (req: Request): string => {
-  const protocol = req.protocol || 'http'
-  const host = req.get('host') || 'localhost:4000'
-  return `${protocol}://${host}`
-}
+  const protocol = req.protocol || 'http';
+  const host = req.get('host') || 'localhost:4000';
+  return `${protocol}://${host}`;
+};
 
 @Controller('shop')
 export class ShopController {
@@ -58,10 +58,10 @@ export class ShopController {
     @Req() req: Request,
     @UploadedFiles() files: Multer.File[],
   ) {
-    if (!files?.length) return { urls: [] }
-    const base = getBaseUrl(req)
-    const urls = files.map((f) => `${base}/uploads/review/${f.filename}`)
-    return { urls }
+    if (!files?.length) return { urls: [] };
+    const base = getBaseUrl(req);
+    const urls = files.map((f) => `${base}/uploads/review/${f.filename}`);
+    return { urls };
   }
 
   @Post('products/:id/reviews')
@@ -133,15 +133,19 @@ export class ShopController {
       storage: diskStorage({
         destination: './uploads/product',
         filename: (_req, file, cb) => {
-          const ext = extname(file.originalname) || '.jpg'
-          cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`)
+          const ext = extname(file.originalname) || '.jpg';
+          cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`);
         },
       }),
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
-        const allowed = /^image\/(jpeg|png|gif|webp)$/
-        if (allowed.test(file.mimetype)) cb(null, true)
-        else cb(new Error('이미지 파일만 업로드 가능합니다 (jpg, png, gif, webp).'), false)
+        const allowed = /^image\/(jpeg|png|gif|webp)$/;
+        if (allowed.test(file.mimetype)) cb(null, true);
+        else
+          cb(
+            new Error('이미지 파일만 업로드 가능합니다 (jpg, png, gif, webp).'),
+            false,
+          );
       },
     }),
   )
@@ -149,10 +153,10 @@ export class ShopController {
     @Req() req: Request,
     @UploadedFiles() files: Multer.File[],
   ) {
-    if (!files?.length) return { urls: [] }
-    const base = getBaseUrl(req)
-    const urls = files.map((f) => `${base}/uploads/product/${f.filename}`)
-    return { urls }
+    if (!files?.length) return { urls: [] };
+    const base = getBaseUrl(req);
+    const urls = files.map((f) => `${base}/uploads/product/${f.filename}`);
+    return { urls };
   }
 
   /** [Admin] 상품 생성 */

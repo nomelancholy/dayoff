@@ -12,15 +12,19 @@ import { ShopController } from './shop.controller';
       storage: diskStorage({
         destination: './uploads/review',
         filename: (_req, file, cb) => {
-          const ext = extname(file.originalname) || '.jpg'
-          cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`)
+          const ext = extname(file.originalname) || '.jpg';
+          cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`);
         },
       }),
       limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
       fileFilter: (_req, file, cb) => {
-        const allowed = /^image\/(jpeg|png|gif|webp)$/
-        if (allowed.test(file.mimetype)) cb(null, true)
-        else cb(new Error('이미지 파일만 업로드 가능합니다 (jpg, png, gif, webp).'), false)
+        const allowed = /^image\/(jpeg|png|gif|webp)$/;
+        if (allowed.test(file.mimetype)) cb(null, true);
+        else
+          cb(
+            new Error('이미지 파일만 업로드 가능합니다 (jpg, png, gif, webp).'),
+            false,
+          );
       },
     }),
   ],

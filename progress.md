@@ -184,7 +184,7 @@ _reference_ui/
 
 - [ ] **구글 로그인**: [Google Cloud Console](https://console.cloud.google.com/)에서 OAuth 2.0 클라이언트 ID 생성 → `server/.env`에 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback` 등록 후 서버 재시작
 - [ ] **카카오 로그인**: [카카오 개발자 콘솔](https://developers.kakao.com/)에서 앱 생성, 로그인 활성화 → `server/.env`에 `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_CALLBACK_URL=http://localhost:4000/auth/kakao/callback` 등록 후 서버 재시작
-- [ ] **네이버 로그인**: [네이버 개발자 센터](https://developer.naver.com/)에서 애플리케이션 등록, 로그인 API 사용 설정 → `server/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_CALLBACK_URL=http://localhost:4000/auth/naver/callback` 등록 후 서버 재시작
+- [v] **네이버 로그인**: [네이버 개발자 센터](https://developer.naver.com/)에서 애플리케이션 등록, 로그인 API 사용 설정 → Redirect URI(Callback URL)는 **백엔드**로 `http://localhost:4000/auth/naver/callback` 등록 → `server/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_CALLBACK_URL=http://localhost:4000/auth/naver/callback` 등록 후 서버 재시작 (성공 시 백엔드가 `FRONTEND_URL`의 `/login?token=...`로 리다이렉트)
 
 ### 5.3 그 외
 

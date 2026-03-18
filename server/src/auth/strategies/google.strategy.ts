@@ -24,8 +24,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     profile: Profile,
     done: VerifyCallback,
   ): Promise<void> {
-    const email = profile.emails?.[0]?.value ?? `${profile.id}@google.placeholder`;
-    const fullName = profile.displayName ?? [profile.name?.givenName, profile.name?.familyName].filter(Boolean).join(' ');
+    const email =
+      profile.emails?.[0]?.value ?? `${profile.id}@google.placeholder`;
+    const fullName =
+      profile.displayName ??
+      [profile.name?.givenName, profile.name?.familyName]
+        .filter(Boolean)
+        .join(' ');
     const user = await this.authService.findOrCreateSocialUser(
       'google',
       profile.id,

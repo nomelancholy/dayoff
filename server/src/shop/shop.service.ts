@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, asc, desc, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
@@ -144,13 +139,22 @@ export class ShopService {
   }
 
   /** 장바구니 아이템 수량 변경 */
-  async updateCartItemQuantity(userId: string, cartItemId: string, quantity: number) {
+  async updateCartItemQuantity(
+    userId: string,
+    cartItemId: string,
+    quantity: number,
+  ) {
     const [updated] = await this.db
       .update(schema.cartItems)
       .set({ quantity, updatedAt: new Date() })
-      .where(and(eq(schema.cartItems.id, cartItemId), eq(schema.cartItems.userId, userId)))
+      .where(
+        and(
+          eq(schema.cartItems.id, cartItemId),
+          eq(schema.cartItems.userId, userId),
+        ),
+      )
       .returning();
-    
+
     if (!updated) {
       throw new NotFoundException('장바구니 아이템을 찾을 수 없습니다.');
     }

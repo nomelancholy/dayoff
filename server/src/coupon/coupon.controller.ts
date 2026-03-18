@@ -56,8 +56,12 @@ export class CouponController {
     return this.couponService.update(id, {
       ...(dto.code !== undefined && { code: dto.code }),
       ...(dto.discountType !== undefined && { discountType: dto.discountType }),
-      ...(dto.discountValue !== undefined && { discountValue: dto.discountValue }),
-      ...(dto.minOrderAmount !== undefined && { minOrderAmount: dto.minOrderAmount }),
+      ...(dto.discountValue !== undefined && {
+        discountValue: dto.discountValue,
+      }),
+      ...(dto.minOrderAmount !== undefined && {
+        minOrderAmount: dto.minOrderAmount,
+      }),
       ...(dto.validFrom !== undefined && { validFrom: dto.validFrom }),
       ...(dto.validUntil !== undefined && { validUntil: dto.validUntil }),
       ...(dto.usageLimit !== undefined && { usageLimit: dto.usageLimit }),
@@ -91,14 +95,7 @@ export class CouponController {
   /** 회원: 쿠폰 코드 검증 (주문 금액 기준 할인액) */
   @Post('validate')
   @UseGuards(JwtAuthGuard)
-  async validate(
-    @CurrentUser() user: UserRow,
-    @Body() dto: ValidateCouponDto,
-  ) {
-    return this.couponService.validateCode(
-      user.id,
-      dto.code,
-      dto.orderAmount,
-    );
+  async validate(@CurrentUser() user: UserRow, @Body() dto: ValidateCouponDto) {
+    return this.couponService.validateCode(user.id, dto.code, dto.orderAmount);
   }
 }

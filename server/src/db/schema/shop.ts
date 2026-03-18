@@ -1,10 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  integer,
-  timestamp,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 import { products, productOptions } from './products';

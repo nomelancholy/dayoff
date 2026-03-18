@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { setStoredToken } from '../api/auth'
 import { LoginForm } from '../components/LoginForm'
 
@@ -23,11 +23,7 @@ export const LoginPage = () => {
           로그인
         </h1>
         <p className="mt-2 text-sm text-[#666]">
-          계정이 없으시면{' '}
-          <Link to="/register" className="underline hover:opacity-80">
-            회원가입
-          </Link>
-          을 해 주세요.
+          소셜 로그인은 버튼을 통해 자동으로 계정이 생성됩니다.
         </p>
 
         <div className="mt-8">

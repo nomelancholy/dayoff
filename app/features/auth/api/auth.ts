@@ -13,18 +13,6 @@ export interface AuthResult {
   user: AuthUser
 }
 
-export interface LoginInput {
-  email: string
-  password: string
-}
-
-export interface RegisterInput {
-  email: string
-  password: string
-  fullName?: string
-  phone?: string
-}
-
 const AUTH_TOKEN_KEY = 'auth_token'
 
 /** API 에러 응답에서 사용자에게 보여줄 메시지 추출 (NestJS validation: message가 배열일 수 있음) */
@@ -52,16 +40,6 @@ export function setStoredToken(token: string): void {
 
 export function clearStoredToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY)
-}
-
-/** 이메일 로그인 */
-export async function login(data: LoginInput): Promise<AuthResult> {
-  return apiClient.post<AuthResult>('/auth/login', data)
-}
-
-/** 회원가입 */
-export async function register(data: RegisterInput): Promise<AuthResult> {
-  return apiClient.post<AuthResult>('/auth/register', data)
 }
 
 /** 현재 로그인 사용자 정보 (JWT 필요) */

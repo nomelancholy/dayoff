@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -6,12 +7,12 @@ import type { Provider } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { KakaoStrategy } from './strategies/kakao.strategy';
 import { NaverStrategy } from './strategies/naver.strategy';
 
 // 소셜 로그인은 env 설정이 있을 때만 전략 등록 (미설정 시 OAuth2Strategy가 clientID 필수로 크래시 방지)
+// 주의: AuthModule 파일 import 시점에 process.env를 읽으므로 dotenv/config로 미리 로딩해 둔다.
 const socialProviders: Provider[] = [];
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CALLBACK_URL) {
   socialProviders.push(GoogleStrategy);
@@ -38,7 +39,7 @@ if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CALLBACK_URL) {
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy, ...socialProviders],
+  providers: [AuthService, JwtStrategy, ...socialProviders],
   exports: [AuthService],
 })
 export class AuthModule {}

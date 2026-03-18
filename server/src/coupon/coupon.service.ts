@@ -85,20 +85,34 @@ export class CouponService {
           ne(schema.coupons.id, id),
         ),
       });
-      if (existing) throw new ConflictException('이미 존재하는 쿠폰 코드입니다.');
+      if (existing)
+        throw new ConflictException('이미 존재하는 쿠폰 코드입니다.');
     }
-    if (dto.discountType === 'percent' && (dto.discountValue ?? coupon.discountValue) > 100) {
+    if (
+      dto.discountType === 'percent' &&
+      (dto.discountValue ?? coupon.discountValue) > 100
+    ) {
       throw new BadRequestException('퍼센트 할인은 100 이하여야 합니다.');
     }
     const [updated] = await this.db
       .update(schema.coupons)
       .set({
         ...(dto.code !== undefined && { code: dto.code.trim() }),
-        ...(dto.discountType !== undefined && { discountType: dto.discountType }),
-        ...(dto.discountValue !== undefined && { discountValue: dto.discountValue }),
-        ...(dto.minOrderAmount !== undefined && { minOrderAmount: dto.minOrderAmount }),
-        ...(dto.validFrom !== undefined && { validFrom: new Date(dto.validFrom) }),
-        ...(dto.validUntil !== undefined && { validUntil: new Date(dto.validUntil) }),
+        ...(dto.discountType !== undefined && {
+          discountType: dto.discountType,
+        }),
+        ...(dto.discountValue !== undefined && {
+          discountValue: dto.discountValue,
+        }),
+        ...(dto.minOrderAmount !== undefined && {
+          minOrderAmount: dto.minOrderAmount,
+        }),
+        ...(dto.validFrom !== undefined && {
+          validFrom: new Date(dto.validFrom),
+        }),
+        ...(dto.validUntil !== undefined && {
+          validUntil: new Date(dto.validUntil),
+        }),
         ...(dto.usageLimit !== undefined && { usageLimit: dto.usageLimit }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         updatedAt: new Date(),
@@ -124,7 +138,8 @@ export class CouponService {
       where: eq(schema.coupons.id, couponId),
     });
     if (!coupon) throw new NotFoundException('쿠폰을 찾을 수 없습니다.');
-    if (!coupon.isActive) throw new BadRequestException('비활성화된 쿠폰입니다.');
+    if (!coupon.isActive)
+      throw new BadRequestException('비활성화된 쿠폰입니다.');
     const now = new Date();
     if (now < coupon.validFrom || now > coupon.validUntil) {
       throw new BadRequestException('유효 기간이 아닌 쿠폰입니다.');
