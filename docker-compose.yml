@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: dayoff
     ports:
-      - "5432:5432"
+      - "5433:5432"   # 호스트 5433 → 컨테이너 5432 (로컬 5432 사용 중일 때)
     volumes:
       - dayoff_pgdata:/var/lib/postgresql/data
     healthcheck:

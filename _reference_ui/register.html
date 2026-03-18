@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 | DOT. Pottery & Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500&family=Space+Grotesk:wght@300&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg: #F9F8F6;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        body { background-color: var(--bg); color: var(--text-primary); font-family: 'Inter', sans-serif; line-height: 1.6; }
+        h1, .logo { font-family: 'DM Serif Display', serif; font-weight: 400; letter-spacing: 0.12em; }
+        .mono { font-family: 'Space Grotesk', sans-serif; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.15em; }
+
+        nav {
+            position: fixed; top: 0; width: 100%; display: grid; grid-template-columns: 1fr 2fr 1fr; align-items: center;
+            padding: 2rem 4rem; z-index: 1000; background: rgba(249, 248, 246, 0.01); backdrop-filter: blur(10px); transition: var(--transition);
+        }
+        nav.scrolled { padding: 1.2rem 4rem; background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .logo { font-size: 1.8rem; text-decoration: none; color: var(--text-primary); }
+        .nav-links { display: flex; justify-content: center; gap: 3rem; }
+        .nav-links a { text-decoration: none; color: var(--text-primary); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        .nav-user { display: flex; justify-content: flex-end; gap: 1.5rem; }
+        .nav-user a { color: var(--text-primary); opacity: 0.8; transition: var(--transition); }
+        .nav-user a:hover { opacity: 1; }
+
+        .register-container { padding: 12rem 1rem 10rem; max-width: 28rem; margin: 0 auto; }
+        .register-container h1 { font-size: 2rem; }
+        .register-container > p { margin-top: 0.75rem; font-size: 10px; letter-spacing: 0.2em; color: #aaa; }
+        .register-container a { color: var(--text-primary); text-decoration: underline; }
+        .register-form { margin-top: 3rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .form-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: #aaa; }
+        .form-input { border: none; border-bottom: 1px solid #eee; background: transparent; padding: 0.5rem 0; font-size: 11px; letter-spacing: 0.05em; }
+        .form-input:focus { outline: none; border-color: var(--text-primary); }
+        .required { color: #f87171; }
+        .register-btn { margin-top: 1.5rem; background: #1A1A1A; color: white; border: none; padding: 0.875rem; font-size: 10px; font-weight: 500; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer; transition: opacity 0.3s; }
+        .register-btn:hover { opacity: 0.9; }
+
+        footer { padding: 4rem; background: var(--bg); border-top: 1px solid rgba(0,0,0,0.05); text-align: center; }
+        @media (max-width: 1024px) { nav { padding: 1.5rem 2rem; } }
+    </style>
+</head>
+<body>
+    <nav id="navbar">
+        <a href="index.html" class="logo">DOT.</a>
+        <div class="nav-links">
+            <a href="about.html">About</a>
+            <a href="shop.html">Shop</a>
+            <a href="class.html">Class</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-user">
+            <a href="cart.html"><i data-lucide="shopping-cart" size="20"></i></a>
+            <a href="account.html"><i data-lucide="user" size="20"></i></a>
+            <a href="login.html" class="mono" style="font-size: 0.7rem;">Login</a>
+        </div>
+    </nav>
+
+    <main class="register-container">
+        <h1>Register</h1>
+        <p class="mono">Already have an account? <a href="login.html">Login</a></p>
+
+        <form class="register-form" onsubmit="return false;">
+            <label>
+                <span class="form-label mono" style="display: block; margin-bottom: 0.5rem;">Email <span class="required">*</span></span>
+                <input type="email" class="form-input" placeholder="you@example.com" required style="width: 100%;">
+            </label>
+            <label>
+                <span class="form-label mono" style="display: block; margin-bottom: 0.5rem;">Password <span class="required">*</span> (8+ chars)</span>
+                <input type="password" class="form-input" placeholder="••••••••" minlength="8" required style="width: 100%;">
+            </label>
+            <label>
+                <span class="form-label mono" style="display: block; margin-bottom: 0.5rem;">Name</span>
+                <input type="text" class="form-input" placeholder="Your Name" style="width: 100%;">
+            </label>
+            <label>
+                <span class="form-label mono" style="display: block; margin-bottom: 0.5rem;">Phone</span>
+                <input type="tel" class="form-input" placeholder="010-0000-0000" style="width: 100%;">
+            </label>
+            <button type="submit" class="register-btn mono">Register</button>
+        </form>
+    </main>
+
+    <footer>
+        <div class="logo" style="margin-bottom: 2rem;">DOT.</div>
+        <p class="mono">© 2024 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+        window.addEventListener('scroll', () => {
+            document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+        });
+    </script>
+</body>
+</html>

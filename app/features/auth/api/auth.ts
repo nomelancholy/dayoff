@@ -29,12 +29,14 @@ const AUTH_TOKEN_KEY = 'auth_token'
 
 /** API 에러 응답에서 사용자에게 보여줄 메시지 추출 (NestJS validation: message가 배열일 수 있음) */
 export function getApiErrorMessage(
-  err: { response?: { data?: { message?: string | string[] }; status?: number } },
+  err: unknown,
   fallback = '요청을 처리하지 못했습니다.'
 ): string {
+  const error = err as { response?: { data?: { message?: string | string[] }; status?: number } }
+
   // 네트워크 오류 등 응답이 없을 때
-  if (!err.response) return '네트워크 오류가 발생했습니다. 서버가 실행 중인지 확인해 주세요.'
-  const message = err.response?.data?.message
+  if (!error.response) return '네트워크 오류가 발생했습니다. 서버가 실행 중인지 확인해 주세요.'
+  const message = error.response?.data?.message
   if (message == null) return fallback
   if (Array.isArray(message)) return message.length ? message.join(' ') : fallback
   return message
@@ -55,19 +57,19 @@ export function clearStoredToken(): void {
 /** 이메일 로그인 */
 export async function login(data: LoginInput): Promise<AuthResult> {
   const res = await apiClient.post<AuthResult>('/auth/login', data)
-  return res as unknown as AuthResult
+  return res.data
 }
 
 /** 회원가입 */
 export async function register(data: RegisterInput): Promise<AuthResult> {
   const res = await apiClient.post<AuthResult>('/auth/register', data)
-  return res as unknown as AuthResult
+  return res.data
 }
 
 /** 현재 로그인 사용자 정보 (JWT 필요) */
 export async function fetchMe(): Promise<AuthUser> {
   const res = await apiClient.get<AuthUser>('/auth/me')
-  return res as unknown as AuthUser
+  return res.data
 }
 
 /** 프로필 수정 (JWT 필요) */
@@ -78,7 +80,7 @@ export async function updateProfile(data: {
   newPassword?: string
 }): Promise<AuthUser> {
   const res = await apiClient.patch<AuthUser>('/auth/me', data)
-  return res as unknown as AuthUser
+  return res.data
 }
 
 export interface AddressRow {
@@ -97,7 +99,8 @@ export interface AddressRow {
 
 /** 내 주소 목록 */
 export async function fetchAddresses(): Promise<AddressRow[]> {
-  return apiClient.get<AddressRow[]>('/auth/addresses')
+  const res = await apiClient.get<AddressRow[]>('/auth/addresses')
+  return res.data
 }
 
 /** 주소 추가 */
@@ -110,7 +113,8 @@ export async function createAddress(data: {
   addressLine2?: string
   isDefault?: boolean
 }): Promise<AddressRow> {
-  return apiClient.post<AddressRow>('/auth/addresses', data)
+  const res = await apiClient.post<AddressRow>('/auth/addresses', data)
+  return res.data
 }
 
 /** 주소 수정 */
@@ -126,7 +130,8 @@ export async function updateAddress(
     isDefault?: boolean
 }
 ): Promise<AddressRow> {
-  return apiClient.patch<AddressRow>(`/auth/addresses/${id}`, data)
+  const res = await apiClient.patch<AddressRow>(`/auth/addresses/${id}`, data)
+  return res.data
 }
 
 /** 주소 삭제 */

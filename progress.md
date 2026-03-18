@@ -117,7 +117,7 @@
 
 - [ ] 반응형 전 구간 점검
 - [ ] NestJS Guard 및 권한(일반/Admin) 최종 확인
-- [ ] 배포 설정 (Vercel/Netlify/Render 등)
+- [ ] 배포: DigitalOcean Droplet + Docker + GitHub Actions 자동 배포 (섹션 6 참고)
 
 ---
 
@@ -180,3 +180,38 @@ _reference_ui/
 - [ ] Magic UI 컴포넌트 연동 (필요 시)
 - [ ] 배포 시 `FRONTEND_URL`, `DATABASE_URL`, `JWT_SECRET` 등 환경 변수 설정
 - [ ] 반응형 전 구간 점검 및 Admin 권한 최종 확인
+
+---
+
+## 6. 배포 (DigitalOcean Droplet + Docker + GitHub Actions)
+
+> 목표: 앱 전체를 Docker로 이미지화해 DigitalOcean Droplet에 올리고, **커밋 푸시 시 GitHub Actions**로 자동 배포.
+
+### 6.1 인프라
+
+- [x] **DigitalOcean Droplet** 생성
+- [ ] Droplet에 Docker & Docker Compose 설치 (또는 Docker가 pre-installed된 이미지 사용)
+- [ ] 도메인 연결 및 SSL(Let’s Encrypt 등) 설정 (선택)
+
+### 6.2 Docker 구성
+
+- [x] 로컬 개발용 **docker-compose.yml** (PostgreSQL 단일 서비스) — 이미 있음
+- [ ] **배포용 Docker 설정** 추가
+  - [ ] 프론트(Vite 빌드 결과) 서빙용 이미지 또는 Nginx
+  - [ ] NestJS API 서버 이미지 (Dockerfile)
+  - [ ] 배포용 `docker-compose` (또는 `docker-compose.prod.yml`): Postgres + API + Frontend(또는 Nginx)
+- [ ] 배포 환경 변수: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, 소셜 로그인 콜백 URL 등 Droplet/컨테이너에 주입
+
+### 6.3 CI/CD (GitHub Actions)
+
+- [ ] **GitHub Actions 워크플로우** 작성 (예: `.github/workflows/deploy.yml`)
+  - [ ] 트리거: `main`(또는 `master`) 브랜치 push 시
+  - [ ] 단계: 빌드(프론트/백) → Docker 이미지 빌드 → Droplet에 SSH로 접속 후 `docker compose pull`(또는 빌드) & 재기동
+- [ ] GitHub Secrets에 Droplet **SSH 키**(또는 호스트, 사용자명), 필요 시 **Docker 레지스트리** 정보 등록
+
+### 6.4 진행 순서 요약
+
+1. Droplet 준비 (Docker 설치)
+2. 배포용 Dockerfile + docker-compose.prod 구성
+3. GitHub Actions 워크플로우 작성 및 Secrets 설정
+4. 커밋 푸시 → 자동 배포 동작 확인

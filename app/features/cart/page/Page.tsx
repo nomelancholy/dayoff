@@ -1,15 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { fetchCartItems, updateCartItemQuantity, removeCartItem } from '@/features/shop/api/shop'
 import { getStoredToken } from '@/features/auth/api/auth'
 import { Minus, Plus } from 'lucide-react'
 
 export const CartPage = () => {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const token = getStoredToken()
 
-  const { data: items, isLoading, isError } = useQuery({
+  const { data: items, isLoading } = useQuery({
     queryKey: ['shop', 'cart'],
     queryFn: fetchCartItems,
     enabled: !!token,
