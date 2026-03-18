@@ -56,20 +56,17 @@ export function clearStoredToken(): void {
 
 /** 이메일 로그인 */
 export async function login(data: LoginInput): Promise<AuthResult> {
-  const res = await apiClient.post<AuthResult>('/auth/login', data)
-  return res.data
+  return apiClient.post<AuthResult>('/auth/login', data)
 }
 
 /** 회원가입 */
 export async function register(data: RegisterInput): Promise<AuthResult> {
-  const res = await apiClient.post<AuthResult>('/auth/register', data)
-  return res.data
+  return apiClient.post<AuthResult>('/auth/register', data)
 }
 
 /** 현재 로그인 사용자 정보 (JWT 필요) */
 export async function fetchMe(): Promise<AuthUser> {
-  const res = await apiClient.get<AuthUser>('/auth/me')
-  return res.data
+  return apiClient.get<AuthUser>('/auth/me')
 }
 
 /** 프로필 수정 (JWT 필요) */
@@ -79,8 +76,7 @@ export async function updateProfile(data: {
   currentPassword?: string
   newPassword?: string
 }): Promise<AuthUser> {
-  const res = await apiClient.patch<AuthUser>('/auth/me', data)
-  return res.data
+  return apiClient.patch<AuthUser>('/auth/me', data)
 }
 
 export interface AddressRow {
@@ -99,8 +95,7 @@ export interface AddressRow {
 
 /** 내 주소 목록 */
 export async function fetchAddresses(): Promise<AddressRow[]> {
-  const res = await apiClient.get<AddressRow[]>('/auth/addresses')
-  return res.data
+  return apiClient.get<AddressRow[]>('/auth/addresses')
 }
 
 /** 주소 추가 */
@@ -113,8 +108,7 @@ export async function createAddress(data: {
   addressLine2?: string
   isDefault?: boolean
 }): Promise<AddressRow> {
-  const res = await apiClient.post<AddressRow>('/auth/addresses', data)
-  return res.data
+  return apiClient.post<AddressRow>('/auth/addresses', data)
 }
 
 /** 주소 수정 */
@@ -130,8 +124,7 @@ export async function updateAddress(
     isDefault?: boolean
 }
 ): Promise<AddressRow> {
-  const res = await apiClient.patch<AddressRow>(`/auth/addresses/${id}`, data)
-  return res.data
+  return apiClient.patch<AddressRow>(`/auth/addresses/${id}`, data)
 }
 
 /** 주소 삭제 */

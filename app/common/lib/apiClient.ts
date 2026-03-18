@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 
-const apiClient = axios.create({
+const rawClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
   headers: {
     'Content-Type': 'application/json',
@@ -8,7 +8,7 @@ const apiClient = axios.create({
 });
 
 // 요청 인터셉터: 토큰 자동 추가
-apiClient.interceptors.request.use(
+rawClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
@@ -20,7 +20,7 @@ apiClient.interceptors.request.use(
 );
 
 // 응답 인터셉터: 에러 핸들링
-apiClient.interceptors.response.use(
+rawClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     const message = error.response?.data?.message || '알 수 없는 에러가 발생했습니다.';
@@ -35,5 +35,31 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+type DataApiClient = {
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<T>;
+  patch<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<T>;
+};
+
+const apiClient: DataApiClient = {
+  get: <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+    rawClient.get(url, config) as unknown as Promise<T>,
+  delete: <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+    rawClient.delete(url, config) as unknown as Promise<T>,
+  post: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    rawClient.post(url, data, config) as unknown as Promise<T>,
+  patch: <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+    rawClient.patch(url, data, config) as unknown as Promise<T>,
+};
 
 export default apiClient;

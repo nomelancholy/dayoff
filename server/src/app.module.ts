@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './common/database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { ShopModule } from './shop/shop.module';
+import { CouponModule } from './coupon/coupon.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ShopModule } from './shop/shop.module';
     DatabaseModule,
     AuthModule,
     ShopModule,
+    CouponModule,
   ],
   controllers: [AppController],
   providers: [AppService],

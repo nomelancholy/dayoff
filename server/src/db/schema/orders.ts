@@ -46,6 +46,18 @@ export const userCoupons = pgTable('user_coupons', {
     .defaultNow(),
 });
 
+export const couponsRelations = relations(coupons, ({ many }) => ({
+  userCoupons: many(userCoupons),
+}));
+
+export const userCouponsRelations = relations(userCoupons, ({ one }) => ({
+  user: one(users, { fields: [userCoupons.userId], references: [users.id] }),
+  coupon: one(coupons, {
+    fields: [userCoupons.couponId],
+    references: [coupons.id],
+  }),
+}));
+
 /** 주문 */
 export const orders = pgTable('orders', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -57,9 +69,7 @@ export const orders = pgTable('orders', {
     .$type<'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled'>()
     .notNull()
     .default('pending'),
-  shippingAddressId: uuid('shipping_address_id').references(
-    () => addresses.id,
-  ),
+  shippingAddressId: uuid('shipping_address_id').references(() => addresses.id),
   subtotal: integer('subtotal').notNull(),
   shippingFee: integer('shipping_fee').notNull().default(0),
   discountAmount: integer('discount_amount').notNull().default(0),
@@ -94,10 +104,14 @@ export const orderItems = pgTable('order_items', {
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, { fields: [orders.userId], references: [users.id] }),
+  coupon: one(coupons, { fields: [orders.couponId], references: [coupons.id] }),
   orderItems: many(orderItems),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
-  product: one(products, { fields: [orderItems.productId], references: [products.id] }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
 }));

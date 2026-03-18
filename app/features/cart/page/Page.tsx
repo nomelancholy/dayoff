@@ -1,12 +1,19 @@
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchCartItems, updateCartItemQuantity, removeCartItem } from '@/features/shop/api/shop'
-import { getStoredToken } from '@/features/auth/api/auth'
+import { getApiErrorMessage, getStoredToken } from '@/features/auth/api/auth'
 import { Minus, Plus } from 'lucide-react'
+import { validateCoupon } from '@/features/coupon/api/coupon'
+import type { ValidateCouponResult } from '@/features/coupon/types/coupon'
 
 export const CartPage = () => {
   const queryClient = useQueryClient()
   const token = getStoredToken()
+  const [couponCode, setCouponCode] = useState('')
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidateCouponResult | null>(null)
+  const [appliedOrderAmount, setAppliedOrderAmount] = useState<number | null>(null)
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['shop', 'cart'],
@@ -26,6 +33,31 @@ export const CartPage = () => {
     mutationFn: (id: string) => removeCartItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] })
+    },
+  })
+
+  const subtotal = items?.reduce((sum, item) => sum + item.product.price * item.quantity, 0) || 0
+
+  useEffect(() => {
+    if (appliedOrderAmount == null) return
+    if (appliedOrderAmount !== subtotal) {
+      setAppliedCoupon(null)
+      setAppliedOrderAmount(null)
+      setCouponError('장바구니 금액이 변경되어 쿠폰이 해제되었습니다. 다시 적용해 주세요.')
+    }
+  }, [subtotal, appliedOrderAmount])
+
+  const validateMutation = useMutation({
+    mutationFn: () => validateCoupon(couponCode, subtotal),
+    onSuccess: (data) => {
+      setAppliedCoupon(data)
+      setAppliedOrderAmount(subtotal)
+      setCouponError(null)
+    },
+    onError: (err) => {
+      setAppliedCoupon(null)
+      setAppliedOrderAmount(null)
+      setCouponError(getApiErrorMessage(err, '쿠폰을 적용하지 못했습니다.'))
     },
   })
 
@@ -74,9 +106,9 @@ export const CartPage = () => {
     )
   }
 
-  const subtotal = items?.reduce((sum, item) => sum + item.product.price * item.quantity, 0) || 0
   const shipping = subtotal >= 100000 ? 0 : 3000
-  const total = subtotal + shipping
+  const discount = appliedCoupon?.discountAmount ?? 0
+  const total = Math.max(0, subtotal + shipping - discount)
 
   return (
     <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
@@ -148,7 +180,7 @@ export const CartPage = () => {
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="min-w-[1.5rem] text-center text-[0.9rem]">
+                      <span className="min-w-6 text-center text-[0.9rem]">
                         {item.quantity}
                       </span>
                       <button
@@ -191,11 +223,78 @@ export const CartPage = () => {
                   <span>Shipping</span>
                   <span>{shipping === 0 ? 'Free' : `₩${shipping.toLocaleString()}`}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between">
+                    <span>Discount</span>
+                    <span>-₩{discount.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
               <div className="mt-8 flex justify-between border-t border-[#eee] pt-6 text-[1.2rem] font-medium">
                 <span>Total</span>
                 <span>₩{total.toLocaleString()}</span>
               </div>
+
+              <div className="mt-10 border-t border-[#eee] pt-6">
+                <p className="mono mb-3 text-[0.85rem] tracking-[0.12em] text-dot-primary">
+                  COUPON
+                </p>
+                {couponError && (
+                  <p className="mb-3 rounded border border-red-100 bg-red-50/50 px-3 py-2 text-[10px] text-red-600">
+                    {couponError}
+                  </p>
+                )}
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between rounded border border-[#eee] bg-[#fafafa] px-3 py-3">
+                    <div>
+                      <p className="mono text-[0.8rem] text-dot-primary">{appliedCoupon.coupon.code}</p>
+                      <p className="mt-1 text-[0.85rem] text-dot-secondary">
+                        -₩{appliedCoupon.discountAmount.toLocaleString()} applied
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppliedCoupon(null)
+                        setAppliedOrderAmount(null)
+                        setCouponError(null)
+                        setCouponCode('')
+                      }}
+                      className="mono text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
+                    >
+                      REMOVE
+                    </button>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      setCouponError(null)
+                      if (!couponCode.trim()) {
+                        setCouponError('쿠폰 코드를 입력해 주세요.')
+                        return
+                      }
+                      validateMutation.mutate()
+                    }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      placeholder="Coupon code"
+                      className="w-full border border-[#eee] bg-white px-3 py-3 text-[11px] tracking-wide text-dot-primary placeholder:text-[#bbb] focus:border-dot-primary focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      disabled={validateMutation.isPending || subtotal <= 0}
+                      className="mono shrink-0 border border-dot-primary bg-dot-primary px-4 py-3 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      {validateMutation.isPending ? 'APPLYING…' : 'APPLY'}
+                    </button>
+                  </form>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => alert('주문 기능은 준비 중입니다.')}
