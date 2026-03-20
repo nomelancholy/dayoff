@@ -115,8 +115,8 @@
 
 ### 2.10 마무리
 
-- [ ] 반응형 전 구간 점검
-- [ ] NestJS Guard 및 권한(일반/Admin) 최종 확인
+- [x] 반응형 전 구간 점검
+- [x] NestJS Guard 및 권한(일반/Admin) 최종 확인
 - [ ] 배포: DigitalOcean Droplet + Docker + GitHub Actions 자동 배포 (섹션 6 참고)
 
 ### 2.11 관리자 페이지 (Admin)

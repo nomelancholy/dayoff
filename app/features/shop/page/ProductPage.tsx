@@ -206,7 +206,16 @@ export const ShopProductPage = () => {
     }
 
     if (hasOptions && !selectedOptionId) {
-      alert('옵션을 선택해 주세요.')
+      // 옵션 미선택 경고: alert 대신 "클릭 근처" 토스트로 안내합니다.
+      cartToastRequestedRef.current = false
+      checkoutFlowRequestedRef.current = false
+      const anchor = toastAnchorRef.current
+      toastAnchorRef.current = null
+      showToast({
+        variant: 'warning',
+        message: '옵션을 선택해 주세요.',
+        ...(anchor ? { anchor } : {}),
+      })
       return
     }
 
@@ -227,7 +236,7 @@ export const ShopProductPage = () => {
 
   return (
     <div className="min-h-screen bg-dot-bg">
-      <div className="mx-auto max-w-[1400px] px-6 py-48 md:px-16 md:pb-40">
+      <div className="mx-auto max-w-[1400px] px-4 py-28 md:px-16 md:py-48 md:pb-40">
         <div className="mb-6 flex items-center justify-between">
           <Link
             to="/shop"
@@ -389,7 +398,15 @@ export const ShopProductPage = () => {
                     }
 
                     if (hasOptions && !selectedOptionId) {
-                      alert('옵션을 선택해 주세요.')
+                      // 구매하기에서도 옵션 미선택 시 토스트로 경고를 띄웁니다.
+                      checkoutFlowRequestedRef.current = false
+                      const anchor = toastAnchorRef.current
+                      toastAnchorRef.current = null
+                      showToast({
+                        variant: 'warning',
+                        message: '옵션을 선택해 주세요.',
+                        ...(anchor ? { anchor } : {}),
+                      })
                       return
                     }
 

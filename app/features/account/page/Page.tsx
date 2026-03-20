@@ -25,7 +25,6 @@ import {
 } from '@/features/shop/api/shop'
 import { ProductReviewForm } from '@/features/shop/components/ProductReviewForm'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
-import { ReviewManagementSection } from '../components/ReviewManagementSection'
 import { cn } from '@/common/lib/utils'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 import { isOutOfDeliveryPostalCode } from '@/common/lib/outOfDeliveryAreas'
@@ -76,7 +75,7 @@ export const AccountPage = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-md">
           <h1 className="mt-2 font-sans text-4xl font-semibold tracking-normal text-dot-primary md:text-5xl">
          내 정보
@@ -110,7 +109,7 @@ export const AccountPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-[1200px]">
           <p className="mono text-dot-secondary">Loading…</p>
         </div>
@@ -120,7 +119,7 @@ export const AccountPage = () => {
 
   if (isError || !user) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-md text-center">
           <h1 className="font-sans text-3xl font-semibold tracking-normal text-dot-primary">
        내 정보
@@ -143,17 +142,22 @@ export const AccountPage = () => {
     )
   }
 
+  // 일반 유저는 "리뷰 관리" 탭이 필요 없으므로 내정보에서 제거합니다.
+  // (리뷰 작성/수정은 주문내역 카드에서만 제공)
   const navItems: { id: AccountSection; label: string }[] = [
     { id: 'profile', label: '프로필' },
     { id: 'orders', label: '주문 내역' },
     { id: 'address', label: '주소록' },
-    { id: 'reviews', label: '리뷰 관리' },
   ]
 
+  // location.state 등에 의해 'reviews'가 들어와도 화면에서는 프로필로 대체합니다.
+  const currentSection: AccountSection =
+    activeSection === 'reviews' ? 'profile' : activeSection
+
   return (
-    <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+    <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-16 md:grid-cols-[250px_1fr]">
-        <header className="flex flex-col gap-4 border-b border-[#eee] pb-8 md:col-span-full md:flex-row md:items-end md:justify-between">
+        <header className="flex flex-col gap-4 border-b border-black/5 pb-6 md:col-span-full md:flex-row md:items-end md:justify-between md:pb-8">
           <div>
             <h1 className="mt-2 font-sans text-4xl font-semibold tracking-normal text-dot-primary md:text-5xl">
               내 정보
@@ -175,30 +179,28 @@ export const AccountPage = () => {
               type="button"
               onClick={() => setActiveSection(id)}
               className={cn(
-                'mono relative border-none bg-transparent text-left py-2 text-[1.05rem] text-dot-secondary transition-colors cursor-pointer',
-                activeSection === id
+                'mono relative border-0 bg-transparent pl-6 text-left py-1.5 leading-tight text-[1rem] text-dot-secondary transition-colors cursor-pointer outline-none! ring-0! focus:outline-none! focus-visible:outline-none! focus:ring-0! focus-visible:ring-0! md:pl-0 md:py-2 md:text-[1.05rem]',
+                currentSection === id
                   ? 'font-medium text-dot-primary'
                   : 'hover:text-dot-primary'
               )}
             >
               {label}
-              {activeSection === id && (
-                <span className="absolute left-0 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-dot-primary md:-left-5" />
+              {currentSection === id && (
+                <span className="absolute left-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-dot-primary md:-left-5" />
               )}
             </button>
           ))}
         </aside>
 
         <div className="min-w-0">
-          {activeSection === 'profile' && (
+          {currentSection === 'profile' && (
             <ProfileSection key={user.id} user={user} />
           )}
 
-          {activeSection === 'orders' && <OrderHistorySection />}
+          {currentSection === 'orders' && <OrderHistorySection />}
 
-          {activeSection === 'address' && <AddressBookSection />}
-
-          {activeSection === 'reviews' && <ReviewManagementSection />}
+          {currentSection === 'address' && <AddressBookSection />}
         </div>
       </div>
     </div>
@@ -229,7 +231,7 @@ function ProfileSection({ user }: { user: AuthUser }) {
 
   return (
     <section>
-      <h2 className="mono mb-12 border-b border-[#f0f0f0] pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
+      <h2 className="mono mb-10 border-b-0 pb-0 md:mb-12 md:border-b md:border-[#f0f0f0] md:pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
         개인 정보
       </h2>
       <form className="max-w-[600px] space-y-8" onSubmit={handleSubmit}>
@@ -353,7 +355,7 @@ function AddressBookSection() {
 
   return (
     <section>
-      <h2 className="mono mb-12 border-b border-[#f0f0f0] pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
+      <h2 className="mono mb-10 border-b-0 pb-0 md:mb-12 md:border-b md:border-[#f0f0f0] md:pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
         주소록
       </h2>
       <div className="space-y-6">
@@ -1067,7 +1069,7 @@ function OrderCard({
 
   return (
     <div className="border border-[#eee] bg-white">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#eee] px-6 py-5">
+      <div className="flex flex-col items-start gap-3 border-b border-[#eee] px-5 py-4 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6 md:py-5">
         <div className="flex flex-col gap-1">
           <span className="text-[0.7rem] text-dot-secondary">
             주문 번호
@@ -1076,7 +1078,7 @@ function OrderCard({
             #{order.orderNumber}
           </p>
         </div>
-        <div className="flex flex-col gap-1 text-right">
+        <div className="flex w-full flex-col gap-1 text-left md:w-auto md:text-right">
           <span className="text-[0.7rem] text-dot-secondary">상태</span>
           <p className="text-[0.85rem] font-medium tracking-widest text-dot-primary">
             {statusLabel[order.status] ?? order.status.toUpperCase()}

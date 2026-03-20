@@ -414,11 +414,31 @@ export class ShopService {
   /** [Admin] 상품 생성 */
   async createProduct(data: any) {
     const { images, options, detailImages, ...productData } = data;
+    const name = String(productData.name ?? '').trim();
+    const slug = String(productData.slug ?? '').trim();
+    const price = Number(productData.price);
+    const stockQuantity = Number(productData.stockQuantity ?? 999);
+
+    if (!name || !slug) {
+      throw new BadRequestException('상품명과 slug는 필수입니다.');
+    }
+    if (!Number.isFinite(price) || price < 0) {
+      throw new BadRequestException('가격은 0 이상이어야 합니다.');
+    }
+    if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
+      throw new BadRequestException('재고 수량은 0 이상이어야 합니다.');
+    }
 
     return await this.db.transaction(async (tx) => {
       const [product] = await tx
         .insert(schema.products)
-        .values(productData)
+        .values({
+          ...productData,
+          name,
+          slug,
+          price: Math.floor(price),
+          stockQuantity: Math.floor(stockQuantity),
+        })
         .returning();
 
       if (images && images.length > 0) {
@@ -475,12 +495,45 @@ export class ShopService {
   /** [Admin] 상품 수정 */
   async updateProduct(id: string, data: any) {
     const { images, options, detailImages, ...productData } = data;
+    const normalizedData = { ...productData };
+
+    if ('name' in normalizedData) {
+      const name = String(normalizedData.name ?? '').trim();
+      if (!name) {
+        throw new BadRequestException('상품명은 비워둘 수 없습니다.');
+      }
+      normalizedData.name = name;
+    }
+
+    if ('slug' in normalizedData) {
+      const slug = String(normalizedData.slug ?? '').trim();
+      if (!slug) {
+        throw new BadRequestException('slug는 비워둘 수 없습니다.');
+      }
+      normalizedData.slug = slug;
+    }
+
+    if ('price' in normalizedData) {
+      const price = Number(normalizedData.price);
+      if (!Number.isFinite(price) || price < 0) {
+        throw new BadRequestException('가격은 0 이상이어야 합니다.');
+      }
+      normalizedData.price = Math.floor(price);
+    }
+
+    if ('stockQuantity' in normalizedData) {
+      const stockQuantity = Number(normalizedData.stockQuantity);
+      if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
+        throw new BadRequestException('재고 수량은 0 이상이어야 합니다.');
+      }
+      normalizedData.stockQuantity = Math.floor(stockQuantity);
+    }
 
     return await this.db.transaction(async (tx) => {
-      if (Object.keys(productData).length > 0) {
+      if (Object.keys(normalizedData).length > 0) {
         await tx
           .update(schema.products)
-          .set({ ...productData, updatedAt: new Date() })
+          .set({ ...normalizedData, updatedAt: new Date() })
           .where(eq(schema.products.id, id));
       }
 

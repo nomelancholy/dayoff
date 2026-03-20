@@ -8,7 +8,7 @@ export const CheckoutFailPage = () => {
   const orderId = params.get('orderId')
 
   return (
-    <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+    <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
       <div className="mx-auto max-w-[900px] rounded border border-[#eee] bg-white p-10 text-center">
         <h1 className="font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
           결제에 실패했습니다

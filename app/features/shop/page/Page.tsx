@@ -48,38 +48,42 @@ export const ShopPage = () => {
       )}
 
       {/* Filter Section - reference: sticky, padding 4rem 4rem 2rem, gap 2rem */}
-      <div className="sticky top-20 z-[900] flex justify-center gap-8 border-b border-transparent bg-dot-bg px-6 py-8 md:px-16 md:py-10">
-        <button
-          type="button"
-          onClick={() => setSelectedCategoryId(undefined)}
-          className={cn(
-            'mono relative border-none bg-transparent px-4 py-2 text-dot-secondary transition-colors',
-            !selectedCategoryId ? 'text-dot-primary' : 'hover:text-dot-primary'
-          )}
-        >
-          All
-          {!selectedCategoryId && (
-            <span className="absolute bottom-0 left-1/2 h-px w-full -translate-x-1/2 bg-dot-primary" />
-          )}
-        </button>
-        {categories?.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            onClick={() => setSelectedCategoryId(category.id)}
-            className={cn(
-              'mono relative border-none bg-transparent px-4 py-2 text-dot-secondary transition-colors',
-              selectedCategoryId === category.id
-                ? 'text-dot-primary'
-                : 'hover:text-dot-primary'
-            )}
-          >
-            {category.name}
-            {selectedCategoryId === category.id && (
-              <span className="absolute bottom-0 left-1/2 h-px w-full -translate-x-1/2 bg-dot-primary" />
-            )}
-          </button>
-        ))}
+      <div className="sticky top-20 z-900 border-b border-transparent bg-dot-bg px-4 py-6 md:px-16 md:py-10">
+        <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+          <div className="flex w-max min-w-full items-center justify-center gap-3 whitespace-nowrap md:w-full md:gap-8">
+            <button
+              type="button"
+              onClick={() => setSelectedCategoryId(undefined)}
+              className={cn(
+                'mono relative shrink-0 appearance-none border-0 bg-transparent px-3 py-2 text-sm text-dot-secondary transition-colors outline-none! ring-0! focus:outline-none! focus-visible:outline-none! focus:ring-0! focus-visible:ring-0! md:px-4 md:text-base',
+                !selectedCategoryId ? 'text-dot-primary' : 'hover:text-dot-primary'
+              )}
+            >
+              All
+              {!selectedCategoryId && (
+                <span className="absolute bottom-0 left-1/2 h-px w-full -translate-x-1/2 bg-dot-primary" />
+              )}
+            </button>
+            {categories?.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setSelectedCategoryId(category.id)}
+                className={cn(
+                  'mono relative shrink-0 appearance-none border-0 bg-transparent px-3 py-2 text-sm text-dot-secondary transition-colors outline-none! ring-0! focus:outline-none! focus-visible:outline-none! focus:ring-0! focus-visible:ring-0! md:px-4 md:text-base',
+                  selectedCategoryId === category.id
+                    ? 'text-dot-primary'
+                    : 'hover:text-dot-primary'
+                )}
+              >
+                {category.name}
+                {selectedCategoryId === category.id && (
+                  <span className="absolute bottom-0 left-1/2 h-px w-full -translate-x-1/2 bg-dot-primary" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Shop Grid - reference: section-shop-main, grid 3 cols, gap 4rem 2rem */}
@@ -133,7 +137,7 @@ export const ShopPage = () => {
           </div>
         ) : (
           <div className="py-20 text-center text-dot-secondary">
-            <p className="mono text-sm">No products found in this category.</p>
+            <p className="text-sm">해당 카테고리에 등록된 상품이 없습니다.</p>
           </div>
         )}
       </main>

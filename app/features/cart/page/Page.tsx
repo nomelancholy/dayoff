@@ -90,7 +90,7 @@ export const CartPage = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 text-center md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
         <span className="mono text-dot-primary">선택한 상품</span>
         <h1 className="mt-2 font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
           장바구니
@@ -110,7 +110,7 @@ export const CartPage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-[1200px] animate-pulse">
           <div className="mb-8 border-b border-[#eee] pb-4">
             <div className="h-4 w-24 bg-[#eee]" />
@@ -150,7 +150,7 @@ export const CartPage = () => {
   const total = Math.max(0, subtotal + shipping - discount)
 
   return (
-    <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+    <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-12 lg:grid-cols-[1.5fr_1fr]">
         <header className="col-span-full mb-8 border-b border-[#eee] pb-4">
           <h1 className="mt-2 font-sans text-[2.5rem] font-semibold tracking-normal text-dot-primary">
@@ -160,15 +160,17 @@ export const CartPage = () => {
 
         {!items || items.length === 0 ? (
           <div className="col-span-full py-24 text-center">
-            <h2 className="font-serif text-2xl font-normal tracking-[0.12em] text-dot-primary">
+            <h2 className="mx-auto max-w-[260px] break-keep font-sans text-2xl font-semibold leading-snug text-dot-primary">
               장바구니가 비어 있습니다.
             </h2>
-            <p className="mt-4 mb-12 text-[0.95rem] text-dot-secondary">
-              DOT의 제품을 둘러보고 마음에 드는 작품을 담아보세요.
+            <p className="mx-auto mt-4 mb-12 max-w-[320px] break-keep text-[0.95rem] leading-relaxed text-dot-secondary">
+              DOT의 제품을 둘러보고
+              <br />
+              마음에 드는 작품을 담아보세요.
             </p>
             <Link
               to="/shop"
-              className="mono inline-block border border-dot-primary px-8 py-4 text-dot-primary no-underline transition-colors hover:bg-dot-primary hover:text-white"
+              className="inline-block border border-dot-primary px-8 py-4 text-[0.95rem] font-medium text-dot-primary no-underline transition-colors hover:bg-dot-primary hover:text-white!"
             >
               제품 보러가기
             </Link>
@@ -179,7 +181,7 @@ export const CartPage = () => {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[28px_120px_1fr_auto] gap-8 border-b border-[#eee] pb-8 md:items-center"
+                  className="grid grid-cols-[28px_120px_1fr] gap-4 border-b border-[#eee] pb-6 md:grid-cols-[28px_120px_1fr_auto] md:items-center md:gap-8 md:pb-8"
                 >
                   <div className="pt-2">
                     <label className="flex cursor-pointer items-center justify-center">
@@ -255,14 +257,14 @@ export const CartPage = () => {
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end justify-between gap-4">
+                  <div className="col-span-3 mt-4 flex flex-row items-center justify-between gap-4 md:col-span-1 md:mt-0 md:flex-col md:items-end">
                     <span className="text-[1.1rem] font-medium text-dot-primary">
                       ₩{(item.product.price * item.quantity).toLocaleString()}
                     </span>
                     <button
                       type="button"
                       onClick={() => removeMutation.mutate(item.id)}
-                      className="mono text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
+                      className="mono whitespace-nowrap text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
                     >
                       삭제
                     </button>

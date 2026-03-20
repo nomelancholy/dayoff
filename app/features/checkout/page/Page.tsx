@@ -40,6 +40,33 @@ declare global {
   }
 }
 
+function toCheckoutPageErrorMessage(err: unknown): string {
+  const fallback =
+    '결제 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+
+  let rawMessage: string | null = null
+  if (isAxiosError(err)) {
+    const apiMessage = err.response?.data?.message
+    if (Array.isArray(apiMessage)) {
+      rawMessage = apiMessage.filter(Boolean).join(' ')
+    } else if (typeof apiMessage === 'string') {
+      rawMessage = apiMessage
+    }
+  }
+
+  const candidate = rawMessage ?? getApiErrorMessage(err, fallback)
+  const normalized = candidate.toLowerCase()
+
+  if (
+    normalized.includes('shippingaddressid must be a string') ||
+    candidate.includes('배송지를 선택해 주세요.')
+  ) {
+    return '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.'
+  }
+
+  return candidate
+}
+
 function loadTossScript() {
   const existing = document.getElementById('tosspayments-sdk')
   if (existing) {
@@ -144,26 +171,26 @@ export const CheckoutPage = () => {
   }, [selectedCartItemsSubtotal, selectedAddress?.postalCode])
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      createTossCheckout({
+    mutationFn: () => {
+      // 모바일 뒤로가기 등으로 선택 상태가 유실되면 서버 DTO 에러 대신 UX 메시지를 먼저 보여줍니다.
+      if (!selectedAddressId || !selectedAddressId.trim()) {
+        throw new Error(
+          '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.',
+        )
+      }
+      return createTossCheckout({
         couponCode,
         cartItemIds,
         cartItemQuantities,
-        shippingAddressId: selectedAddressId ?? '',
-      }),
+        shippingAddressId: selectedAddressId,
+      })
+    },
     onSuccess: (data) => {
       setInitData(data)
       setPageError(null)
     },
     onError: (err: unknown) => {
-      setPageError(
-        isAxiosError(err) && err.response?.data?.message
-          ? String(err.response.data.message)
-          : getApiErrorMessage(
-              err,
-              '결제 준비에 실패했습니다. 서버가 정상 동작하는지 확인해 주세요.',
-            ),
-      )
+      setPageError(toCheckoutPageErrorMessage(err))
     },
   })
 
@@ -353,7 +380,7 @@ export const CheckoutPage = () => {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 text-center md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
         <span className="mono text-dot-primary">결제</span>
         <h1 className="mt-2 font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
           로그인 후 결제를 진행해 주세요
@@ -370,7 +397,7 @@ export const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+    <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
       <div className="mx-auto max-w-[1100px]">
         <header className="mb-10 border-b border-[#eee] pb-6">
           <h1 className="font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
@@ -387,7 +414,20 @@ export const CheckoutPage = () => {
             <div className="mt-3">
               <button
                 type="button"
-                onClick={() => setInitRetryNonce((n) => n + 1)}
+                onClick={() => {
+                  setInitRetryNonce((n) => n + 1)
+                  if (initData) return
+                  if (createMutation.isPending) return
+                  lastCreateKeyRef.current = null
+                  if (!selectedAddressId) {
+                    setPageError(
+                      '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.',
+                    )
+                    return
+                  }
+                  setPageError(null)
+                  createMutation.mutate()
+                }}
                 className="mono inline-block border border-red-200 bg-white px-6 py-2 text-[0.85rem] font-medium text-red-700 transition-colors hover:bg-red-50"
               >
                 다시 시도

@@ -33,7 +33,7 @@ export const AdminPage = () => {
 
   if (!token || isLoading || !user) {
     return (
-      <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+      <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-[1400px]">
           <p className="text-dot-secondary">Loading…</p>
         </div>
@@ -44,7 +44,7 @@ export const AdminPage = () => {
   const adminUser = user as AuthUser
 
   return (
-    <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
+    <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
       <div className="mx-auto max-w-[1400px]">
         <div className="mb-8">
           <h1 className="font-serif text-4xl tracking-[0.08em] text-dot-primary">
