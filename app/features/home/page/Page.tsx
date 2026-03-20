@@ -2,10 +2,8 @@ import { Link } from 'react-router-dom'
 import { useReveal } from '@/common/hooks/useReveal'
 import { cn } from '@/common/lib/utils'
 
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=2000'
-const ABOUT_IMAGE =
-  'https://images.unsplash.com/photo-1565191999001-551c187427bb?auto=format&fit=crop&q=80&w=1000'
+const HERO_IMAGE = '/assets/main_pic.JPG'
+const ABOUT_IMAGE = '/assets/about_pic.jpeg'
 
 const SHOP_PREVIEW_PRODUCTS = [
   {
@@ -37,7 +35,7 @@ const SHOP_PREVIEW_PRODUCTS = [
 function ScrollIndicator() {
   return (
     <div
-      className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-4 opacity-60"
+      className="absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-4 opacity-60"
       aria-hidden
     >
       <span className="mono text-dot-primary">SCROLL</span>
@@ -62,15 +60,16 @@ export const HomePage = () => {
               'contrast-[0.9] brightness-105'
             )}
             style={{
-              maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+              maskImage:
+                'linear-gradient(to bottom, black 80%, transparent 100%)',
+              WebkitMaskImage:
+                'linear-gradient(to bottom, black 80%, transparent 100%)',
             }}
           />
         </div>
         <div className="hero-text absolute bottom-[10%] left-1/2 z-2 -translate-x-1/2 text-center">
-          <span className="mono text-dot-primary">CRAFTED SILENCE</span>
           <h1 className="hero-reveal mt-4 text-4xl font-light tracking-[0.12em] lg:text-6xl">
-            The Art of Stillness
+            Day Off Today
           </h1>
         </div>
         <ScrollIndicator />
@@ -86,41 +85,43 @@ export const HomePage = () => {
           />
         </div>
         <div className="reveal-element md:pr-8">
-          <span className="mono text-dot-primary">OUR PHILOSOPHY</span>
-          <h2 className="mt-4 text-2xl font-normal leading-tight tracking-[0.12em] text-dot-primary md:text-3xl">
-            점(DOT) 하나에서 시작되는
-            <br />
-            흙의 숨결과 기물의 서사
-          </h2>
+          <p className="mt-8 text-[1.3rem] font-medium leading-relaxed text-dot-secondary">
+            휴식을 빚는
+          </p>
           <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            공방 DOT.는 정적 속에 흐르는 아름다움을 탐구합니다. 손끝에 닿는 흙의 질감, 가마 속에서
-            일어나는 우연한 변화, 그리고 마침내 완성된 기물이 당신의 일상에 머물 때 일어나는 조용한
-            변화를 믿습니다.
+            좋은 도자기는 놓여있는 것만으로도 공간의 온도를 바꿉니다.
+          </p>
+          <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
+            <b>DOT(Day Off Today)</b>는 당신이 맞이하는 매일의 휴일이 더욱
+            특별해질 수 있도록, 쓰임새와 아름다움의 균형을 고민합니다.
           </p>
           <p className="mt-6 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            우리는 단순히 그릇을 만드는 것이 아닌, 삶의 여백을 채우는 정서를 빚어냅니다.
+            차 한 잔의 여유, 정성스런 식사 시간 속에 <b>DOT</b>의 감각을 더해
+            보세요. 정성을 다해 구워낸 작품들이 당신의 일상에 기분 좋은 쉼표가
+            되어줄 것입니다.
           </p>
-          <Link
+          {/* <Link
             to="/about"
             className="mono mt-8 inline-block text-dot-primary underline underline-offset-2"
           >
             READ MORE
-          </Link>
+          </Link> */}
         </div>
       </section>
 
       {/* Shop preview */}
-      <section id="shop" className="bg-dot-surface px-6 py-20 md:px-12 md:py-28 lg:px-16">
+      <section
+        id="shop"
+        className="bg-dot-surface px-6 py-20 md:px-12 md:py-28 lg:px-16"
+      >
         <div className="mx-auto max-w-[1400px]">
           <div className="reveal-element mb-16 flex flex-col justify-between gap-6 border-b border-black/5 pb-8 md:flex-row md:items-end">
-            <div>
-              <span className="mono text-dot-primary">COLLECTIONS</span>
-              <h2 className="mt-2 text-2xl font-normal tracking-[0.12em] text-dot-primary md:text-3xl">
-                SHOP THE EDITION
-              </h2>
-            </div>
-            <Link to="/shop" className="mono text-dot-primary underline underline-offset-2">
-              VIEW ALL PRODUCTS
+            <div></div>
+            <Link
+              to="/shop"
+              className="font-sans text-[0.95rem] font-medium text-dot-primary underline underline-offset-2"
+            >
+              모든 제품 보기
             </Link>
           </div>
 
@@ -143,7 +144,9 @@ export const HomePage = () => {
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[0.9rem] font-normal tracking-[0.05em]">{product.name}</h3>
+                  <h3 className="text-[0.9rem] font-normal tracking-[0.05em]">
+                    {product.name}
+                  </h3>
                   <span className="text-[0.9rem] text-dot-secondary">
                     ₩{product.price.toLocaleString()}
                   </span>

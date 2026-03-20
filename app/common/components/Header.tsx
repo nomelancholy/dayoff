@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
-import { ShoppingCart, User } from 'lucide-react'
+import { ShoppingCart, Settings, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/common/lib/utils'
+import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 
 const NAV_LINKS = [
   { to: '/about', label: 'About' },
@@ -13,6 +15,15 @@ const NAV_LINKS = [
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false)
   const location = useLocation()
+  const token = getStoredToken()
+
+  const { data: user } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: fetchMe,
+    enabled: !!token,
+  })
+
+  const isAdmin = user?.role === 'admin'
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50)
@@ -23,7 +34,7 @@ export const Header = () => {
   return (
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-[1000] grid grid-cols-[1fr_2fr_1fr] items-center transition-[padding,background,border] duration-500 ease-dot',
+        'fixed top-0 left-0 right-0 z-1000 grid grid-cols-[1fr_2fr_1fr] items-center transition-[padding,background,border] duration-500 ease-dot',
         'px-6 py-6 md:px-8 md:py-6 lg:px-16 lg:py-8',
         scrolled
           ? 'border-b border-black/5 bg-white/80 py-3 backdrop-blur-md md:py-5 lg:py-4'
@@ -62,6 +73,15 @@ export const Header = () => {
         >
           <ShoppingCart size={20} />
         </Link>
+        {isAdmin ? (
+          <Link
+            to="/admin"
+            className="text-dot-primary opacity-80 transition-all duration-500 ease-dot hover:-translate-y-0.5 hover:opacity-100"
+            aria-label="관리자 설정"
+          >
+            <Settings size={20} />
+          </Link>
+        ) : null}
         <Link
           to="/account"
           className="text-dot-primary opacity-80 transition-all duration-500 ease-dot hover:-translate-y-0.5 hover:opacity-100"

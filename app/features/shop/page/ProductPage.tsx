@@ -8,7 +8,7 @@ import { cn } from '@/common/lib/utils'
 import { Pencil } from 'lucide-react'
 
 export const ShopProductPage = () => {
-  const { id } = useParams<{ id: string }>()
+  const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [quantity, setQuantity] = useState(1)
@@ -25,9 +25,9 @@ export const ShopProductPage = () => {
   const isAdmin = user?.role === 'admin'
 
   const { data: product, isLoading, isError } = useQuery({
-    queryKey: ['shop', 'product', id],
-    queryFn: () => fetchProduct(id!),
-    enabled: !!id,
+    queryKey: ['shop', 'product', slug],
+    queryFn: () => fetchProduct(slug!),
+    enabled: !!slug,
   })
 
   const showToast = useUiStore((s) => s.showToast)
@@ -35,7 +35,7 @@ export const ShopProductPage = () => {
   const cartMutation = useMutation({
     mutationFn: () =>
       addToCart({
-        productId: id!,
+        productId: product?.id ?? '',
         quantity,
         optionId: selectedOptionId,
       }),
@@ -90,6 +90,10 @@ export const ShopProductPage = () => {
     if (!getStoredToken()) {
       alert('로그인이 필요합니다.')
       navigate('/login')
+      return
+    }
+    if (!product) {
+      alert('상품 정보를 불러오는 중입니다.')
       return
     }
     cartMutation.mutate()
@@ -173,9 +177,11 @@ export const ShopProductPage = () => {
             <div className="mt-4 text-[1.5rem] font-light text-dot-primary">
               ₩{product.price.toLocaleString()}
             </div>
-            <p className="mt-12 whitespace-pre-line text-[0.95rem] font-light leading-relaxed text-dot-secondary">
-              {product.description || 'No description available.'}
-            </p>
+            {product.description ? (
+              <p className="mt-12 whitespace-pre-line text-[0.95rem] font-light leading-relaxed text-dot-secondary">
+                {product.description}
+              </p>
+            ) : null}
 
             {/* Purchase Options - reference: border-top, option-row, qty, action-btns */}
             <div className="mt-12 border-t border-[#eee] pt-12">
@@ -254,7 +260,7 @@ export const ShopProductPage = () => {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'relative border-none bg-transparent py-6 px-4 text-[0.85rem] transition-colors',
+                  'relative border-none bg-transparent px-4 py-6 text-[0.85rem] transition-colors focus:outline-none focus-visible:outline-none',
                   activeTab === tab.id
                     ? 'font-medium text-dot-primary'
                     : 'text-dot-secondary hover:text-dot-primary'

@@ -46,7 +46,11 @@ export const AccountPage = () => {
   const token = getStoredToken()
   const [activeSection, setActiveSection] = useState<AccountSection>('profile')
 
-  const { data: user, isLoading, isError } = useQuery({
+  const {
+    data: user,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: fetchMe,
     enabled: !!token,
@@ -55,19 +59,17 @@ export const AccountPage = () => {
   const handleLogout = () => {
     clearStoredToken()
     navigate('/login', { replace: true })
-    window.location.reload()
   }
 
   if (!token) {
     return (
       <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
         <div className="mx-auto max-w-md">
-          <span className="mono block text-dot-primary">WELCOME BACK</span>
-          <h1 className="mt-2 font-serif text-4xl font-normal tracking-[0.12em] text-dot-primary md:text-5xl">
-            My Account
+          <h1 className="mt-2 font-sans text-4xl font-semibold tracking-normal text-dot-primary md:text-5xl">
+         내 정보
           </h1>
           <p className="mt-4 text-[0.9rem] text-dot-secondary">
-            Please login to access your account.
+            계정 정보를 확인하려면 로그인해 주세요.
           </p>
 
           <div className="mt-12">
@@ -75,7 +77,9 @@ export const AccountPage = () => {
           </div>
 
           <div className="mt-12 border-t border-[#eee] pt-10 text-center">
-            <p className="mb-6 text-[0.8rem] text-dot-secondary">New to Day Off?</p>
+            <p className="mb-6 text-[0.8rem] text-dot-secondary">
+              Day Off가 처음이신가요?
+            </p>
             <Link
               to="/login"
               className={cn(
@@ -105,10 +109,12 @@ export const AccountPage = () => {
     return (
       <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
         <div className="mx-auto max-w-md text-center">
-          <h1 className="font-serif text-3xl font-normal tracking-[0.12em] text-dot-primary">
-            My Account
+          <h1 className="font-sans text-3xl font-semibold tracking-normal text-dot-primary">
+       내 정보
           </h1>
-          <p className="mt-6 text-[0.9rem] text-dot-secondary">Session may have expired.</p>
+          <p className="mt-6 text-[0.9rem] text-dot-secondary">
+            Session may have expired.
+          </p>
           <button
             type="button"
             onClick={() => {
@@ -125,9 +131,9 @@ export const AccountPage = () => {
   }
 
   const navItems: { id: AccountSection; label: string }[] = [
-    { id: 'profile', label: 'PROFILE' },
-    { id: 'orders', label: 'ORDER HISTORY' },
-    { id: 'address', label: 'ADDRESS BOOK' },
+    { id: 'profile', label: '프로필' },
+    { id: 'orders', label: '주문 내역' },
+    { id: 'address', label: '주소록' },
   ]
 
   return (
@@ -135,9 +141,8 @@ export const AccountPage = () => {
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-16 md:grid-cols-[250px_1fr]">
         <header className="flex flex-col gap-4 border-b border-[#eee] pb-8 md:col-span-full md:flex-row md:items-end md:justify-between">
           <div>
-            <span className="mono block text-dot-primary">WELCOME BACK</span>
-            <h1 className="mt-2 font-serif text-4xl font-normal tracking-[0.12em] text-dot-primary md:text-5xl">
-              My Account
+            <h1 className="mt-2 font-sans text-4xl font-semibold tracking-normal text-dot-primary md:text-5xl">
+              내 정보
             </h1>
           </div>
           <button
@@ -156,7 +161,7 @@ export const AccountPage = () => {
               type="button"
               onClick={() => setActiveSection(id)}
               className={cn(
-                'mono relative border-none bg-transparent text-left py-2 text-[0.9rem] text-dot-secondary transition-colors cursor-pointer',
+                'mono relative border-none bg-transparent text-left py-2 text-[1.05rem] text-dot-secondary transition-colors cursor-pointer',
                 activeSection === id
                   ? 'font-medium text-dot-primary'
                   : 'hover:text-dot-primary'
@@ -175,13 +180,9 @@ export const AccountPage = () => {
             <ProfileSection key={user.id} user={user} />
           )}
 
-          {activeSection === 'orders' && (
-            <OrderHistorySection />
-          )}
+          {activeSection === 'orders' && <OrderHistorySection />}
 
-          {activeSection === 'address' && (
-            <AddressBookSection />
-          )}
+          {activeSection === 'address' && <AddressBookSection />}
         </div>
       </div>
     </div>
@@ -213,12 +214,12 @@ function ProfileSection({ user }: { user: AuthUser }) {
   return (
     <section>
       <h2 className="mono mb-12 border-b border-[#f0f0f0] pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
-        PERSONAL INFORMATION
+        개인 정보
       </h2>
       <form className="max-w-[600px] space-y-8" onSubmit={handleSubmit}>
         <div>
           <label className="mono mb-2 block text-[0.85rem] text-dot-primary">
-            FULL NAME
+            이름
           </label>
           <input
             type="text"
@@ -229,7 +230,7 @@ function ProfileSection({ user }: { user: AuthUser }) {
         </div>
         <div>
           <label className="mono mb-2 block text-[0.85rem] text-dot-primary">
-            EMAIL ADDRESS
+            이메일 주소
           </label>
           <input
             type="email"
@@ -237,11 +238,13 @@ function ProfileSection({ user }: { user: AuthUser }) {
             readOnly
             className="w-full border border-[#eee] bg-[#f9f9f9] px-4 py-3 text-[0.95rem] text-dot-secondary read-only:cursor-default"
           />
-          <p className="mt-1 text-[0.7rem] text-dot-secondary">이메일은 변경할 수 없습니다.</p>
+          <p className="mt-1 text-[0.7rem] text-dot-secondary">
+            이메일은 변경할 수 없습니다.
+          </p>
         </div>
         <div>
           <label className="mono mb-2 block text-[0.85rem] text-dot-primary">
-            PHONE NUMBER
+            휴대폰 번호
           </label>
           <input
             type="tel"
@@ -256,11 +259,16 @@ function ProfileSection({ user }: { user: AuthUser }) {
           disabled={profileMutation.isPending}
           className="mono mt-2 border-none bg-[#1A1A1A] px-8 py-3 text-[0.9rem] font-medium text-white transition-opacity hover:bg-[#333] disabled:opacity-50"
         >
-          {profileMutation.isPending ? '저장 중…' : 'SAVE CHANGES'}
+          {profileMutation.isPending ? '저장 중…' : '변경사항 저장'}
         </button>
         {profileMutation.isError && (
           <p className="text-[0.85rem] text-red-600">
-            {(profileMutation.error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ??
+            {(
+              profileMutation.error as {
+                response?: { data?: { message?: string } }
+                message?: string
+              }
+            )?.response?.data?.message ??
               (profileMutation.error as Error)?.message ??
               '저장에 실패했습니다.'}
           </p>
@@ -289,8 +297,13 @@ function AddressBookSection() {
     },
   })
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateAddress>[1] }) =>
-      updateAddress(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: Parameters<typeof updateAddress>[1]
+    }) => updateAddress(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'addresses'] })
       setEditingId(null)
@@ -308,7 +321,7 @@ function AddressBookSection() {
     return (
       <section>
         <h2 className="mono mb-12 border-b border-[#f0f0f0] pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
-          ADDRESS BOOK
+          주소록
         </h2>
         <p className="text-dot-secondary">Loading…</p>
       </section>
@@ -318,7 +331,7 @@ function AddressBookSection() {
   return (
     <section>
       <h2 className="mono mb-12 border-b border-[#f0f0f0] pb-4 text-[1.8rem] font-normal tracking-[0.12em] text-dot-primary">
-        ADDRESS BOOK
+        주소록
       </h2>
       <div className="space-y-6">
         {addresses.map((addr) => (
@@ -339,7 +352,9 @@ function AddressBookSection() {
                   <h4 className="font-medium text-dot-primary">
                     {addr.label}
                     {addr.isDefault && (
-                      <span className="mono ml-2 text-[0.75rem] text-dot-secondary">(DEFAULT)</span>
+                      <span className="mono ml-2 text-[0.75rem] text-dot-secondary">
+                        (DEFAULT)
+                      </span>
                     )}
                   </h4>
                   <button
@@ -357,13 +372,16 @@ function AddressBookSection() {
                 </p>
                 {(addr.recipientName || addr.phone) && (
                   <p className="mt-1 text-[0.9rem] text-dot-secondary">
-                    {[addr.recipientName, addr.phone].filter(Boolean).join(' · ')}
+                    {[addr.recipientName, addr.phone]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
                 )}
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm('이 주소를 삭제할까요?')) deleteMutation.mutate(addr.id)
+                    if (window.confirm('이 주소를 삭제할까요?'))
+                      deleteMutation.mutate(addr.id)
                   }}
                   className="mono mt-3 text-[0.8rem] text-red-600 underline hover:no-underline cursor-pointer"
                 >
@@ -431,14 +449,18 @@ function AddressForm({
     open: () => void
   }
 
-  type KakaoPostcodeConstructor = new (options: { oncomplete: (data: KakaoPostcodeData) => void }) => KakaoPostcodeInstance
+  type KakaoPostcodeConstructor = new (options: {
+    oncomplete: (data: KakaoPostcodeData) => void
+  }) => KakaoPostcodeInstance
 
   const KAKAO_POSTCODE_SCRIPT_URL =
     '//t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
 
   const ensureKakaoPostcodeLoaded = async (): Promise<void> => {
     if (typeof window === 'undefined') return
-    const w = window as unknown as { kakao?: { Postcode?: KakaoPostcodeConstructor } }
+    const w = window as unknown as {
+      kakao?: { Postcode?: KakaoPostcodeConstructor }
+    }
     if (w.kakao?.Postcode) return
 
     const existing = document.getElementById('kakao-postcode-script')
@@ -456,18 +478,23 @@ function AddressForm({
       script.src = KAKAO_POSTCODE_SCRIPT_URL
       script.async = true
       script.onload = () => resolve()
-      script.onerror = () => reject(new Error('카카오 우편번호 스크립트 로드에 실패했습니다.'))
+      script.onerror = () =>
+        reject(new Error('카카오 우편번호 스크립트 로드에 실패했습니다.'))
       document.body.appendChild(script)
     })
   }
 
   const [label, setLabel] = useState(address?.label ?? '')
-  const [recipientName, setRecipientName] = useState(address?.recipientName ?? '')
+  const [recipientName, setRecipientName] = useState(
+    address?.recipientName ?? ''
+  )
   const formatPhone = (value: string): string => {
     const digits = value.replace(/\D/g, '')
     if (!digits) return ''
-    if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
-    if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+    if (digits.length === 11)
+      return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+    if (digits.length === 10)
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
     // 입력 중간(12자리 이하)에는 최대한 보기 좋게만 하이픈 처리
     if (digits.length <= 3) return digits
     if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
@@ -487,7 +514,9 @@ function AddressForm({
     try {
       setPostcodeLoading(true)
       await ensureKakaoPostcodeLoaded()
-      const w = window as unknown as { kakao?: { Postcode?: KakaoPostcodeConstructor } }
+      const w = window as unknown as {
+        kakao?: { Postcode?: KakaoPostcodeConstructor }
+      }
       if (!w.kakao?.Postcode) return
 
       const Postcode = w.kakao.Postcode
@@ -529,18 +558,22 @@ function AddressForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">LABEL (e.g. HOME, OFFICE)</label>
+        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
+          주소 별칭 (예: 집, 회사)
+        </label>
         <input
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder="HOME"
+          placeholder="집"
           className="w-full border border-[#eee] bg-white px-3 py-2 text-[0.95rem] focus:border-dot-primary focus:outline-none"
           required
         />
       </div>
       <div>
-        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">RECIPIENT</label>
+        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
+          받는 분
+        </label>
         <input
           type="text"
           value={recipientName}
@@ -550,7 +583,9 @@ function AddressForm({
         />
       </div>
       <div>
-        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">PHONE</label>
+        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
+          연락처
+        </label>
         <input
           type="tel"
           value={phone}
@@ -560,7 +595,9 @@ function AddressForm({
         />
       </div>
       <div>
-        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">POSTAL CODE</label>
+        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
+          우편번호
+        </label>
         <input
           type="text"
           value={postalCode}
@@ -576,11 +613,13 @@ function AddressForm({
           disabled={postcodeLoading}
           className="mono mt-2 w-full border border-dot-primary bg-white py-2.5 text-[0.85rem] text-dot-primary disabled:opacity-50"
         >
-          {postcodeLoading ? 'LOADING…' : '우편번호 찾기'}
+          {postcodeLoading ? '불러오는 중…' : '우편번호 찾기'}
         </button>
       </div>
       <div>
-        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">ADDRESS</label>
+        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
+          주소
+        </label>
         <input
           type="text"
           value={addressLine1}
@@ -593,7 +632,9 @@ function AddressForm({
         />
       </div>
       <div>
-        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">ADDRESS LINE 2 (optional)</label>
+        <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
+          상세 주소 (선택)
+        </label>
         <input
           type="text"
           value={addressLine2}
@@ -610,7 +651,9 @@ function AddressForm({
           onChange={(e) => setIsDefault(e.target.checked)}
           className="rounded border-[#eee]"
         />
-        <span className="text-[0.9rem] text-dot-primary">기본 배송지로 설정</span>
+        <span className="text-[0.9rem] text-dot-primary">
+          기본 배송지로 설정
+        </span>
       </label>
       <div className="flex gap-3 pt-2">
         <button
@@ -618,14 +661,14 @@ function AddressForm({
           onClick={onCancel}
           className="mono flex-1 border border-[#ddd] bg-white py-2.5 text-[0.85rem] text-[#1A1A1A] hover:bg-[#f9f9f9]"
         >
-          CANCEL
+          취소
         </button>
         <button
           type="submit"
           disabled={isPending}
           className="mono flex-1 border-none bg-[#1A1A1A] py-2.5 text-[0.85rem] text-white disabled:opacity-50"
         >
-          {isPending ? '저장 중…' : 'SAVE'}
+          {isPending ? '저장 중…' : '저장'}
         </button>
       </div>
     </form>
@@ -635,7 +678,9 @@ function AddressForm({
 /** 주문 이력: 주문 목록 + 상품별 구매평 보기/작성 */
 function OrderHistorySection() {
   const queryClient = useQueryClient()
-  const [writingReviewProductId, setWritingReviewProductId] = useState<string | null>(null)
+  const [writingReviewProductId, setWritingReviewProductId] = useState<
+    string | null
+  >(null)
 
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['shop', 'my-orders'],
@@ -657,15 +702,14 @@ function OrderHistorySection() {
   }
 
   if (ordersLoading || reviewsLoading) {
-    return (
-      <p className="mono text-dot-secondary">Loading…</p>
-    )
+    return <p className="mono text-dot-secondary">Loading…</p>
   }
 
   if (orders.length === 0) {
     return (
       <p className="text-[0.95rem] text-dot-secondary">
-        주문 내역이 없습니다. 첫 구매 후 여기에서 주문 이력과 구매평 작성을 확인할 수 있습니다.
+        주문 내역이 없습니다. 첫 구매 후 여기에서 주문 이력과 구매평 작성을
+        확인할 수 있습니다.
       </p>
     )
   }
@@ -721,7 +765,9 @@ function OrderCard({
     <div className="border border-[#eee] bg-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#eee] px-6 py-5">
         <div className="flex flex-col gap-1">
-          <span className="mono text-[0.7rem] text-dot-secondary">ORDER NUMBER</span>
+          <span className="mono text-[0.7rem] text-dot-secondary">
+            ORDER NUMBER
+          </span>
           <p className="mono text-[0.9rem] font-medium tracking-wider text-dot-primary">
             #{order.orderNumber}
           </p>
@@ -748,7 +794,9 @@ function OrderCard({
         ))}
       </ul>
       <div className="border-t border-[#eee] bg-[#fafafa] px-6 py-4 text-right">
-        <span className="mono mr-4 text-[0.75rem] text-dot-secondary">TOTAL AMOUNT</span>
+        <span className="mono mr-4 text-[0.75rem] text-dot-secondary">
+          TOTAL AMOUNT
+        </span>
         <span className="text-[1.1rem] font-medium text-dot-primary">
           ₩{order.total.toLocaleString('ko-KR')}
         </span>
@@ -821,7 +869,10 @@ function OrderItemRow({
                 </span>
               </div>
               {myReview.rating != null && (
-                <div className="mb-3 flex gap-0.5 text-amber-500" aria-label={`별점 ${myReview.rating}점`}>
+                <div
+                  className="mb-3 flex gap-0.5 text-amber-500"
+                  aria-label={`별점 ${myReview.rating}점`}
+                >
                   {[1, 2, 3, 4, 5].map((i) => (
                     <span key={i} className="text-sm leading-none">
                       {i <= myReview.rating! ? '★' : '☆'}
@@ -842,7 +893,11 @@ function OrderItemRow({
                       rel="noopener noreferrer"
                       className="block h-20 w-20 overflow-hidden rounded-sm border border-[#eee] bg-white"
                     >
-                      <img src={img.url} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={img.url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     </a>
                   ))}
                 </div>

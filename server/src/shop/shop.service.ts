@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, asc, desc, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
@@ -15,6 +21,89 @@ export class ShopService {
     return this.db.query.productCategories.findMany({
       orderBy: [asc(schema.productCategories.sortOrder)],
     });
+  }
+
+  /** [Admin] 카테고리 생성 */
+  async createCategory(data: {
+    slug: string;
+    name: string;
+    sortOrder?: number;
+  }) {
+    const normalizedSlug = data.slug.trim();
+    const existing = await this.db.query.productCategories.findFirst({
+      where: eq(schema.productCategories.slug, normalizedSlug),
+    });
+    if (existing) {
+      throw new ConflictException('이미 존재하는 카테고리 slug 입니다.');
+    }
+    const [created] = await this.db
+      .insert(schema.productCategories)
+      .values({
+        slug: normalizedSlug,
+        name: data.name.trim(),
+        sortOrder: data.sortOrder ?? 0,
+      })
+      .returning();
+    return created;
+  }
+
+  /** [Admin] 카테고리 수정 */
+  async updateCategory(
+    id: string,
+    data: { slug?: string; name?: string; sortOrder?: number },
+  ) {
+    const category = await this.db.query.productCategories.findFirst({
+      where: eq(schema.productCategories.id, id),
+    });
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다.');
+    }
+
+    if (data.slug !== undefined) {
+      const normalizedSlug = data.slug.trim();
+      const existing = await this.db.query.productCategories.findFirst({
+        where: eq(schema.productCategories.slug, normalizedSlug),
+      });
+      if (existing && existing.id !== id) {
+        throw new ConflictException('이미 존재하는 카테고리 slug 입니다.');
+      }
+    }
+
+    const [updated] = await this.db
+      .update(schema.productCategories)
+      .set({
+        ...(data.slug !== undefined && { slug: data.slug.trim() }),
+        ...(data.name !== undefined && { name: data.name.trim() }),
+        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      })
+      .where(eq(schema.productCategories.id, id))
+      .returning();
+    return updated;
+  }
+
+  /** [Admin] 카테고리 삭제 */
+  async deleteCategory(id: string) {
+    const category = await this.db.query.productCategories.findFirst({
+      where: eq(schema.productCategories.id, id),
+    });
+    if (!category) {
+      throw new NotFoundException('카테고리를 찾을 수 없습니다.');
+    }
+
+    const linkedProduct = await this.db.query.products.findFirst({
+      where: eq(schema.products.categoryId, id),
+    });
+    if (linkedProduct) {
+      throw new BadRequestException(
+        '이 카테고리를 사용하는 상품이 있어 삭제할 수 없습니다.',
+      );
+    }
+
+    const [deleted] = await this.db
+      .delete(schema.productCategories)
+      .where(eq(schema.productCategories.id, id))
+      .returning();
+    return deleted;
   }
 
   /** 상품 목록 조회 (카테고리 필터링 포함) */
@@ -37,10 +126,15 @@ export class ShopService {
     });
   }
 
-  /** 상품 상세 조회 (상세 이미지, 구매평 포함) */
-  async getProduct(id: string) {
+  /** 상품 상세 조회 (slug 또는 id, 상세 이미지/구매평 포함) */
+  async getProduct(slugOrId: string) {
+    const uuidV4Regex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const byId = uuidV4Regex.test(slugOrId);
     const product = await this.db.query.products.findFirst({
-      where: eq(schema.products.id, id),
+      where: byId
+        ? eq(schema.products.id, slugOrId)
+        : eq(schema.products.slug, slugOrId),
       with: {
         category: true,
         images: {
@@ -60,7 +154,7 @@ export class ShopService {
     }
 
     const reviews = await this.db.query.productReviews.findMany({
-      where: eq(schema.productReviews.productId, id),
+      where: eq(schema.productReviews.productId, product.id),
       orderBy: [desc(schema.productReviews.createdAt)],
       with: {
         user: {
@@ -218,7 +312,25 @@ export class ShopService {
         );
       }
 
-      return this.getProduct(product.id);
+      const created = await tx.query.products.findFirst({
+        where: eq(schema.products.id, product.id),
+        with: {
+          category: true,
+          images: {
+            orderBy: [asc(schema.productImages.sortOrder)],
+          },
+          options: {
+            orderBy: [asc(schema.productOptions.sortOrder)],
+          },
+          detailImages: {
+            orderBy: [asc(schema.productDetailImages.sortOrder)],
+          },
+        },
+      });
+      if (!created) {
+        throw new NotFoundException('상품을 찾을 수 없습니다.');
+      }
+      return { ...created, reviews: [] };
     });
   }
 

@@ -1,17 +1,17 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  font-family: Inter, system-ui, sans-serif;
+  font-family: NanumSquare, Inter, system-ui, sans-serif;
   line-height: 1.6;
   font-weight: 400;
 
   color-scheme: light;
-  color: #1A1A1A;
-  background-color: #F9F8F6;
+  color: #1a1a1a;
+  background-color: #f9f8f6;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,11 +19,11 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* DOT reference UI */
-  --dot-bg: #F9F8F6;
-  --dot-surface: #FFFFFF;
-  --dot-text-primary: #1A1A1A;
+  --dot-bg: #f9f8f6;
+  --dot-surface: #ffffff;
+  --dot-text-primary: #1a1a1a;
   --dot-text-secondary: #666666;
-  --dot-accent: #A8A095;
+  --dot-accent: #a8a095;
   --dot-transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 
   --radius: 0.625rem;
@@ -75,7 +75,8 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, .logo {
+h3,
+.logo {
   font-family: 'DM Serif Display', serif;
   font-weight: 400;
   letter-spacing: 0.12em;
@@ -93,7 +94,11 @@ h1, h2, h3, .logo {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 80%
+  );
   mix-blend-mode: soft-light;
 }
 
@@ -107,10 +112,20 @@ h1, h2, h3, .logo {
 
 /* Home: scroll indicator line animation */
 @keyframes line-draw {
-  0% { transform: scaleY(0); }
-  50% { transform: scaleY(1); transform-origin: top; }
-  51% { transform-origin: bottom; }
-  100% { transform: scaleY(0); transform-origin: bottom; }
+  0% {
+    transform: scaleY(0);
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  51% {
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
 }
 
 .scroll-indicator-line {
@@ -134,8 +149,12 @@ h1, h2, h3, .logo {
 
 /* Home: hero image float */
 @keyframes hero-float {
-  from { transform: scale(1.05) translateY(0); }
-  to { transform: scale(1.15) translateY(-20px); }
+  from {
+    transform: scale(1.05) translateY(0);
+  }
+  to {
+    transform: scale(1.15) translateY(-20px);
+  }
 }
 
 .hero-img-float {
@@ -144,7 +163,10 @@ h1, h2, h3, .logo {
 
 /* Home: hero title reveal */
 @keyframes hero-reveal {
-  to { opacity: 1; transform: translateY(0); }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero-reveal {

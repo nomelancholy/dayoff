@@ -86,6 +86,32 @@ export async function fetchCategories(): Promise<Category[]> {
   return apiClient.get('/shop/categories')
 }
 
+/** [Admin] 카테고리 생성 */
+export async function createCategory(data: {
+  slug: string
+  name: string
+  sortOrder?: number
+}): Promise<Category> {
+  return apiClient.post('/shop/admin/categories', data)
+}
+
+/** [Admin] 카테고리 수정 */
+export async function updateCategory(
+  id: string,
+  data: {
+    slug?: string
+    name?: string
+    sortOrder?: number
+  }
+): Promise<Category> {
+  return apiClient.patch(`/shop/admin/categories/${id}`, data)
+}
+
+/** [Admin] 카테고리 삭제 */
+export async function deleteCategory(id: string): Promise<Category> {
+  return apiClient.delete(`/shop/admin/categories/${id}`)
+}
+
 /** 상품 목록 조회 */
 export async function fetchProducts(categoryId?: string): Promise<Product[]> {
   return apiClient.get('/shop/products', { params: { categoryId } })
@@ -202,6 +228,11 @@ export async function updateProduct(
   }
 ): Promise<Product> {
   return apiClient.patch(`/shop/admin/products/${id}`, data)
+}
+
+/** [Admin] 상품 삭제 */
+export async function deleteProduct(id: string): Promise<Product> {
+  return apiClient.delete(`/shop/admin/products/${id}`)
 }
 
 /** 구매평용 이미지 업로드 (파일 직접 첨부) */

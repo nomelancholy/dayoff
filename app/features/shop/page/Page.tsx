@@ -7,7 +7,9 @@ import { cn } from '@/common/lib/utils'
 import { Plus } from 'lucide-react'
 
 export const ShopPage = () => {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>()
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    string | undefined
+  >()
   const token = getStoredToken()
 
   const { data: user } = useQuery({
@@ -32,17 +34,6 @@ export const ShopPage = () => {
 
   return (
     <div className="min-h-screen bg-dot-bg">
-      {/* Shop Hero - reference: .shop-hero #EBE9E4, 12rem 4rem 6rem */}
-      <header className="bg-[#EBE9E4] px-6 pb-24 pt-48 text-center md:px-16 md:pb-32 md:pt-52">
-        <span className="mono text-dot-primary">COLLECTIONS</span>
-        <h1 className="mt-2 font-serif text-4xl font-normal tracking-[0.12em] text-dot-primary md:text-5xl lg:text-[3.5rem]">
-          Shop the Edition
-        </h1>
-        <p className="mono mt-4 text-dot-primary/60">
-          Essential pieces for your daily ritual
-        </p>
-      </header>
-
       {/* Admin: Add product (Hero와 카테고리 탭 사이, 우측 정렬) */}
       {isAdmin && (
         <div className="flex justify-end bg-dot-bg px-6 py-4 md:px-16">
@@ -78,7 +69,9 @@ export const ShopPage = () => {
             onClick={() => setSelectedCategoryId(category.id)}
             className={cn(
               'mono relative border-none bg-transparent px-4 py-2 text-dot-secondary transition-colors',
-              selectedCategoryId === category.id ? 'text-dot-primary' : 'hover:text-dot-primary'
+              selectedCategoryId === category.id
+                ? 'text-dot-primary'
+                : 'hover:text-dot-primary'
             )}
           >
             {category.name}
@@ -106,7 +99,7 @@ export const ShopPage = () => {
             {products.map((product) => (
               <Link
                 key={product.id}
-                to={`/shop/${product.id}`}
+                to={`/shop/${product.slug}`}
                 className="group block text-inherit no-underline transition-opacity duration-400 hover:opacity-90"
               >
                 <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2]">

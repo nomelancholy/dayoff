@@ -7,15 +7,6 @@ export function ReviewsSection() {
       className="bg-white px-6 py-40 md:px-16"
       aria-labelledby="reviews-heading"
     >
-      <div className="reveal-element mb-24 text-center">
-        <span className="mono text-dot-primary">TESTIMONIALS</span>
-        <h2
-          id="reviews-heading"
-          className="mt-2 font-serif text-4xl font-normal tracking-[0.12em] text-dot-primary"
-        >
-          Our Students
-        </h2>
-      </div>
       <div className="review-grid mx-auto grid max-w-[1200px] grid-cols-1 gap-8 md:grid-cols-3">
         {CLASS_REVIEWS.map((review, i) => (
           <div

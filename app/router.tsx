@@ -11,6 +11,7 @@ import { CartPage } from '@/features/cart/page/Page'
 import { AccountPage } from '@/features/account/page/Page'
 import { LoginPage } from '@/features/auth/page/LoginPage'
 import { RegisterPage } from '@/features/auth/page/RegisterPage'
+import { AdminPage } from '@/features/admin/page/Page'
 
 export const router = createBrowserRouter([
   {
@@ -20,7 +21,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'shop', element: <ShopPage /> },
-      { path: 'shop/:id', element: <ShopProductPage /> },
+      { path: 'shop/:slug', element: <ShopProductPage /> },
       { path: 'shop/admin/new', element: <AdminProductPage /> },
       { path: 'shop/admin/edit/:id', element: <AdminProductPage /> },
       { path: 'class', element: <ClassPage /> },
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
       { path: 'account', element: <AccountPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      { path: 'admin', element: <AdminPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

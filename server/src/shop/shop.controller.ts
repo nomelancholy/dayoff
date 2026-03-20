@@ -40,14 +40,43 @@ export class ShopController {
     return this.shopService.getCategories();
   }
 
+  /** [Admin] 카테고리 생성 */
+  @Post('admin/categories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async createCategory(
+    @Body() body: { slug: string; name: string; sortOrder?: number },
+  ) {
+    return this.shopService.createCategory(body);
+  }
+
+  /** [Admin] 카테고리 수정 */
+  @Patch('admin/categories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async updateCategory(
+    @Param('id') id: string,
+    @Body() body: { slug?: string; name?: string; sortOrder?: number },
+  ) {
+    return this.shopService.updateCategory(id, body);
+  }
+
+  /** [Admin] 카테고리 삭제 */
+  @Delete('admin/categories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async deleteCategory(@Param('id') id: string) {
+    return this.shopService.deleteCategory(id);
+  }
+
   @Get('products')
   async getProducts(@Query('categoryId') categoryId?: string) {
     return this.shopService.getProducts(categoryId);
   }
 
-  @Get('products/:id')
-  async getProduct(@Param('id') id: string) {
-    return this.shopService.getProduct(id);
+  @Get('products/:slugOrId')
+  async getProduct(@Param('slugOrId') slugOrId: string) {
+    return this.shopService.getProduct(slugOrId);
   }
 
   /** 구매평용 이미지 업로드 (로그인 사용자, multipart/form-data, field name: files) */
@@ -137,7 +166,8 @@ export class ShopController {
           cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`);
         },
       }),
-      limits: { fileSize: 10 * 1024 * 1024 },
+      // 상세 이미지가 긴 원본일 수 있어 관리자 업로드 한도를 30MB로 상향
+      limits: { fileSize: 30 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         const allowed = /^image\/(jpeg|png|gif|webp)$/;
         if (allowed.test(file.mimetype)) cb(null, true);

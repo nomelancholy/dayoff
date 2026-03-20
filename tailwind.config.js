@@ -6,7 +6,7 @@ export default {
     extend: {
       fontFamily: {
         serif: ['"DM Serif Display"', 'serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['NanumSquare', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['"Space Grotesk"', 'monospace'],
       },
       colors: {

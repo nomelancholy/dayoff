@@ -6,17 +6,12 @@ export function ContactInfo() {
 
   return (
     <div className="reveal-element">
-      <span className="mono text-dot-primary">LOCATION & CONTACT</span>
-      <h2 className="mt-4 font-serif text-2xl font-normal leading-snug tracking-[0.12em] text-dot-primary md:text-3xl">
-        숨어있는 조용한 감각,
-        <br />
-        공방 DOT.로 오시는 길
-      </h2>
-
       <div className="mt-12 space-y-10">
         <div>
           <h3 className="mono mb-2 text-[0.8rem] text-dot-accent">ADDRESS</h3>
-          <p className="text-[1.2rem] font-light text-dot-primary">{CONTACT_INFO.address}</p>
+          <p className="text-[1.2rem] font-light text-dot-primary">
+            {CONTACT_INFO.address}
+          </p>
         </div>
         <div>
           <h3 className="mono mb-2 text-[0.8rem] text-dot-accent">EMAIL</h3>
@@ -28,7 +23,9 @@ export function ContactInfo() {
           </a>
         </div>
         <div>
-          <h3 className="mono mb-2 text-[0.8rem] text-dot-accent">OPENING HOURS</h3>
+          <h3 className="mono mb-2 text-[0.8rem] text-dot-accent">
+            OPENING HOURS
+          </h3>
           <p className="text-[1.2rem] font-light text-dot-primary">
             {lines.map((line, i) => (
               <span key={i}>

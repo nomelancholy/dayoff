@@ -15,7 +15,7 @@ export function ClassItem({ data, reverse = false }: ClassItemProps) {
         reverse && '[&>*:first-child]:md:order-2 [&>*:last-child]:md:order-1'
       )}
     >
-      <div className="aspect-[4/5] overflow-hidden bg-[#f5f5f5]">
+      <div className="aspect-4/5 overflow-hidden bg-[#f5f5f5]">
         <img
           src={data.image}
           alt={data.imageAlt}
@@ -24,7 +24,7 @@ export function ClassItem({ data, reverse = false }: ClassItemProps) {
       </div>
       <div className="flex flex-col justify-center">
         <span className="mono text-[11px] uppercase tracking-[0.25em] text-[#888]">{data.monoLabel}</span>
-        <h2 className="mt-4 font-serif text-3xl font-normal tracking-[0.15em] text-dot-primary md:text-[2.5rem] md:leading-tight">
+        <h2 className="mt-4 font-sans text-3xl font-semibold tracking-normal text-dot-primary md:text-[2.5rem] md:leading-tight">
           {data.name}
         </h2>
         <div className="my-8 border-y border-[#eee] py-6">

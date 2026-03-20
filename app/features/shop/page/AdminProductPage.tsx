@@ -4,7 +4,69 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchCategories, fetchProduct, createProduct, updateProduct, uploadProductImages } from '../api/shop'
 import { getApiErrorMessage } from '@/features/auth/api/auth'
 import { cn } from '@/common/lib/utils'
-import { ArrowLeft, Plus, Trash2, Camera } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Camera, Loader2 } from 'lucide-react'
+
+const DETAIL_IMAGE_MAX_WIDTH = 2200
+const DETAIL_IMAGE_QUALITY = 0.82
+const DETAIL_IMAGE_COMPRESS_THRESHOLD = 2 * 1024 * 1024 // 2MB
+
+const shouldCompressDetailImage = (file: File): boolean => {
+  if (file.size < DETAIL_IMAGE_COMPRESS_THRESHOLD) return false
+  return /^image\/(jpeg|jpg|png|webp)$/i.test(file.type)
+}
+
+const readImageSize = (file: File): Promise<{ width: number; height: number }> =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight })
+      URL.revokeObjectURL(url)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('이미지 크기 읽기에 실패했습니다.'))
+    }
+    img.src = url
+  })
+
+const compressDetailImage = async (file: File): Promise<File> => {
+  const { width, height } = await readImageSize(file)
+  if (!width || !height) return file
+
+  const targetWidth = Math.min(width, DETAIL_IMAGE_MAX_WIDTH)
+  const targetHeight = Math.round((height * targetWidth) / width)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = targetWidth
+  canvas.height = targetHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return file
+
+  const url = URL.createObjectURL(file)
+  const img = new Image()
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error('이미지 로딩에 실패했습니다.'))
+    img.src = url
+  })
+  ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+  URL.revokeObjectURL(url)
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', DETAIL_IMAGE_QUALITY)
+  })
+  if (!blob) return file
+
+  const compressed = new File(
+    [blob],
+    file.name.replace(/\.[^/.]+$/, '.jpg'),
+    { type: 'image/jpeg' },
+  )
+
+  // 압축 결과가 더 클 수 있는 예외 케이스 방지
+  return compressed.size < file.size ? compressed : file
+}
 
 export const AdminProductPage = () => {
   const { id: productId } = useParams<{ id?: string }>()
@@ -16,9 +78,6 @@ export const AdminProductPage = () => {
   const [slug, setSlug] = useState('')
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [description, setDescription] = useState('')
-  const [purchaseNotice, setPurchaseNotice] = useState('')
-  const [handlingNotice, setHandlingNotice] = useState('')
   const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [detailImages, setDetailImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [options, setOptions] = useState([{ name: '', value: '', sortOrder: 1 }])
@@ -43,7 +102,6 @@ export const AdminProductPage = () => {
     setSlug(product.slug)
     setPrice(String(product.price))
     setCategoryId(product.categoryId)
-    setDescription(product.description ?? '')
     setImages(
       product.images?.length
         ? product.images.map((img) => ({
@@ -53,8 +111,6 @@ export const AdminProductPage = () => {
           }))
         : []
     )
-    setPurchaseNotice(product.purchaseNotice ?? '')
-    setHandlingNotice(product.handlingNotice ?? '')
     setDetailImages(
       product.detailImages?.length
         ? product.detailImages.map((img) => ({
@@ -114,9 +170,6 @@ export const AdminProductPage = () => {
       slug,
       price: parseInt(price, 10),
       categoryId,
-      description: description || undefined,
-      purchaseNotice: purchaseNotice.trim() || undefined,
-      handlingNotice: handlingNotice.trim() || undefined,
       images: images.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       detailImages: detailImages.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       options: options.filter((opt) => opt.name.trim() !== '' && opt.value.trim() !== ''),
@@ -165,7 +218,13 @@ export const AdminProductPage = () => {
     e.target.value = ''
     setUploadingDetailImages(true)
     try {
-      const { urls } = await uploadProductImages(files)
+      const preparedFiles = await Promise.all(
+        files.map(async (file) => {
+          if (!shouldCompressDetailImage(file)) return file
+          return compressDetailImage(file)
+        })
+      )
+      const { urls } = await uploadProductImages(preparedFiles)
       setDetailImages((prev) => [
         ...prev,
         ...urls.map((url, i) => ({ url, alt: '', sortOrder: prev.length + i + 1 })),
@@ -194,9 +253,18 @@ export const AdminProductPage = () => {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending
+  const isUploading = uploadingImages || uploadingDetailImages
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
+      {isUploading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded bg-white px-5 py-3 text-dot-primary shadow-md">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm font-medium">이미지 업로드 중입니다...</span>
+          </div>
+        </div>
+      )}
       <div className="mx-auto max-w-3xl">
         <button
           onClick={() => (isEditMode && productId ? navigate(`/shop/${productId}`) : navigate('/shop'))}
@@ -284,48 +352,6 @@ export const AdminProductPage = () => {
             </label>
           </div>
 
-          {/* Description */}
-          <label className="flex flex-col gap-2">
-            <span className="text-[10px] uppercase tracking-widest text-[#666]">
-              Description
-            </span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={5}
-              className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-              placeholder="Enter product description..."
-            />
-          </label>
-
-          {/* 구매 전 안내사항 */}
-          <label className="flex flex-col gap-2">
-            <span className="text-[10px] uppercase tracking-widest text-[#666]">
-              구매 전 안내사항
-            </span>
-            <textarea
-              value={purchaseNotice}
-              onChange={(e) => setPurchaseNotice(e.target.value)}
-              rows={4}
-              className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-              placeholder="예: 전 과정 손으로 빚어 만드는 공정의 특성상 같은 제품이라도 약간의 차이가 있을 수 있습니다. 본 제품은 환불 불가 상품입니다."
-            />
-          </label>
-
-          {/* 취급 및 구매 주의사항 */}
-          <label className="flex flex-col gap-2">
-            <span className="text-[10px] uppercase tracking-widest text-[#666]">
-              취급 및 구매 주의사항
-            </span>
-            <textarea
-              value={handlingNotice}
-              onChange={(e) => setHandlingNotice(e.target.value)}
-              rows={6}
-              className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-              placeholder="예: 한 개 한 개 손으로 빚어 만드는 제품 특성상 형태, 채색의 느낌이 사진과 다를 수 있습니다. 도자기 세척 시 스크래치를 주의하여 부드러운 스펀지를 이용해 주세요."
-            />
-          </label>
-
           {/* Images (파일 직접 첨부) */}
           <div className="space-y-4">
             <span className="block text-[10px] uppercase tracking-widest text-[#666]">
@@ -345,7 +371,7 @@ export const AdminProductPage = () => {
                 {uploadingImages ? '업로드 중…' : '사진 첨부하기'}
               </span>
               <span className="mt-1 text-xs text-[#888]">
-                클릭하여 이미지를 선택하세요 (jpg, png, gif, webp)
+                클릭하여 이미지를 선택하세요 (jpg, png, gif, webp, 최대 30MB/파일)
               </span>
             </label>
             {images.length > 0 && (
@@ -400,7 +426,7 @@ export const AdminProductPage = () => {
                 {uploadingDetailImages ? '업로드 중…' : '사진 첨부하기'}
               </span>
               <span className="mt-1 text-xs text-[#888]">
-                클릭하여 상세 이미지를 선택하세요
+                클릭하여 상세 이미지를 선택하세요 (큰 파일은 자동 압축됩니다, 최대 30MB/파일)
               </span>
             </label>
             {detailImages.length > 0 && (
@@ -489,13 +515,15 @@ export const AdminProductPage = () => {
 
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || isUploading}
               className={cn(
                 'w-full bg-[#1A1A1A] py-4 text-xs font-medium uppercase tracking-widest text-white! transition-opacity hover:opacity-90',
-                isPending && 'opacity-50'
+                (isPending || isUploading) && 'opacity-50'
               )}
             >
-              {isPending
+              {isUploading
+                ? 'Uploading Images...'
+                : isPending
                 ? isEditMode
                   ? 'Updating...'
                   : 'Registering...'
