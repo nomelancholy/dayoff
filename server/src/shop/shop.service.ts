@@ -5,15 +5,20 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, asc, desc, isNull } from 'drizzle-orm';
+import { eq, and, asc, desc, isNull, sql, ne, inArray, or, gt, lte } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
+import { CouponService } from '../coupon/coupon.service';
 import * as schema from '../db/schema';
+import { isOutOfDeliveryPostalCode } from './out-of-delivery-areas';
 
 @Injectable()
 export class ShopService {
   constructor(
     @Inject(DRIZZLE) private readonly db: NodePgDatabase<typeof schema>,
+    private readonly couponService: CouponService,
+    private readonly configService: ConfigService,
   ) {}
 
   /** 카테고리 목록 조회 */
@@ -413,10 +418,28 @@ export class ShopService {
   /** 내 주문 목록 (주문별 상세 아이템 포함) */
   async getMyOrders(userId: string) {
     const list = await this.db.query.orders.findMany({
-      where: eq(schema.orders.userId, userId),
+      where: and(
+        eq(schema.orders.userId, userId),
+        or(
+          eq(schema.orders.status, 'paid'),
+          eq(schema.orders.status, 'shipped'),
+          eq(schema.orders.status, 'delivered'),
+        ),
+      ),
       orderBy: [desc(schema.orders.createdAt)],
       with: {
-        orderItems: true,
+        orderItems: {
+          with: {
+            product: {
+              with: {
+                images: {
+                  limit: 1,
+                  orderBy: [asc(schema.productImages.sortOrder)],
+                },
+              },
+            },
+          },
+        },
       },
     });
     return list;
@@ -464,6 +487,321 @@ export class ShopService {
         },
       });
     });
+  }
+
+  async createTossCheckoutOrder(
+    userId: string,
+    couponCode?: string | null,
+    cartItemIds?: string[],
+    cartItemQuantities?: number[],
+    shippingAddressId?: string,
+  ) {
+    const ids = cartItemIds ?? [];
+    if (ids.length === 0) {
+      throw new BadRequestException('선택한 상품이 없습니다.');
+    }
+
+    if (!shippingAddressId) {
+      throw new BadRequestException('배송지를 선택해 주세요.');
+    }
+
+    const address = await this.db.query.addresses.findFirst({
+      where: and(
+        eq(schema.addresses.id, shippingAddressId),
+        eq(schema.addresses.userId, userId),
+      ),
+    });
+
+    if (!address) {
+      throw new BadRequestException('배송지를 찾을 수 없습니다.');
+    }
+    if (cartItemQuantities && cartItemQuantities.length !== ids.length) {
+      throw new BadRequestException(
+        '구매 수량 정보가 상품 정보와 일치하지 않습니다.',
+      );
+    }
+
+    const quantitiesById = new Map<string, number>();
+    if (cartItemQuantities) {
+      ids.forEach((id, idx) => {
+        quantitiesById.set(id, cartItemQuantities[idx] ?? 0);
+      });
+    }
+
+    const cartItems = await this.db.query.cartItems.findMany({
+      where: and(
+        eq(schema.cartItems.userId, userId),
+        inArray(schema.cartItems.id, ids),
+      ),
+      with: {
+        product: {
+          with: {
+            images: {
+              limit: 1,
+              orderBy: [asc(schema.productImages.sortOrder)],
+            },
+          },
+        },
+        option: true,
+      },
+      orderBy: [desc(schema.cartItems.createdAt)],
+    });
+    if (!cartItems.length) {
+      throw new BadRequestException('장바구니가 비어 있습니다.');
+    }
+
+    const purchaseQtyFor = (cartItemId: string, defaultQty: number) => {
+      const specified = quantitiesById.get(cartItemId);
+      return specified && specified > 0 ? specified : defaultQty;
+    };
+
+    const subtotal = cartItems.reduce((sum, item) => {
+      const purchaseQty = purchaseQtyFor(item.id, item.quantity);
+      if (purchaseQty <= 0) return sum;
+      // 안전장치: 지정 구매 수량이 장바구니 수량보다 클 수 없도록 방어
+      if (purchaseQty > item.quantity) {
+        throw new BadRequestException('구매 수량이 장바구니 수량을 초과했습니다.');
+      }
+      return sum + item.product.price * purchaseQty;
+    }, 0);
+    const isOutOfDelivery = isOutOfDeliveryPostalCode(address.postalCode);
+    const shippingFee =
+      subtotal === 0
+        ? 0
+        : subtotal >= 100000
+          ? 0
+          : isOutOfDelivery
+            ? 5000
+            : 4000;
+
+    let couponId: string | null = null;
+    let discountAmount = 0;
+    const trimmedCoupon = couponCode?.trim() ? couponCode.trim() : '';
+    if (trimmedCoupon) {
+      const validation = await this.couponService.validateCode(
+        userId,
+        trimmedCoupon,
+        subtotal,
+      );
+      couponId = validation.couponId;
+      discountAmount = validation.discountAmount;
+    }
+
+    const total = Math.max(0, subtotal + shippingFee - discountAmount);
+    if (total <= 0) {
+      throw new BadRequestException('결제할 금액이 없습니다.');
+    }
+
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const primaryName = cartItems[0]?.product?.name ?? '도자기 상품';
+    const orderName =
+      cartItems.length > 1
+        ? `${primaryName} 외 ${cartItems.length - 1}건`
+        : primaryName;
+
+    const frontUrl =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const successUrl = `${frontUrl}/checkout/success`;
+    const failUrl = `${frontUrl}/checkout/fail`;
+
+    const widgetClientKey = this.configService.get<string>(
+      'TOSS_WIDGET_CLIENT_KEY',
+    );
+    if (!widgetClientKey) {
+      throw new BadRequestException(
+        '서버 환경설정에 TOSS_WIDGET_CLIENT_KEY가 없습니다.',
+      );
+    }
+
+    await this.db.transaction(async (tx) => {
+      const [order] = await tx
+        .insert(schema.orders)
+        .values({
+          userId,
+          orderNumber,
+          status: 'pending',
+          shippingAddressId,
+          subtotal,
+          shippingFee,
+          discountAmount,
+          total,
+          couponId,
+        })
+        .returning();
+
+      await tx.insert(schema.orderItems).values(
+        cartItems.map((item) => {
+          const purchaseQty = purchaseQtyFor(item.id, item.quantity);
+          return {
+            orderId: order.id,
+            productId: item.productId,
+            productOptionId: item.optionId ?? null,
+            productName: item.product.name,
+            optionLabel: item.option
+              ? `${item.option.name}: ${item.option.value}`
+              : null,
+            price: item.product.price,
+            quantity: purchaseQty,
+            lineTotal: item.product.price * purchaseQty,
+          };
+        }),
+      );
+    });
+
+    return {
+      orderId: orderNumber, // Toss의 orderId (우리는 orderNumber로 사용)
+      orderName,
+      amount: total, // KRW int
+      widgetClientKey,
+      customerKey: userId,
+      successUrl,
+      failUrl,
+    };
+  }
+
+  async confirmTossPaymentAndFinalizeOrder(
+    userId: string,
+    params: { paymentKey: string; orderId: string; amount: number },
+  ) {
+    const { paymentKey, orderId, amount } = params;
+    const order = await this.db.query.orders.findFirst({
+      where: and(
+        eq(schema.orders.orderNumber, orderId),
+        eq(schema.orders.userId, userId),
+      ),
+      with: {
+        orderItems: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('주문을 찾을 수 없습니다.');
+    }
+
+    if (order.status === 'paid') {
+      return { orderNumber: order.orderNumber, status: order.status };
+    }
+
+    if (order.total !== amount) {
+      throw new BadRequestException(
+        '결제 금액이 주문 금액과 일치하지 않습니다.',
+      );
+    }
+
+    const secretKey = this.configService.get<string>('TOSS_SECRET_KEY');
+    if (!secretKey) {
+      throw new BadRequestException(
+        '서버 환경설정에 TOSS_SECRET_KEY가 없습니다.',
+      );
+    }
+
+    const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
+
+    const paymentRes = await fetch(
+      'https://api.tosspayments.com/v1/payments/confirm',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${basicAuth}`,
+        },
+        body: JSON.stringify({
+          paymentKey,
+          orderId,
+          amount,
+        }),
+      },
+    );
+
+    if (!paymentRes.ok) {
+      const errorBody = await paymentRes.json().catch(() => null);
+      const tossCode =
+        errorBody && typeof errorBody === 'object'
+          ? (errorBody as { code?: unknown }).code
+          : undefined;
+      const tossMessage =
+        errorBody && typeof errorBody === 'object'
+          ? (errorBody as { message?: unknown }).message
+          : undefined;
+
+      // 동일 paymentKey/orderId로 confirm이 동시에 여러 번 호출되면
+      // Toss에서 "이미 처리중" 응답을 줄 수 있습니다.
+      if (tossCode === 'ALREADY_PROCESSING_REQUEST') {
+        return { orderNumber: order.orderNumber, status: order.status };
+      }
+
+      const text = typeof tossMessage === 'string' ? tossMessage : '';
+
+      throw new BadRequestException(
+        `토스 결제 확인에 실패했습니다.${text ? ` ${text}` : ''}`,
+      );
+    }
+
+    const paymentData: { status?: string } = await paymentRes.json();
+    if (paymentData.status && paymentData.status !== 'DONE') {
+      throw new BadRequestException(
+        `결제가 완료되지 않았습니다. 상태: ${paymentData.status}`,
+      );
+    }
+
+    await this.db.transaction(async (tx) => {
+      const [updatedOrder] = await tx
+        .update(schema.orders)
+        .set({ status: 'paid', updatedAt: new Date() })
+        .where(
+          and(eq(schema.orders.id, order.id), ne(schema.orders.status, 'paid')),
+        )
+        .returning();
+
+      if (!updatedOrder) return;
+
+      if (order.couponId) {
+        await tx
+          .update(schema.coupons)
+          .set({ usedCount: sql`${schema.coupons.usedCount} + 1` })
+          .where(eq(schema.coupons.id, order.couponId));
+
+        // 지급 쿠폰(user_coupons) 이력이 있는 경우만 사용처리
+        await tx
+          .update(schema.userCoupons)
+          .set({ usedAt: new Date(), orderId: updatedOrder.id })
+          .where(
+            and(
+              eq(schema.userCoupons.userId, userId),
+              eq(schema.userCoupons.couponId, order.couponId),
+              isNull(schema.userCoupons.usedAt),
+            ),
+          );
+      }
+
+      // 장바구니에 이미 같은 상품이 merge 되어 있을 수 있으므로,
+      // 결제 확정 시엔 cartItems 를 "삭제"가 아니라 주문 수량(oi.quantity)만큼 차감합니다.
+      for (const oi of order.orderItems) {
+        const baseCond = and(
+          eq(schema.cartItems.userId, userId),
+          eq(schema.cartItems.productId, oi.productId),
+          oi.productOptionId == null
+            ? isNull(schema.cartItems.optionId)
+            : eq(schema.cartItems.optionId, oi.productOptionId),
+        );
+
+        // cart 수량이 주문 수량보다 작거나 같으면 행 자체를 삭제
+        await tx.delete(schema.cartItems).where(
+          and(baseCond, lte(schema.cartItems.quantity, oi.quantity)),
+        );
+
+        // cart 수량이 더 많으면 주문 수량만큼만 차감
+        await tx
+          .update(schema.cartItems)
+          .set({
+            quantity: sql`${schema.cartItems.quantity} - ${oi.quantity}`,
+          })
+          .where(and(baseCond, gt(schema.cartItems.quantity, oi.quantity)));
+      }
+    });
+
+    return { orderNumber: order.orderNumber, status: 'paid' };
   }
 
   /** [Admin] 상품 삭제 */

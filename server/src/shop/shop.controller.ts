@@ -24,6 +24,49 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserRow } from '../auth/auth.service';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
+
+class CreateTossCheckoutDto {
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
+
+  @IsString()
+  shippingAddressId!: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsString({ each: true })
+  cartItemIds!: string[];
+
+  // 상품 상세 "구매하기"처럼 장바구니에 이미 같은 상품이 merge 되어 있을 때
+  // 실제 결제/주문에 사용할 수량을 지정하기 위해 사용합니다.
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  cartItemQuantities?: number[];
+}
+
+class ConfirmTossPaymentDto {
+  @IsString()
+  paymentKey!: string;
+
+  // Toss 요청 시 전달했던 orderId (우리는 orders.order_number 사용)
+  @IsString()
+  orderId!: string;
+
+  @IsInt()
+  @Min(0)
+  amount!: number;
+}
 
 const getBaseUrl = (req: Request): string => {
   const protocol = req.protocol || 'http';
@@ -151,6 +194,36 @@ export class ShopController {
   @UseGuards(JwtAuthGuard)
   async removeFromCart(@CurrentUser() user: UserRow, @Param('id') id: string) {
     return this.shopService.removeFromCart(user.id, id);
+  }
+
+  /** Toss Payments: 체크아웃 주문 생성 (결제 요청 직전 pending 상태 생성) */
+  @Post('checkout/toss')
+  @UseGuards(JwtAuthGuard)
+  async createTossCheckout(
+    @CurrentUser() user: UserRow,
+    @Body() dto: CreateTossCheckoutDto,
+  ) {
+    return this.shopService.createTossCheckoutOrder(
+      user.id,
+      dto.couponCode ?? null,
+      dto.cartItemIds,
+      dto.cartItemQuantities,
+      dto.shippingAddressId,
+    );
+  }
+
+  /** Toss Payments: 결제 승인 검증 + 주문 paid 처리 */
+  @Post('checkout/toss/confirm')
+  @UseGuards(JwtAuthGuard)
+  async confirmTossPayment(
+    @CurrentUser() user: UserRow,
+    @Body() dto: ConfirmTossPaymentDto,
+  ) {
+    return this.shopService.confirmTossPaymentAndFinalizeOrder(user.id, {
+      paymentKey: dto.paymentKey,
+      orderId: dto.orderId,
+      amount: dto.amount,
+    });
   }
 
   /** [Admin] 상품 이미지 업로드 (multipart/form-data, field: files) → uploads/product */

@@ -81,18 +81,18 @@ export const ProductReviewForm = ({
     <form onSubmit={handleSubmit} className="rounded-sm border border-[#eee] bg-[#fafafa] p-6">
       <div className="mb-8 flex items-center justify-between border-b border-[#eee] pb-4">
         <h4 className="font-serif text-[1.3rem] font-normal tracking-wide text-dot-primary">
-          Write a Review
+          구매평 작성
         </h4>
         {productName && (
           <span className="mono text-[0.7rem] text-dot-secondary">
-            PRODUCT: {productName.toUpperCase()}
+            상품: {productName}
           </span>
         )}
       </div>
 
       <div className="mb-8">
         <label className="mono mb-3 block text-[0.75rem] font-medium tracking-widest text-dot-primary">
-          SATISFACTION
+          만족도
         </label>
         <div className="flex gap-1.5" role="group" aria-label="별점 선택">
           {[1, 2, 3, 4, 5].map((star) => (
@@ -108,19 +108,21 @@ export const ProductReviewForm = ({
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[0.7rem] text-dot-secondary">How would you rate this product?</p>
+        <p className="mt-2 text-[0.7rem] text-dot-secondary">
+          이 상품에 대한 만족도를 알려주세요.
+        </p>
       </div>
 
       <div className="mb-8">
         <label className="mono mb-3 block text-[0.75rem] font-medium tracking-widest text-dot-primary">
-          YOUR THOUGHTS
+          구매평 내용
         </label>
         <div className="relative">
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value.slice(0, REVIEW_BODY_MAX))}
             rows={5}
-            placeholder="Share your experience with this product. (Min. 10 characters)"
+            placeholder="상품을 사용해 보신 소감과 경험을 작성해 주세요. (최소 10자)"
             className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] italic text-dot-primary focus:border-dot-primary focus:outline-none"
             required
             minLength={REVIEW_BODY_MIN}
@@ -134,7 +136,7 @@ export const ProductReviewForm = ({
 
       <div className="mb-10">
         <label className="mono mb-3 block text-[0.75rem] font-medium tracking-widest text-dot-primary">
-          ATTACH PHOTOS
+          사진 첨부
         </label>
         <label className="block cursor-pointer">
           <input
@@ -146,8 +148,12 @@ export const ProductReviewForm = ({
           />
           <div className="flex flex-col items-center justify-center border border-dashed border-[#ddd] bg-white py-8 transition-colors hover:bg-[#fcfcfc]">
             <Camera className="mb-2 h-6 w-6 text-[#999]" strokeWidth={1} />
-            <span className="mono text-[0.7rem] text-dot-primary">UPLOAD IMAGES</span>
-            <span className="mt-1 text-[0.6rem] text-[#888]">MAX 10 PHOTOS (JPG, PNG, WEBP)</span>
+            <span className="mono text-[0.7rem] text-dot-primary">
+              이미지 업로드
+            </span>
+            <span className="mt-1 text-[0.6rem] text-[#888]">
+              최대 10장 (JPG, PNG, WEBP)
+            </span>
           </div>
         </label>
         {files.length > 0 && (
@@ -180,7 +186,7 @@ export const ProductReviewForm = ({
             onClick={onCancel}
             className="mono flex-1 border border-[#ddd] bg-white py-3 text-[0.8rem] font-medium tracking-widest text-dot-primary transition-colors hover:bg-[#f9f9f9]"
           >
-            CANCEL
+            취소
           </button>
         )}
         <button
@@ -191,7 +197,7 @@ export const ProductReviewForm = ({
             'bg-[#1A1A1A] hover:bg-[#333]'
           )}
         >
-          {isSubmitting || reviewMutation.isPending ? 'SUBMITTING...' : 'SUBMIT REVIEW'}
+          {isSubmitting || reviewMutation.isPending ? '등록 중…' : '구매평 작성'}
         </button>
       </div>
     </form>

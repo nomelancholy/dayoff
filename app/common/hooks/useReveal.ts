@@ -5,8 +5,13 @@ const observerOptions: IntersectionObserverInit = {
   rootMargin: '0px 0px -50px 0px',
 }
 
-export function useReveal(className = 'reveal-element', activeClass = 'reveal-active') {
+export function useReveal(
+  className = 'reveal-element',
+  activeClass = 'reveal-active',
+  deps: unknown[] = [],
+) {
   const ref = useRef<HTMLDivElement>(null)
+  const depsKey = deps.map((d) => String(d)).join('|')
 
   useEffect(() => {
     const el = ref.current
@@ -23,7 +28,7 @@ export function useReveal(className = 'reveal-element', activeClass = 'reveal-ac
     const nodes = el.querySelectorAll(`.${className}`)
     nodes.forEach((node) => observer.observe(node))
     return () => nodes.forEach((node) => observer.unobserve(node))
-  }, [className, activeClass])
+  }, [className, activeClass, depsKey])
 
   return ref
 }

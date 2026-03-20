@@ -388,6 +388,17 @@ export class AuthService {
       ),
     });
     if (!existing) throw new BadRequestException('주소를 찾을 수 없습니다.');
+
+    // 이 배송지를 참조하는 주문이 있으면 FK 제약 때문에 삭제가 실패합니다.
+    // 사용자 입장에서는 "왜" 삭제가 안 되는지 명확히 안내해야 합니다.
+    const usedInOrder = await this.db.query.orders.findFirst({
+      where: eq(schema.orders.shippingAddressId, addressId),
+    });
+    if (usedInOrder) {
+      throw new BadRequestException(
+        '이 배송지는 주문에 사용 중이라 삭제할 수 없습니다.',
+      );
+    }
     await this.db
       .delete(schema.addresses)
       .where(eq(schema.addresses.id, addressId));

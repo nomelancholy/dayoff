@@ -23,8 +23,6 @@ function ScrollIndicator() {
 }
 
 export const HomePage = () => {
-  const revealRef = useReveal()
-
   const { data: shopProducts, isLoading: shopPreviewLoading } = useQuery({
     queryKey: ['shop', 'products', 'home-preview'],
     queryFn: () => fetchProducts(),
@@ -32,6 +30,11 @@ export const HomePage = () => {
   })
 
   const previewProducts = (shopProducts ?? []).slice(0, SHOP_PREVIEW_LIMIT)
+  // 상품 목록/스켈레톤이 교체되는 시점에 맞춰 재관찰합니다.
+  const revealRef = useReveal('reveal-element', 'reveal-active', [
+    shopPreviewLoading,
+    previewProducts.length,
+  ])
 
   return (
     <div ref={revealRef}>

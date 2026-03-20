@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import {
   fetchMe,
@@ -12,6 +12,7 @@ import {
   deleteAddress,
   type AuthUser,
   type AddressRow,
+  getApiErrorMessage,
 } from '@/features/auth/api/auth'
 import {
   fetchMyOrders,
@@ -23,6 +24,7 @@ import {
 import { ProductReviewForm } from '@/features/shop/components/ProductReviewForm'
 import { cn } from '@/common/lib/utils'
 import { LoginForm } from '@/features/auth/components/LoginForm'
+import { isOutOfDeliveryPostalCode } from '@/common/lib/outOfDeliveryAreas'
 
 type AccountSection = 'profile' | 'orders' | 'address'
 
@@ -43,8 +45,15 @@ const formatPhone = (value: string): string => {
 
 export const AccountPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const token = getStoredToken()
-  const [activeSection, setActiveSection] = useState<AccountSection>('profile')
+
+  type AccountLocationState = { activeSection?: AccountSection }
+  const initialSection =
+    (location.state as AccountLocationState | null)?.activeSection ?? 'profile'
+
+  const [activeSection, setActiveSection] =
+    useState<AccountSection>(initialSection)
 
   const {
     data: user,
@@ -283,6 +292,7 @@ function AddressBookSection() {
   const queryClient = useQueryClient()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const { data: addresses = [], isLoading } = useQuery({
     queryKey: ['auth', 'addresses'],
@@ -314,6 +324,12 @@ function AddressBookSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'addresses'] })
       setEditingId(null)
+      setDeleteConfirmId(null)
+    },
+    onError: (err: unknown) => {
+      alert(
+        getApiErrorMessage(err, '주소 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+      )
     },
   })
 
@@ -356,6 +372,11 @@ function AddressBookSection() {
                         (DEFAULT)
                       </span>
                     )}
+                    {isOutOfDeliveryPostalCode(addr.postalCode) && (
+                      <span className="mono ml-2 text-[0.75rem] text-dot-primary">
+                        도서 산간 지역
+                      </span>
+                    )}
                   </h4>
                   <button
                     type="button"
@@ -380,8 +401,7 @@ function AddressBookSection() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm('이 주소를 삭제할까요?'))
-                      deleteMutation.mutate(addr.id)
+                      setDeleteConfirmId(addr.id)
                   }}
                   className="mono mt-3 text-[0.8rem] text-red-600 underline hover:no-underline cursor-pointer"
                 >
@@ -414,6 +434,41 @@ function AddressBookSection() {
           저장된 주소가 없습니다. 위 버튼으로 추가하세요.
         </p>
       )}
+
+      {deleteConfirmId ? (
+        <div
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-black/40 p-6"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="font-serif text-[1.35rem] text-dot-primary">
+              이 주소를 삭제할까요?
+            </h3>
+            <p className="mt-3 text-[0.95rem] text-dot-secondary">
+              삭제한 주소는 복구할 수 없습니다.
+            </p>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmId(null)}
+                className="mono flex-1 border border-[#ddd] bg-white py-2.5 text-[0.85rem] text-[#1A1A1A] hover:bg-[#fafafa]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteMutation.mutate(deleteConfirmId)}
+                disabled={deleteMutation.isPending}
+                className="mono flex-1 border-none bg-red-600 py-2.5 text-[0.85rem] font-medium text-white disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? '삭제 중…' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -615,6 +670,11 @@ function AddressForm({
         >
           {postcodeLoading ? '불러오는 중…' : '우편번호 찾기'}
         </button>
+        {postalCode && isOutOfDeliveryPostalCode(postalCode) && (
+          <p className="mono mt-2 text-[0.75rem] text-dot-primary">
+            도서 산간 지역
+          </p>
+        )}
       </div>
       <div>
         <label className="mono mb-1 block text-[0.8rem] text-dot-primary">
@@ -682,7 +742,8 @@ function OrderHistorySection() {
     string | null
   >(null)
 
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+  const { data: orders = [] as OrderRow[], isLoading: ordersLoading } =
+    useQuery({
     queryKey: ['shop', 'my-orders'],
     queryFn: fetchMyOrders,
   })
@@ -690,6 +751,13 @@ function OrderHistorySection() {
     queryKey: ['shop', 'my-reviews'],
     queryFn: fetchMyReviews,
   })
+
+  // 주문 히스토리는 "결제 완료" 상태만 보여줍니다.
+  const paidOrders = useMemo<OrderRow[]>(
+    () =>
+      orders.filter((o) => ['paid', 'shipped', 'delivered'].includes(o.status)),
+    [orders],
+  )
 
   const reviewByProductId = Object.fromEntries(
     myReviews.map((r) => [r.productId, r])
@@ -705,7 +773,7 @@ function OrderHistorySection() {
     return <p className="mono text-dot-secondary">Loading…</p>
   }
 
-  if (orders.length === 0) {
+  if (paidOrders.length === 0) {
     return (
       <p className="text-[0.95rem] text-dot-secondary">
         주문 내역이 없습니다. 첫 구매 후 여기에서 주문 이력과 구매평 작성을
@@ -716,7 +784,7 @@ function OrderHistorySection() {
 
   return (
     <div className="space-y-12">
-      {orders.map((order) => (
+      {paidOrders.map((order) => (
         <OrderCard
           key={order.id}
           order={order}
@@ -748,17 +816,17 @@ function OrderCard({
   onCancelWriteReview,
   onReviewSuccess,
 }: OrderCardProps) {
-  const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+  const orderDate = new Date(order.createdAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'short',
     day: '2-digit',
   })
   const statusLabel: Record<string, string> = {
-    pending: 'PENDING',
-    paid: 'PAID',
-    shipped: 'SHIPPED',
-    delivered: 'DELIVERED',
-    cancelled: 'CANCELLED',
+    pending: '결제 대기',
+    paid: '결제 완료',
+    shipped: '배송 중',
+    delivered: '배송 완료',
+    cancelled: '취소됨',
   }
 
   return (
@@ -766,14 +834,14 @@ function OrderCard({
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#eee] px-6 py-5">
         <div className="flex flex-col gap-1">
           <span className="mono text-[0.7rem] text-dot-secondary">
-            ORDER NUMBER
+            주문 번호
           </span>
           <p className="mono text-[0.9rem] font-medium tracking-wider text-dot-primary">
             #{order.orderNumber}
           </p>
         </div>
         <div className="flex flex-col gap-1 text-right">
-          <span className="mono text-[0.7rem] text-dot-secondary">STATUS</span>
+          <span className="mono text-[0.7rem] text-dot-secondary">상태</span>
           <p className="mono text-[0.85rem] font-medium tracking-widest text-dot-primary">
             {statusLabel[order.status] ?? order.status.toUpperCase()}
           </p>
@@ -795,7 +863,7 @@ function OrderCard({
       </ul>
       <div className="border-t border-[#eee] bg-[#fafafa] px-6 py-4 text-right">
         <span className="mono mr-4 text-[0.75rem] text-dot-secondary">
-          TOTAL AMOUNT
+          총 결제금액
         </span>
         <span className="text-[1.1rem] font-medium text-dot-primary">
           ₩{order.total.toLocaleString('ko-KR')}
@@ -827,13 +895,19 @@ function OrderItemRow({
   return (
     <li className="px-6 py-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
-        {/* Product Image Placeholder (since OrderItemRow doesn't have image URL directly, 
-            we can use a placeholder or link to product) */}
         <div className="h-24 w-24 shrink-0 overflow-hidden rounded-sm bg-[#F2F2F2]">
-          <Link to={`/shop/product/${item.productId}`}>
-            <div className="flex h-full w-full items-center justify-center text-[0.6rem] text-[#999]">
-              IMAGE
-            </div>
+          <Link to={`/shop/${item.productId}`}>
+            {item.product?.images?.[0]?.url ? (
+              <img
+                src={item.product.images[0].url}
+                alt={item.productName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[0.6rem] text-[#999]">
+                IMAGE
+              </div>
+            )}
           </Link>
         </div>
 
@@ -847,10 +921,10 @@ function OrderItemRow({
             </Link>
             <p className="text-[0.9rem] text-dot-secondary">
               {item.optionLabel ? `${item.optionLabel} | ` : ''}
-              Qty: {item.quantity} | ₩{item.price.toLocaleString('ko-KR')}
+              수량: {item.quantity} | ₩{item.price.toLocaleString('ko-KR')}
             </p>
             <span className="mono mt-1 text-[0.7rem] text-dot-secondary">
-              Ordered on {orderDate}
+              주문일 {orderDate}
             </span>
           </div>
 
@@ -858,10 +932,10 @@ function OrderItemRow({
             <div className="mt-6 rounded-sm border border-[#eee] bg-dot-bg p-5">
               <div className="mb-3 flex items-center justify-between">
                 <span className="mono text-[0.7rem] font-medium tracking-widest text-dot-primary">
-                  YOUR REVIEW
+                  구매평
                 </span>
                 <span className="mono text-[0.65rem] text-dot-secondary">
-                  {new Date(myReview.createdAt).toLocaleDateString('en-US', {
+                  {new Date(myReview.createdAt).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'short',
                     day: '2-digit',
@@ -918,7 +992,7 @@ function OrderItemRow({
               onClick={onStartWriteReview}
               className="mono mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
             >
-              WRITE A REVIEW
+              구매평 작성
             </button>
           )}
         </div>

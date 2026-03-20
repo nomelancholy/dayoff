@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   fetchCartItems,
   updateCartItemQuantity,
@@ -14,6 +14,7 @@ import type { ValidateCouponResult } from '@/features/coupon/types/coupon'
 export const CartPage = () => {
   const queryClient = useQueryClient()
   const token = getStoredToken()
+  const navigate = useNavigate()
   const [couponCode, setCouponCode] = useState('')
   const [couponError, setCouponError] = useState<string | null>(null)
   const [appliedCoupon, setAppliedCoupon] =
@@ -21,12 +22,40 @@ export const CartPage = () => {
   const [appliedOrderAmount, setAppliedOrderAmount] = useState<number | null>(
     null
   )
+  const [hasUserTouchedSelection, setHasUserTouchedSelection] =
+    useState(false)
+  const [userSelectedCartItemIds, setUserSelectedCartItemIds] = useState<
+    string[]
+  >([])
 
   const { data: items, isLoading } = useQuery({
     queryKey: ['shop', 'cart'],
     queryFn: fetchCartItems,
     enabled: !!token,
   })
+
+  const selectedCartItemIds = useMemo(() => {
+    if (!items) return []
+    if (!hasUserTouchedSelection) return items.map((i) => i.id)
+
+    const availableIds = new Set(items.map((i) => i.id))
+    return userSelectedCartItemIds.filter((id) => availableIds.has(id))
+  }, [items, hasUserTouchedSelection, userSelectedCartItemIds])
+
+  const selectedIdSet = useMemo(() => new Set(selectedCartItemIds), [selectedCartItemIds])
+  const selectedItems = useMemo(
+    () => (items ?? []).filter((item) => selectedIdSet.has(item.id)),
+    [items, selectedIdSet],
+  )
+
+  const selectedSubtotal = useMemo(() => {
+    return (
+      selectedItems.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0,
+      ) || 0
+    )
+  }, [selectedItems])
 
   const updateMutation = useMutation({
     mutationFn: ({ id, quantity }: { id: string; quantity: number }) =>
@@ -43,9 +72,7 @@ export const CartPage = () => {
     },
   })
 
-  const subtotal =
-    items?.reduce((sum, item) => sum + item.product.price * item.quantity, 0) ||
-    0
+  const subtotal = selectedSubtotal
 
   const validateMutation = useMutation({
     mutationFn: () => validateCoupon(couponCode, subtotal),
@@ -117,7 +144,8 @@ export const CartPage = () => {
       ? '장바구니 금액이 변경되어 쿠폰이 해제되었습니다. 다시 적용해 주세요.'
       : null)
 
-  const shipping = subtotal >= 100000 ? 0 : 3000
+  const shipping =
+    subtotal === 0 ? 0 : subtotal >= 100000 ? 0 : 4000
   const discount = activeCoupon?.discountAmount ?? 0
   const total = Math.max(0, subtotal + shipping - discount)
 
@@ -126,7 +154,7 @@ export const CartPage = () => {
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-12 lg:grid-cols-[1.5fr_1fr]">
         <header className="col-span-full mb-8 border-b border-[#eee] pb-4">
           <h1 className="mt-2 font-sans text-[2.5rem] font-semibold tracking-normal text-dot-primary">
-            장바구니  
+            장바구니
           </h1>
         </header>
 
@@ -136,7 +164,7 @@ export const CartPage = () => {
               장바구니가 비어 있습니다.
             </h2>
             <p className="mt-4 mb-12 text-[0.95rem] text-dot-secondary">
-              도트의 제품을 둘러보고 마음에 드는 작품을 담아보세요.
+              DOT의 제품을 둘러보고 마음에 드는 작품을 담아보세요.
             </p>
             <Link
               to="/shop"
@@ -151,8 +179,28 @@ export const CartPage = () => {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[120px_1fr_auto] gap-8 border-b border-[#eee] pb-8 md:items-center"
+                  className="grid grid-cols-[28px_120px_1fr_auto] gap-8 border-b border-[#eee] pb-8 md:items-center"
                 >
+                  <div className="pt-2">
+                    <label className="flex cursor-pointer items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIdSet.has(item.id)}
+                        onChange={() => {
+                          setHasUserTouchedSelection(true)
+                          setUserSelectedCartItemIds((prev) => {
+                            // prev가 비어있으면(첫 터치) 전부 선택 상태에서 토글 시작
+                            const base = prev.length ? prev : items.map((i) => i.id)
+                            const set = new Set(base)
+                            if (set.has(item.id)) set.delete(item.id)
+                            else set.add(item.id)
+                            return Array.from(set)
+                          })
+                        }}
+                        aria-label="상품 선택"
+                      />
+                    </label>
+                  </div>
                   <Link
                     to={`/shop/${item.product.slug}`}
                     className="block h-[120px] w-[120px] shrink-0 overflow-hidden rounded-sm bg-[#F2F2F2]"
@@ -235,9 +283,7 @@ export const CartPage = () => {
                 <div className="flex justify-between">
                   <span>배송비</span>
                   <span>
-                    {shipping === 0
-                      ? '무료'
-                      : `₩${shipping.toLocaleString()}`}
+                    {shipping === 0 ? '무료' : `₩${shipping.toLocaleString()}`}
                   </span>
                 </div>
                 {discount > 0 && (
@@ -268,8 +314,7 @@ export const CartPage = () => {
                         {activeCoupon.coupon.code}
                       </p>
                       <p className="mt-1 text-[0.85rem] text-dot-secondary">
-                        -₩{activeCoupon.discountAmount.toLocaleString()}{' '}
-                        적용
+                        -₩{activeCoupon.discountAmount.toLocaleString()} 적용
                       </p>
                     </div>
                     <button
@@ -306,7 +351,9 @@ export const CartPage = () => {
                     />
                     <button
                       type="submit"
-                      disabled={validateMutation.isPending || subtotal <= 0}
+                      disabled={
+                        validateMutation.isPending || subtotal <= 0 || selectedItems.length === 0
+                      }
                       className="mono shrink-0 border border-dot-primary bg-dot-primary px-4 py-3 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
                       {validateMutation.isPending ? '적용 중…' : '적용'}
@@ -317,8 +364,16 @@ export const CartPage = () => {
 
               <button
                 type="button"
-                onClick={() => alert('주문 기능은 준비 중입니다.')}
-                className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333]"
+                onClick={() =>
+                  navigate('/checkout', {
+                    state: {
+                      couponCode: activeCoupon?.coupon.code ?? null,
+                      cartItemIds: selectedCartItemIds,
+                    },
+                  })
+                }
+                disabled={selectedCartItemIds.length === 0}
+                className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 결제 진행
               </button>

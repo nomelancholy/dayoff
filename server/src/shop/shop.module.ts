@@ -5,9 +5,11 @@ import { extname } from 'path';
 import { randomBytes } from 'crypto';
 import { ShopService } from './shop.service';
 import { ShopController } from './shop.controller';
+import { CouponModule } from '../coupon/coupon.module';
 
 @Module({
   imports: [
+    CouponModule,
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads/review',

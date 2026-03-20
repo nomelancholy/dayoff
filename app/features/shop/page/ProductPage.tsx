@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import type { MouseEvent } from 'react'
 import { isAxiosError } from 'axios'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,7 +7,7 @@ import { fetchProduct, addToCart } from '../api/shop'
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { useUiStore } from '@/common/store/ui'
 import { cn } from '@/common/lib/utils'
-import { Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil } from 'lucide-react'
 
 export const ShopProductPage = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -19,6 +20,9 @@ export const ShopProductPage = () => {
   const [mainImageIndex, setMainImageIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'detail' | 'reviews'>('detail')
   const token = getStoredToken()
+  const checkoutFlowRequestedRef = useRef(false)
+  const cartToastRequestedRef = useRef(false)
+  const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
 
   const { data: user } = useQuery({
     queryKey: ['auth', 'me'],
@@ -46,13 +50,31 @@ export const ShopProductPage = () => {
         quantity,
         optionId: selectedOptionId,
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const shouldShowCartToast = cartToastRequestedRef.current
+      cartToastRequestedRef.current = false
+      const anchor = toastAnchorRef.current
+      toastAnchorRef.current = null
+
       queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] })
-      showToast({
-        message: '장바구니에 담겼습니다.',
-        actionLabel: '장바구니 보기',
-        actionHref: '/cart',
-      })
+      if (shouldShowCartToast) {
+        showToast({
+          variant: 'success',
+          message: '성공적으로 장바구니에 담겼습니다.',
+          ...(anchor ? { anchor } : {}),
+        })
+      }
+
+      if (checkoutFlowRequestedRef.current) {
+        checkoutFlowRequestedRef.current = false
+        navigate('/checkout', {
+          state: {
+            couponCode: null,
+            cartItemIds: [data.id],
+            cartItemQuantities: [quantity],
+          },
+        })
+      }
     },
     onError: (err: unknown) => {
       if (isAxiosError(err) && err.response?.status === 401) {
@@ -111,14 +133,26 @@ export const ShopProductPage = () => {
     cartMutation.mutate()
   }
 
+  const captureToastAnchor = (e: MouseEvent) => {
+    // 토스트가 버튼 "아래"에 오도록 약간 아래로 오프셋
+    toastAnchorRef.current = { x: e.clientX + 77, y: e.clientY + 60 }
+  }
+
   const images = product.images?.length ? product.images : []
   const mainImage = images[mainImageIndex]
 
   return (
     <div className="min-h-screen bg-dot-bg">
       <div className="mx-auto max-w-[1400px] px-6 py-48 md:px-16 md:pb-40">
-        {isAdmin && (
-          <div className="mb-6 flex justify-end">
+        <div className="mb-6 flex items-center justify-between">
+          <Link
+            to="/shop"
+            className="mono flex items-center gap-2 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:opacity-70 md:text-base"
+          >
+            <ArrowLeft size={16} />
+            상품 목록으로
+          </Link>
+          {isAdmin && (
             <Link
               to={`/shop/admin/edit/${product.id}`}
               className="flex items-center gap-2 text-sm font-medium uppercase tracking-[0.25em] text-dot-primary transition-colors hover:underline md:text-base"
@@ -126,8 +160,8 @@ export const ShopProductPage = () => {
               <Pencil size={14} />
               Edit
             </Link>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-16 lg:grid-cols-[1.2fr_1fr]">
           {/* Gallery - reference: product-gallery, main-img aspect 1/1, thumbnail-list 4 cols */}
@@ -245,7 +279,11 @@ export const ShopProductPage = () => {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <button
                   type="button"
-                  onClick={handleAddToCart}
+                  onClick={(e) => {
+                    captureToastAnchor(e)
+                    cartToastRequestedRef.current = true
+                    handleAddToCart()
+                  }}
                   disabled={cartMutation.isPending}
                   className="mono border border-dot-primary bg-white py-3 text-sm font-semibold tracking-wide text-dot-primary transition-colors hover:bg-dot-primary hover:text-white disabled:opacity-50 md:py-4 md:text-base"
                 >
@@ -253,8 +291,24 @@ export const ShopProductPage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => alert('결제 기능은 준비 중입니다.')}
-                  className="mono bg-dot-primary py-3 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-[#333] md:py-4 md:text-base"
+                  onClick={(e) => {
+                    captureToastAnchor(e)
+                    cartToastRequestedRef.current = false
+                    if (!getStoredToken()) {
+                      alert('로그인이 필요합니다.')
+                      navigate('/login')
+                      return
+                    }
+                    if (!product) {
+                      alert('상품 정보를 불러오는 중입니다.')
+                      return
+                    }
+
+                    checkoutFlowRequestedRef.current = true
+                    cartMutation.mutate()
+                  }}
+                  disabled={cartMutation.isPending}
+                  className="mono bg-dot-primary py-3 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50 md:py-4 md:text-base"
                 >
                   구매하기
                 </button>

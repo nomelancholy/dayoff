@@ -23,7 +23,7 @@ export function getApiErrorMessage(
   const error = err as { response?: { data?: { message?: string | string[] }; status?: number } }
 
   // 네트워크 오류 등 응답이 없을 때
-  if (!error.response) return '네트워크 오류가 발생했습니다. 서버가 실행 중인지 확인해 주세요.'
+  if (!error.response) return fallback
   const message = error.response?.data?.message
   if (message == null) return fallback
   if (Array.isArray(message)) return message.length ? message.join(' ') : fallback

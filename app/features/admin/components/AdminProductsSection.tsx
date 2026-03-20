@@ -15,7 +15,7 @@ export const AdminProductsSection = () => {
   const queryClient = useQueryClient()
   const [categoryName, setCategoryName] = useState('')
   const [categorySlug, setCategorySlug] = useState('')
-  const [categorySortOrder, setCategorySortOrder] = useState('0')
+  const [categorySortOrder, setCategorySortOrder] = useState('')
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [editingCategoryName, setEditingCategoryName] = useState('')
   const [editingCategorySlug, setEditingCategorySlug] = useState('')
@@ -41,7 +41,7 @@ export const AdminProductsSection = () => {
     onSuccess: () => {
       setCategoryName('')
       setCategorySlug('')
-      setCategorySortOrder('0')
+      setCategorySortOrder('')
       queryClient.invalidateQueries({ queryKey: ['shop', 'categories'] })
       alert('카테고리가 생성되었습니다.')
     },
@@ -166,7 +166,7 @@ export const AdminProductsSection = () => {
             type="number"
             value={categorySortOrder}
             onChange={(e) => setCategorySortOrder(e.target.value)}
-            placeholder="정렬"
+            placeholder="정렬 기준 (기본값 0)"
             className="rounded border border-[#ddd] px-3 py-2 text-sm focus:border-dot-primary focus:outline-none"
           />
           <button
@@ -308,7 +308,7 @@ export const AdminProductsSection = () => {
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Slug</th>
-              <th className="px-4 py-3">Action</th>
+              <th className="px-4 py-3 whitespace-nowrap">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -328,12 +328,12 @@ export const AdminProductsSection = () => {
                   <td className="px-4 py-3 text-dot-primary">₩{p.price.toLocaleString()}</td>
                   <td className="px-4 py-3 text-dot-secondary">{p.slug}</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-3 whitespace-nowrap">
                       <Link
                         to={`/shop/admin/edit/${p.id}`}
-                        className="rounded bg-[#1A1A1A] px-3 py-2 text-[0.82rem] font-medium text-white transition-opacity hover:opacity-90"
+                        className="rounded bg-[#1A1A1A] px-4 py-2 text-sm font-medium text-white! transition-opacity hover:opacity-90 hover:text-white! focus:text-white!"
                       >
-                        Edit
+                        수정
                       </Link>
                       <button
                         type="button"
@@ -341,9 +341,9 @@ export const AdminProductsSection = () => {
                           if (!window.confirm(`"${p.name}" 상품을 삭제할까요?`)) return
                           deleteProductMutation.mutate(p.id)
                         }}
-                        className="rounded border border-[#ddd] bg-white px-3 py-2 text-[0.82rem] font-medium text-dot-primary transition-colors hover:bg-[#f7f7f7]"
+                        className="rounded border border-[#ddd] bg-white px-4 py-2 text-sm font-medium text-dot-primary transition-colors hover:bg-[#f7f7f7]"
                       >
-                        Delete
+                        삭제
                       </button>
                     </div>
                   </td>

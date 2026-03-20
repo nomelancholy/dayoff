@@ -148,6 +148,13 @@ export interface OrderItemRow {
   price: number
   quantity: number
   lineTotal: number
+  // 주문 상세에서 상품 이미지를 함께 내려주도록 확장
+  product?: {
+    images?: Array<{
+      id?: string
+      url: string
+    }>
+  }
 }
 export interface OrderRow {
   id: string
