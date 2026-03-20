@@ -139,6 +139,47 @@ export function fetchMyReviews(): Promise<MyReviewItem[]> {
   return apiClient.get('/shop/my-reviews')
 }
 
+export interface AdminReviewItem {
+  id: string
+  productId: string
+  userId: string
+  body: string
+  rating: number | null
+  createdAt: string
+  updatedAt: string
+  product: { id: string; name: string; slug: string }
+  user: { id: string; fullName: string | null; email: string }
+  images: ProductReviewImage[]
+}
+
+export async function updateMyReview(
+  reviewId: string,
+  data: { body: string; rating?: number | null; imageUrls?: string[] },
+): Promise<MyReviewItem> {
+  return apiClient.patch(`/shop/my-reviews/${reviewId}`, data)
+}
+
+export async function deleteMyReview(reviewId: string): Promise<{ id: string }> {
+  return apiClient.delete(`/shop/my-reviews/${reviewId}`)
+}
+
+export async function fetchAdminReviews(): Promise<AdminReviewItem[]> {
+  return apiClient.get('/shop/admin/reviews')
+}
+
+export async function updateAdminReview(
+  reviewId: string,
+  data: { body: string; rating?: number | null; imageUrls?: string[] },
+): Promise<AdminReviewItem> {
+  return apiClient.patch(`/shop/admin/reviews/${reviewId}`, data)
+}
+
+export async function deleteAdminReview(
+  reviewId: string
+): Promise<{ id: string }> {
+  return apiClient.delete(`/shop/admin/reviews/${reviewId}`)
+}
+
 /** 주문 목록 (Order History용) */
 export interface OrderItemRow {
   id: string

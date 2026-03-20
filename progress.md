@@ -128,7 +128,7 @@
 - [x] **유저 관리**: 회원 목록(이메일, 이름, 역할, 가입일 등), 역할 변경(member ↔ admin), 필요 시 검색·필터 — `GET/PATCH /auth/admin/users`, `AdminUsersSection`
 - [x] **쿠폰 관리**: 목록·생성·수정·삭제·**회원 지급**(쿠폰 행에서 UUID 입력 → `POST /coupons/:id/issue`) — `AdminCouponsSection`, `issueAdminCoupon`
 - [x] **주문 관리**: 주문 목록, 송장번호 입력 + 발송 완료 상태 변경
-- [ ] **리뷰 관리**: 리뷰 관리
+- [x] **리뷰 관리**: 리뷰 관리
 - [ ] **기타**: 대시보드(요약 통계), 클래스/연락처 설정 등 필요 시 추가
 
 ---

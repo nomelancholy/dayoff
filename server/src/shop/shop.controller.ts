@@ -75,6 +75,21 @@ class UpdateAdminOrderShipmentDto {
   trackingNumber!: string;
 }
 
+class UpdateReviewDto {
+  @IsString()
+  body!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  rating?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  imageUrls?: string[];
+}
+
 const getBaseUrl = (req: Request): string => {
   const protocol = req.protocol || 'http';
   const host = req.get('host') || 'localhost:4000';
@@ -158,6 +173,51 @@ export class ShopController {
   @UseGuards(JwtAuthGuard)
   async getMyReviews(@CurrentUser() user: UserRow) {
     return this.shopService.getMyReviews(user.id);
+  }
+
+  /** 내 구매평 수정 */
+  @Patch('my-reviews/:id')
+  @UseGuards(JwtAuthGuard)
+  async updateMyReview(
+    @CurrentUser() user: UserRow,
+    @Param('id') id: string,
+    @Body() body: UpdateReviewDto,
+  ) {
+    return this.shopService.updateMyReview(user.id, id, body);
+  }
+
+  /** 내 구매평 삭제 */
+  @Delete('my-reviews/:id')
+  @UseGuards(JwtAuthGuard)
+  async deleteMyReview(@CurrentUser() user: UserRow, @Param('id') id: string) {
+    return this.shopService.deleteMyReview(user.id, id);
+  }
+
+  /** [Admin] 구매평 목록 */
+  @Get('admin/reviews')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getAdminReviews() {
+    return this.shopService.getAdminReviews();
+  }
+
+  /** [Admin] 구매평 수정 */
+  @Patch('admin/reviews/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async updateAdminReview(
+    @Param('id') id: string,
+    @Body() body: UpdateReviewDto,
+  ) {
+    return this.shopService.updateAdminReview(id, body);
+  }
+
+  /** [Admin] 구매평 삭제 */
+  @Delete('admin/reviews/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async deleteAdminReview(@Param('id') id: string) {
+    return this.shopService.deleteAdminReview(id);
   }
 
   /** 내 주문 목록 (Order History) */

@@ -548,6 +548,187 @@ export class ShopService {
     });
   }
 
+  /** 내 구매평 수정 */
+  async updateMyReview(
+    userId: string,
+    reviewId: string,
+    data: { body: string; rating?: number; imageUrls?: string[] },
+  ) {
+    const existing = await this.db.query.productReviews.findFirst({
+      where: eq(schema.productReviews.id, reviewId),
+      with: {
+        product: {
+          columns: { id: true, name: true, slug: true },
+        },
+        images: {
+          orderBy: [asc(schema.productReviewImages.sortOrder)],
+        },
+      },
+      columns: { id: true, userId: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('리뷰를 찾을 수 없습니다.');
+    }
+
+    if (existing.userId !== userId) {
+      throw new BadRequestException('잘못된 접근입니다.');
+    }
+
+    return this.db.transaction(async (tx) => {
+      await tx
+        .update(schema.productReviews)
+        .set({
+          body: data.body,
+          rating: data.rating ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.productReviews.id, reviewId));
+
+      if (data.imageUrls !== undefined) {
+        await tx
+          .delete(schema.productReviewImages)
+          .where(eq(schema.productReviewImages.reviewId, reviewId));
+
+        if (data.imageUrls.length > 0) {
+          await tx.insert(schema.productReviewImages).values(
+            data.imageUrls.map((url, i) => ({
+              reviewId,
+              url,
+              sortOrder: i + 1,
+            })),
+          );
+        }
+      }
+
+      return tx.query.productReviews.findFirst({
+        where: eq(schema.productReviews.id, reviewId),
+        with: {
+          product: {
+            columns: { id: true, name: true, slug: true },
+          },
+          images: {
+            orderBy: [asc(schema.productReviewImages.sortOrder)],
+          },
+        },
+      });
+    });
+  }
+
+  /** 내 구매평 삭제 */
+  async deleteMyReview(userId: string, reviewId: string) {
+    const existing = await this.db.query.productReviews.findFirst({
+      where: and(
+        eq(schema.productReviews.id, reviewId),
+        eq(schema.productReviews.userId, userId),
+      ),
+      columns: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('리뷰를 찾을 수 없습니다.');
+    }
+
+    await this.db
+      .delete(schema.productReviews)
+      .where(eq(schema.productReviews.id, reviewId));
+
+    return { id: reviewId };
+  }
+
+  /** [Admin] 구매평 목록 */
+  async getAdminReviews() {
+    return this.db.query.productReviews.findMany({
+      orderBy: [desc(schema.productReviews.createdAt)],
+      with: {
+        product: {
+          columns: { id: true, name: true, slug: true },
+        },
+        user: {
+          columns: { id: true, fullName: true, email: true },
+        },
+        images: {
+          orderBy: [asc(schema.productReviewImages.sortOrder)],
+        },
+      },
+    });
+  }
+
+  /** [Admin] 구매평 수정 */
+  async updateAdminReview(
+    reviewId: string,
+    data: { body: string; rating?: number; imageUrls?: string[] },
+  ) {
+    const existing = await this.db.query.productReviews.findFirst({
+      where: eq(schema.productReviews.id, reviewId),
+      columns: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('리뷰를 찾을 수 없습니다.');
+    }
+
+    return this.db.transaction(async (tx) => {
+      await tx
+        .update(schema.productReviews)
+        .set({
+          body: data.body,
+          rating: data.rating ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.productReviews.id, reviewId));
+
+      if (data.imageUrls !== undefined) {
+        await tx
+          .delete(schema.productReviewImages)
+          .where(eq(schema.productReviewImages.reviewId, reviewId));
+
+        if (data.imageUrls.length > 0) {
+          await tx.insert(schema.productReviewImages).values(
+            data.imageUrls.map((url, i) => ({
+              reviewId,
+              url,
+              sortOrder: i + 1,
+            })),
+          );
+        }
+      }
+
+      return tx.query.productReviews.findFirst({
+        where: eq(schema.productReviews.id, reviewId),
+        with: {
+          product: {
+            columns: { id: true, name: true, slug: true },
+          },
+          user: {
+            columns: { id: true, fullName: true, email: true },
+          },
+          images: {
+            orderBy: [asc(schema.productReviewImages.sortOrder)],
+          },
+        },
+      });
+    });
+  }
+
+  /** [Admin] 구매평 삭제 */
+  async deleteAdminReview(reviewId: string) {
+    const existing = await this.db.query.productReviews.findFirst({
+      where: eq(schema.productReviews.id, reviewId),
+      columns: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('리뷰를 찾을 수 없습니다.');
+    }
+
+    await this.db
+      .delete(schema.productReviews)
+      .where(eq(schema.productReviews.id, reviewId));
+
+    return { id: reviewId };
+  }
+
   /** 내 주문 목록 (주문별 상세 아이템 포함) */
   async getMyOrders(userId: string) {
     const list = await this.db.query.orders.findMany({

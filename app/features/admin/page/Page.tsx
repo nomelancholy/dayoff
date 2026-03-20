@@ -8,6 +8,7 @@ import { AdminProductsSection } from '../components/AdminProductsSection'
 import { AdminCouponsSection } from '../components/AdminCouponsSection'
 import { AdminUsersSection } from '../components/AdminUsersSection'
 import { AdminOrdersSection } from '../components/AdminOrdersSection'
+import { AdminReviewsSection } from '../components/AdminReviewsSection'
 
 export const AdminPage = () => {
   const navigate = useNavigate()
@@ -64,6 +65,7 @@ export const AdminPage = () => {
             {activeKey === 'orders' ? (
               <AdminOrdersSection />
             ) : null}
+            {activeKey === 'reviews' ? <AdminReviewsSection /> : null}
           </main>
         </div>
       </div>

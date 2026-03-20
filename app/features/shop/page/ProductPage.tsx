@@ -1,13 +1,20 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { isAxiosError } from 'axios'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchProduct, addToCart } from '../api/shop'
+import {
+  fetchProduct,
+  addToCart,
+  deleteMyReview,
+  type ProductReview,
+  type ProductReviewImage,
+} from '../api/shop'
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { useUiStore } from '@/common/store/ui'
 import { cn } from '@/common/lib/utils'
 import { ArrowLeft, Pencil } from 'lucide-react'
+import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 
 export const ShopProductPage = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -24,12 +31,71 @@ export const ShopProductPage = () => {
   const cartToastRequestedRef = useRef(false)
   const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
 
+  const [reviewLightbox, setReviewLightbox] = useState<{
+    images: ProductReviewImage[]
+    index: number
+  } | null>(null)
+
+  const [editingReview, setEditingReview] = useState<ProductReview | null>(
+    null,
+  )
+
   const { data: user } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: fetchMe,
     enabled: !!token,
   })
   const isAdmin = user?.role === 'admin'
+
+  useEffect(() => {
+    if (!reviewLightbox) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setReviewLightbox(null)
+        return
+      }
+      if (e.key === 'ArrowLeft') {
+        setReviewLightbox((prev) => {
+          if (!prev) return prev
+          const len = prev.images.length
+          if (len <= 1) return prev
+          return { ...prev, index: (prev.index - 1 + len) % len }
+        })
+      }
+      if (e.key === 'ArrowRight') {
+        setReviewLightbox((prev) => {
+          if (!prev) return prev
+          const len = prev.images.length
+          if (len <= 1) return prev
+          return { ...prev, index: (prev.index + 1) % len }
+        })
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [reviewLightbox])
+
+  const openReviewLightbox = (images: ProductReviewImage[], index: number) => {
+    if (!images.length) return
+    setReviewLightbox({ images, index })
+  }
+
+  const closeReviewLightbox = () => setReviewLightbox(null)
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: (reviewId: string) => deleteMyReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shop', 'product', slug] })
+      queryClient.invalidateQueries({ queryKey: ['shop', 'my-reviews'] })
+      setEditingReview(null)
+      alert('리뷰가 삭제되었습니다.')
+    },
+    onError: (err: unknown) => {
+      alert(err instanceof Error ? err.message : '리뷰 삭제에 실패했습니다.')
+    },
+  })
 
   const {
     data: product,
@@ -450,35 +516,59 @@ export const ShopProductPage = () => {
                       </p>
                       {review.images && review.images.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-3">
-                          {review.images.map((img) => (
-                            <a
+                          {review.images.map((img, idx) => (
+                            <button
                               key={img.id}
-                              href={img.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              type="button"
+                              onClick={() => openReviewLightbox(review.images!, idx)}
                               className="block h-28 w-28 overflow-hidden rounded border border-[#eee] bg-[#f9f9f9]"
+                              aria-label="리뷰 사진 보기"
                             >
                               <img
                                 src={img.url}
                                 alt=""
                                 className="h-full w-full object-cover"
                               />
-                            </a>
+                            </button>
                           ))}
                         </div>
                       )}
-                      <span className="mono mt-4 block text-sm text-dot-secondary md:text-base">
-                        {review.user?.fullName || review.user?.email || '회원'}{' '}
-                        |{' '}
-                        {new Date(review.createdAt).toLocaleDateString(
-                          'ko-KR',
-                          {
+                      <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <span className="mono block text-sm text-dot-secondary md:text-base">
+                          {review.user?.fullName ||
+                            review.user?.email ||
+                            '회원'}{' '}
+                          |{' '}
+                          {new Date(review.createdAt).toLocaleDateString('ko-KR', {
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit',
-                          }
-                        )}
-                      </span>
+                          })}
+                        </span>
+
+                        {user?.id && review.user?.id && user.id === review.user.id ? (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingReview(review)}
+                              className="rounded border border-dot-primary bg-white px-3 py-2 text-[0.75rem] font-medium text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+                            >
+                              수정
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!window.confirm('이 리뷰를 삭제할까요?')) return
+                                deleteReviewMutation.mutate(review.id)
+                              }}
+                              disabled={deleteReviewMutation.isPending}
+                              className="rounded border border-[#ddd] bg-white px-3 py-2 text-[0.75rem] font-medium text-[#1A1A1A] transition-colors hover:bg-[#fafafa] disabled:opacity-50"
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -491,6 +581,110 @@ export const ShopProductPage = () => {
           )}
         </section>
       </div>
+
+      {reviewLightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-black/70 p-4"
+          onClick={closeReviewLightbox}
+        >
+          <div
+            className="relative w-full max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="닫기"
+              className="absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white/50"
+              onClick={closeReviewLightbox}
+            >
+              ×
+            </button>
+
+            <div className="flex items-center justify-center">
+              {reviewLightbox.images.length > 0 ? (
+                <img
+                  src={reviewLightbox.images[reviewLightbox.index]?.url}
+                  alt=""
+                  className="max-h-[80vh] w-full object-contain"
+                />
+              ) : null}
+            </div>
+
+            {reviewLightbox.images.length > 1 && (
+              <>
+                <div className="mt-3 flex items-center justify-center gap-3">
+                  <span className="text-[0.8rem] text-white/80">
+                    {reviewLightbox.index + 1} / {reviewLightbox.images.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  aria-label="이전"
+                  className="absolute left-[-14px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm hover:bg-black/70"
+                  onClick={() => {
+                    setReviewLightbox((prev) => {
+                      if (!prev) return prev
+                      const len = prev.images.length
+                      return { ...prev, index: (prev.index - 1 + len) % len }
+                    })
+                  }}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  aria-label="다음"
+                  className="absolute right-[-14px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm hover:bg-black/70"
+                  onClick={() => {
+                    setReviewLightbox((prev) => {
+                      if (!prev) return prev
+                      const len = prev.images.length
+                      return { ...prev, index: (prev.index + 1) % len }
+                    })
+                  }}
+                >
+                  ›
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {editingReview && (
+        <div
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-black/40 p-6"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setEditingReview(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProductReviewEditForm
+              reviewId={editingReview.id}
+              mode="my"
+              initialBody={editingReview.body}
+              initialRating={editingReview.rating}
+              onCancel={() => setEditingReview(null)}
+              onSuccess={() => {
+                queryClient.invalidateQueries({
+                  queryKey: ['shop', 'product', slug],
+                })
+                queryClient.invalidateQueries({
+                  queryKey: ['shop', 'my-reviews'],
+                })
+                setEditingReview(null)
+                alert('리뷰가 수정되었습니다.')
+              }}
+            />
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -17,17 +17,20 @@ import {
 import {
   fetchMyOrders,
   fetchMyReviews,
+  deleteMyReview,
+  type MyReviewItem,
   type OrderRow,
   type OrderItemRow,
-  type MyReviewItem,
   type ProductReviewImage,
 } from '@/features/shop/api/shop'
 import { ProductReviewForm } from '@/features/shop/components/ProductReviewForm'
+import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
+import { ReviewManagementSection } from '../components/ReviewManagementSection'
 import { cn } from '@/common/lib/utils'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 import { isOutOfDeliveryPostalCode } from '@/common/lib/outOfDeliveryAreas'
 
-type AccountSection = 'profile' | 'orders' | 'address'
+type AccountSection = 'profile' | 'orders' | 'address' | 'reviews'
 
 const formatPhone = (value: string): string => {
   const digits = value.replace(/\D/g, '')
@@ -144,6 +147,7 @@ export const AccountPage = () => {
     { id: 'profile', label: '프로필' },
     { id: 'orders', label: '주문 내역' },
     { id: 'address', label: '주소록' },
+    { id: 'reviews', label: '리뷰 관리' },
   ]
 
   return (
@@ -193,6 +197,8 @@ export const AccountPage = () => {
           {activeSection === 'orders' && <OrderHistorySection />}
 
           {activeSection === 'address' && <AddressBookSection />}
+
+          {activeSection === 'reviews' && <ReviewManagementSection />}
         </div>
       </div>
     </div>
@@ -744,6 +750,7 @@ function OrderHistorySection() {
     images: ProductReviewImage[]
     index: number
   } | null>(null)
+  const [editingReview, setEditingReview] = useState<MyReviewItem | null>(null)
 
   const { data: orders = [] as OrderRow[], isLoading: ordersLoading } =
     useQuery({
@@ -824,6 +831,19 @@ function OrderHistorySection() {
     setWritingReviewOrderItemId(null)
   }
 
+  const deleteReviewMutation = useMutation({
+    mutationFn: (reviewId: string) => deleteMyReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shop', 'my-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['shop', 'my-orders'] })
+      setEditingReview(null)
+      alert('리뷰가 삭제되었습니다.')
+    },
+    onError: (err: unknown) => {
+      alert(err instanceof Error ? err.message : '리뷰 삭제에 실패했습니다.')
+    },
+  })
+
   useEffect(() => {
     if (!reviewLightbox) return
 
@@ -880,7 +900,7 @@ function OrderHistorySection() {
   }
 
   if (ordersLoading || reviewsLoading) {
-    return <p className="mono text-dot-secondary">Loading…</p>
+    return <p className="text-dot-secondary">Loading…</p>
   }
 
   if (paidOrders.length === 0) {
@@ -908,7 +928,7 @@ function OrderHistorySection() {
             <button
               type="button"
               aria-label="닫기"
-              className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+              className="absolute -right-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white/50"
               onClick={closeReviewLightbox}
             >
               ×
@@ -925,7 +945,7 @@ function OrderHistorySection() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-center gap-3">
-                  <span className="mono text-[0.8rem] text-white/80">
+                  <span className="text-[0.8rem] text-white/80">
                     {reviewLightbox.index + 1} / {reviewLightbox.images.length}
                   </span>
                 </div>
@@ -935,7 +955,7 @@ function OrderHistorySection() {
                     <button
                       type="button"
                       aria-label="이전"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white hover:bg-black/80"
+                      className="absolute left-[-14px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm hover:bg-black/70"
                       onClick={goReviewLightboxPrev}
                     >
                       ‹
@@ -943,7 +963,7 @@ function OrderHistorySection() {
                     <button
                       type="button"
                       aria-label="다음"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white hover:bg-black/80"
+                      className="absolute right-[-14px] top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm hover:bg-black/70"
                       onClick={goReviewLightboxNext}
                     >
                       ›
@@ -952,6 +972,36 @@ function OrderHistorySection() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+      {editingReview && (
+        <div
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-black/40 p-6"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setEditingReview(null)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ProductReviewEditForm
+              reviewId={editingReview.id}
+              mode="my"
+              initialBody={editingReview.body}
+              initialRating={editingReview.rating}
+              onCancel={() => setEditingReview(null)}
+              onSuccess={() => {
+                queryClient.invalidateQueries({
+                  queryKey: ['shop', 'my-reviews'],
+                })
+                queryClient.invalidateQueries({
+                  queryKey: ['shop', 'my-orders'],
+                })
+                setEditingReview(null)
+              }}
+            />
           </div>
         </div>
       )}
@@ -965,6 +1015,14 @@ function OrderHistorySection() {
           onOpenReviewImages={openReviewLightbox}
           onCancelWriteReview={() => setWritingReviewOrderItemId(null)}
           onReviewSuccess={handleReviewSuccess}
+          onEditMyReview={(reviewId) => {
+            const r = myReviews.find((x) => x.id === reviewId) ?? null
+            setEditingReview(r)
+          }}
+          onDeleteMyReview={(reviewId) => {
+            if (!window.confirm('이 리뷰를 삭제할까요?')) return
+            deleteReviewMutation.mutate(reviewId)
+          }}
         />
       ))}
     </div>
@@ -979,6 +1037,8 @@ interface OrderCardProps {
   onOpenReviewImages: (images: ProductReviewImage[], index: number) => void
   onCancelWriteReview: () => void
   onReviewSuccess: () => void
+  onEditMyReview: (reviewId: string) => void
+  onDeleteMyReview: (reviewId: string) => void
 }
 
 function OrderCard({
@@ -989,6 +1049,8 @@ function OrderCard({
   onOpenReviewImages,
   onCancelWriteReview,
   onReviewSuccess,
+  onEditMyReview,
+  onDeleteMyReview,
 }: OrderCardProps) {
   const orderDate = new Date(order.createdAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -1007,16 +1069,16 @@ function OrderCard({
     <div className="border border-[#eee] bg-white">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#eee] px-6 py-5">
         <div className="flex flex-col gap-1">
-          <span className="mono text-[0.7rem] text-dot-secondary">
+          <span className="text-[0.7rem] text-dot-secondary">
             주문 번호
           </span>
-          <p className="mono text-[0.9rem] font-medium tracking-wider text-dot-primary">
+          <p className="text-[0.9rem] font-medium tracking-wider text-dot-primary">
             #{order.orderNumber}
           </p>
         </div>
         <div className="flex flex-col gap-1 text-right">
-          <span className="mono text-[0.7rem] text-dot-secondary">상태</span>
-          <p className="mono text-[0.85rem] font-medium tracking-widest text-dot-primary">
+          <span className="text-[0.7rem] text-dot-secondary">상태</span>
+          <p className="text-[0.85rem] font-medium tracking-widest text-dot-primary">
             {statusLabel[order.status] ?? order.status.toUpperCase()}
           </p>
         </div>
@@ -1034,11 +1096,13 @@ function OrderCard({
             onCancelWriteReview={onCancelWriteReview}
             onReviewSuccess={onReviewSuccess}
             onOpenReviewImages={onOpenReviewImages}
+            onEditMyReview={onEditMyReview}
+            onDeleteMyReview={onDeleteMyReview}
           />
         ))}
       </ul>
       <div className="border-t border-[#eee] bg-[#fafafa] px-6 py-4 text-right">
-        <span className="mono mr-4 text-[0.75rem] text-dot-secondary">
+        <span className="mr-4 text-[0.75rem] text-dot-secondary">
           총 결제금액
         </span>
         <span className="text-[1.1rem] font-medium text-dot-primary">
@@ -1059,6 +1123,8 @@ interface OrderItemRowProps {
   onCancelWriteReview: () => void
   onReviewSuccess: () => void
   onOpenReviewImages: (images: ProductReviewImage[], index: number) => void
+  onEditMyReview: (reviewId: string) => void
+  onDeleteMyReview: (reviewId: string) => void
 }
 
 function OrderItemRow({
@@ -1071,6 +1137,8 @@ function OrderItemRow({
   onCancelWriteReview,
   onReviewSuccess,
   onOpenReviewImages,
+  onEditMyReview,
+  onDeleteMyReview,
 }: OrderItemRowProps) {
   const canWriteReview = orderStatus === 'shipped'
 
@@ -1097,7 +1165,7 @@ function OrderItemRow({
           <div className="flex flex-col gap-1">
             <Link
               to={`/shop/${item.productId}`}
-              className="font-serif text-[1.2rem] font-normal tracking-wide text-dot-primary hover:underline"
+              className="text-[1.2rem] font-normal tracking-wide text-dot-primary hover:underline"
             >
               {item.productName.toUpperCase()}
             </Link>
@@ -1105,7 +1173,7 @@ function OrderItemRow({
               {item.optionLabel ? `${item.optionLabel} | ` : ''}
               수량: {item.quantity} | ₩{item.price.toLocaleString('ko-KR')}
             </p>
-            <span className="mono mt-1 text-[0.7rem] text-dot-secondary">
+            <span className="mt-1 text-[0.7rem] text-dot-secondary">
               주문일 {orderDate}
             </span>
           </div>
@@ -1113,16 +1181,32 @@ function OrderItemRow({
           {myReview ? (
             <div className="mt-6 rounded-sm border border-[#eee] bg-dot-bg p-5">
               <div className="mb-3 flex items-center justify-between">
-                <span className="mono text-[0.7rem] font-medium tracking-widest text-dot-primary">
+                <span className="text-[0.7rem] font-medium tracking-widest text-dot-primary">
                   구매평
                 </span>
-                <span className="mono text-[0.65rem] text-dot-secondary">
+                <span className="text-[0.65rem] text-dot-secondary">
                   {new Date(myReview.createdAt).toLocaleDateString('ko-KR', {
                     year: 'numeric',
                     month: 'short',
                     day: '2-digit',
                   })}
                 </span>
+              </div>
+              <div className="mb-4 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="rounded border border-dot-primary bg-white px-3 py-2 text-[0.75rem] font-medium text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+                  onClick={() => onEditMyReview(myReview.id)}
+                >
+                  수정
+                </button>
+                <button
+                  type="button"
+                  className="rounded border border-[#ddd] bg-white px-3 py-2 text-[0.75rem] font-medium text-[#1A1A1A] transition-colors hover:bg-[#fafafa]"
+                  onClick={() => onDeleteMyReview(myReview.id)}
+                >
+                  삭제
+                </button>
               </div>
               {myReview.rating != null && (
                 <div
@@ -1174,7 +1258,7 @@ function OrderItemRow({
               <button
                 type="button"
                 onClick={onStartWriteReview}
-                className="mono mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+                className="mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
               >
                 구매평 작성
               </button>

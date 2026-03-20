@@ -1,12 +1,13 @@
 import { cn } from '@/common/lib/utils'
 
-export type AdminSectionKey = 'products' | 'users' | 'coupons' | 'orders'
+export type AdminSectionKey = 'products' | 'users' | 'coupons' | 'orders' | 'reviews'
 
 const NAV_ITEMS: Array<{ key: AdminSectionKey; label: string }> = [
   { key: 'products', label: 'PRODUCTS' },
   { key: 'users', label: 'USERS' },
   { key: 'coupons', label: 'COUPONS' },
   { key: 'orders', label: 'ORDERS' },
+  { key: 'reviews', label: 'REVIEWS' },
 ]
 
 export const AdminSidebar = ({
