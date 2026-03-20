@@ -7,6 +7,7 @@ import { AdminSidebar, type AdminSectionKey } from '../components/AdminSidebar'
 import { AdminProductsSection } from '../components/AdminProductsSection'
 import { AdminCouponsSection } from '../components/AdminCouponsSection'
 import { AdminUsersSection } from '../components/AdminUsersSection'
+import { AdminOrdersSection } from '../components/AdminOrdersSection'
 
 export const AdminPage = () => {
   const navigate = useNavigate()
@@ -32,7 +33,7 @@ export const AdminPage = () => {
   if (!token || isLoading || !user) {
     return (
       <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-[1400px]">
           <p className="text-dot-secondary">Loading…</p>
         </div>
       </div>
@@ -43,7 +44,7 @@ export const AdminPage = () => {
 
   return (
     <div className="min-h-screen bg-dot-bg px-6 py-48 md:px-16">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-[1400px]">
         <div className="mb-8">
           <h1 className="font-serif text-4xl tracking-[0.08em] text-dot-primary">
             ADMIN
@@ -61,9 +62,7 @@ export const AdminPage = () => {
               <AdminUsersSection currentUserId={adminUser.id} />
             ) : null}
             {activeKey === 'orders' ? (
-              <div className="py-6 text-center text-dot-secondary">
-                ORDERS 관리 준비중 (주문 전체/상태변경 API 필요)
-              </div>
+              <AdminOrdersSection />
             ) : null}
           </main>
         </div>

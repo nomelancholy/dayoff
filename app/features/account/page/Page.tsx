@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import {
@@ -20,6 +20,7 @@ import {
   type OrderRow,
   type OrderItemRow,
   type MyReviewItem,
+  type ProductReviewImage,
 } from '@/features/shop/api/shop'
 import { ProductReviewForm } from '@/features/shop/components/ProductReviewForm'
 import { cn } from '@/common/lib/utils'
@@ -738,9 +739,11 @@ function AddressForm({
 /** 주문 이력: 주문 목록 + 상품별 구매평 보기/작성 */
 function OrderHistorySection() {
   const queryClient = useQueryClient()
-  const [writingReviewProductId, setWritingReviewProductId] = useState<
-    string | null
-  >(null)
+  const [writingReviewOrderItemId, setWritingReviewOrderItemId] = useState<string | null>(null)
+  const [reviewLightbox, setReviewLightbox] = useState<{
+    images: ProductReviewImage[]
+    index: number
+  } | null>(null)
 
   const { data: orders = [] as OrderRow[], isLoading: ordersLoading } =
     useQuery({
@@ -759,14 +762,121 @@ function OrderHistorySection() {
     [orders],
   )
 
-  const reviewByProductId = Object.fromEntries(
-    myReviews.map((r) => [r.productId, r])
+  const paidOrderItems = useMemo(
+    () =>
+      paidOrders.flatMap((order) =>
+        order.orderItems.map((item) => ({
+          item,
+          orderCreatedAtMs: new Date(order.createdAt).getTime(),
+        })),
+      ),
+    [paidOrders],
   )
+
+  const reviewByOrderItemId = useMemo<Record<string, MyReviewItem>>(() => {
+    const map: Record<string, MyReviewItem> = {}
+
+    // 1) 이미 orderItemId가 있는 리뷰는 그대로 매핑
+    myReviews
+      .filter((r) => r.orderItemId)
+      .forEach((r) => {
+        if (r.orderItemId) map[r.orderItemId] = r
+      })
+
+    const usedOrderItemIds = new Set(Object.keys(map))
+
+    // 2) 과거(productId 기준)로 저장된 리뷰(orderItemId = null)는
+    //    "리뷰 작성 시점 이전의 가장 최근 주문"에만 표시되도록 보정
+    const fallbackReviews = myReviews
+      .filter((r) => !r.orderItemId)
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      )
+
+    for (const review of fallbackReviews) {
+      const reviewTime = new Date(review.createdAt).getTime()
+
+      const candidates = paidOrderItems.filter(
+        (pi) =>
+          pi.item.productId === review.productId &&
+          !usedOrderItemIds.has(pi.item.id),
+      )
+
+      if (!candidates.length) continue
+
+      const eligible = candidates.filter((pi) => pi.orderCreatedAtMs <= reviewTime)
+      const chosen = (eligible.length ? eligible : candidates).sort(
+        (a, b) => b.orderCreatedAtMs - a.orderCreatedAtMs,
+      )[0]
+
+      map[chosen.item.id] = review
+      usedOrderItemIds.add(chosen.item.id)
+    }
+
+    return map
+  }, [myReviews, paidOrderItems])
 
   const handleReviewSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['shop', 'my-reviews'] })
     queryClient.invalidateQueries({ queryKey: ['shop', 'my-orders'] })
-    setWritingReviewProductId(null)
+    setWritingReviewOrderItemId(null)
+  }
+
+  useEffect(() => {
+    if (!reviewLightbox) return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setReviewLightbox(null)
+        return
+      }
+      if (e.key === 'ArrowLeft') {
+        setReviewLightbox((prev) => {
+          if (!prev) return prev
+          const len = prev.images.length
+          if (len <= 1) return prev
+          return { ...prev, index: (prev.index - 1 + len) % len }
+        })
+      }
+      if (e.key === 'ArrowRight') {
+        setReviewLightbox((prev) => {
+          if (!prev) return prev
+          const len = prev.images.length
+          if (len <= 1) return prev
+          return { ...prev, index: (prev.index + 1) % len }
+        })
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [reviewLightbox])
+
+  const openReviewLightbox = (images: ProductReviewImage[], index: number) => {
+    if (!images.length) return
+    setReviewLightbox({ images, index })
+  }
+
+  const closeReviewLightbox = () => setReviewLightbox(null)
+
+  const goReviewLightboxPrev = () => {
+    setReviewLightbox((prev) => {
+      if (!prev) return prev
+      const len = prev.images.length
+      if (len <= 1) return prev
+      return { ...prev, index: (prev.index - 1 + len) % len }
+    })
+  }
+
+  const goReviewLightboxNext = () => {
+    setReviewLightbox((prev) => {
+      if (!prev) return prev
+      const len = prev.images.length
+      if (len <= 1) return prev
+      return { ...prev, index: (prev.index + 1) % len }
+    })
   }
 
   if (ordersLoading || reviewsLoading) {
@@ -784,14 +894,76 @@ function OrderHistorySection() {
 
   return (
     <div className="space-y-12">
+      {reviewLightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 p-4"
+          onClick={closeReviewLightbox}
+        >
+          <div
+            className="relative w-full max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="닫기"
+              className="absolute -right-2 -top-2 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+              onClick={closeReviewLightbox}
+            >
+              ×
+            </button>
+
+            {reviewLightbox.images.length > 0 && (
+              <>
+                <div className="flex items-center justify-center">
+                  <img
+                    src={reviewLightbox.images[reviewLightbox.index]?.url}
+                    alt=""
+                    className="max-h-[80vh] w-full object-contain"
+                  />
+                </div>
+
+                <div className="mt-3 flex items-center justify-center gap-3">
+                  <span className="mono text-[0.8rem] text-white/80">
+                    {reviewLightbox.index + 1} / {reviewLightbox.images.length}
+                  </span>
+                </div>
+
+                {reviewLightbox.images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="이전"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white hover:bg-black/80"
+                      onClick={goReviewLightboxPrev}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="다음"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white hover:bg-black/80"
+                      onClick={goReviewLightboxNext}
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {paidOrders.map((order) => (
         <OrderCard
           key={order.id}
           order={order}
-          reviewByProductId={reviewByProductId}
-          writingReviewProductId={writingReviewProductId}
-          onStartWriteReview={setWritingReviewProductId}
-          onCancelWriteReview={() => setWritingReviewProductId(null)}
+          reviewByOrderItemId={reviewByOrderItemId}
+          writingReviewOrderItemId={writingReviewOrderItemId}
+          onStartWriteReview={setWritingReviewOrderItemId}
+          onOpenReviewImages={openReviewLightbox}
+          onCancelWriteReview={() => setWritingReviewOrderItemId(null)}
           onReviewSuccess={handleReviewSuccess}
         />
       ))}
@@ -801,18 +973,20 @@ function OrderHistorySection() {
 
 interface OrderCardProps {
   order: OrderRow
-  reviewByProductId: Record<string, MyReviewItem>
-  writingReviewProductId: string | null
-  onStartWriteReview: (productId: string) => void
+  reviewByOrderItemId: Record<string, MyReviewItem>
+  writingReviewOrderItemId: string | null
+  onStartWriteReview: (orderItemId: string) => void
+  onOpenReviewImages: (images: ProductReviewImage[], index: number) => void
   onCancelWriteReview: () => void
   onReviewSuccess: () => void
 }
 
 function OrderCard({
   order,
-  reviewByProductId,
-  writingReviewProductId,
+  reviewByOrderItemId,
+  writingReviewOrderItemId,
   onStartWriteReview,
+  onOpenReviewImages,
   onCancelWriteReview,
   onReviewSuccess,
 }: OrderCardProps) {
@@ -824,7 +998,7 @@ function OrderCard({
   const statusLabel: Record<string, string> = {
     pending: '결제 대기',
     paid: '결제 완료',
-    shipped: '배송 중',
+    shipped: '발송 완료',
     delivered: '배송 완료',
     cancelled: '취소됨',
   }
@@ -853,11 +1027,13 @@ function OrderCard({
             key={item.id}
             item={item}
             orderDate={orderDate}
-            myReview={reviewByProductId[item.productId]}
-            isWriting={writingReviewProductId === item.productId}
-            onStartWriteReview={() => onStartWriteReview(item.productId)}
+            orderStatus={order.status}
+            myReview={reviewByOrderItemId[item.id]}
+            isWriting={writingReviewOrderItemId === item.id}
+            onStartWriteReview={() => onStartWriteReview(item.id)}
             onCancelWriteReview={onCancelWriteReview}
             onReviewSuccess={onReviewSuccess}
+            onOpenReviewImages={onOpenReviewImages}
           />
         ))}
       </ul>
@@ -876,22 +1052,28 @@ function OrderCard({
 interface OrderItemRowProps {
   item: OrderItemRow
   orderDate: string
+  orderStatus: OrderRow['status']
   myReview: MyReviewItem | undefined
   isWriting: boolean
   onStartWriteReview: () => void
   onCancelWriteReview: () => void
   onReviewSuccess: () => void
+  onOpenReviewImages: (images: ProductReviewImage[], index: number) => void
 }
 
 function OrderItemRow({
   item,
   orderDate,
+  orderStatus,
   myReview,
   isWriting,
   onStartWriteReview,
   onCancelWriteReview,
   onReviewSuccess,
+  onOpenReviewImages,
 }: OrderItemRowProps) {
+  const canWriteReview = orderStatus === 'shipped'
+
   return (
     <li className="px-6 py-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
@@ -914,7 +1096,7 @@ function OrderItemRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-1">
             <Link
-              to={`/shop/product/${item.productId}`}
+              to={`/shop/${item.productId}`}
               className="font-serif text-[1.2rem] font-normal tracking-wide text-dot-primary hover:underline"
             >
               {item.productName.toUpperCase()}
@@ -959,20 +1141,20 @@ function OrderItemRow({
               </p>
               {myReview.images?.length ? (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {myReview.images.map((img) => (
-                    <a
+                  {myReview.images.map((img, idx) => (
+                    <button
                       key={img.id}
-                      href={img.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      type="button"
+                      onClick={() => onOpenReviewImages(myReview.images, idx)}
                       className="block h-20 w-20 overflow-hidden rounded-sm border border-[#eee] bg-white"
+                      aria-label="리뷰 사진 보기"
                     >
                       <img
                         src={img.url}
                         alt=""
                         className="h-full w-full object-cover"
                       />
-                    </a>
+                    </button>
                   ))}
                 </div>
               ) : null}
@@ -981,19 +1163,22 @@ function OrderItemRow({
             <div className="mt-6">
               <ProductReviewForm
                 productId={item.productId}
+                orderItemId={item.id}
                 productName={item.productName}
                 onSuccess={onReviewSuccess}
                 onCancel={onCancelWriteReview}
               />
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={onStartWriteReview}
-              className="mono mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
-            >
-              구매평 작성
-            </button>
+            canWriteReview ? (
+              <button
+                type="button"
+                onClick={onStartWriteReview}
+                className="mono mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+              >
+                구매평 작성
+              </button>
+            ) : null
           )}
         </div>
       </div>

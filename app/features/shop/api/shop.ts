@@ -57,6 +57,7 @@ export interface Product {
   name: string
   description: string | null
   price: number
+  stockQuantity: number
   isActive: boolean
   purchaseNotice?: string | null
   handlingNotice?: string | null
@@ -126,6 +127,7 @@ export async function fetchProduct(id: string): Promise<Product> {
 export interface MyReviewItem {
   id: string
   productId: string
+  orderItemId: string | null
   body: string
   rating: number | null
   createdAt: string
@@ -207,6 +209,7 @@ export async function createProduct(data: {
   name: string
   description?: string
   price: number
+  stockQuantity?: number
   isActive?: boolean
   purchaseNotice?: string
   handlingNotice?: string
@@ -226,6 +229,7 @@ export async function updateProduct(
     name?: string
     description?: string
     price?: number
+    stockQuantity?: number
     isActive?: boolean
     purchaseNotice?: string
     handlingNotice?: string
@@ -283,7 +287,7 @@ export async function uploadProductImages(files: File[]): Promise<{ urls: string
 /** 구매평 작성 */
 export async function createProductReview(
   productId: string,
-  data: { body: string; rating?: number; imageUrls?: string[] }
+  data: { body: string; rating?: number; imageUrls?: string[]; orderItemId: string }
 ) {
   return apiClient.post(`/shop/products/${productId}/reviews`, data)
 }

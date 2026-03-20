@@ -18,7 +18,9 @@ import { CouponModule } from '../coupon/coupon.module';
           cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`);
         },
       }),
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+      // 리뷰 이미지 업로드는 사용자가 업로드하는 이미지가 큰 경우가 있어
+      // 관리자 업로드와 동일한 수준(30MB)으로 상향
+      limits: { fileSize: 30 * 1024 * 1024 }, // 30MB
       fileFilter: (_req, file, cb) => {
         const allowed = /^image\/(jpeg|png|gif|webp)$/;
         if (allowed.test(file.mimetype)) cb(null, true);

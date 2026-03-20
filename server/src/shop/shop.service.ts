@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, asc, desc, isNull, sql, ne, inArray, or, gt, lte } from 'drizzle-orm';
+import { eq, and, asc, desc, isNull, sql, ne, inArray, or, gt, gte, lte } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { CouponService } from '../coupon/coupon.service';
 import * as schema from '../db/schema';
@@ -20,6 +20,97 @@ export class ShopService {
     private readonly couponService: CouponService,
     private readonly configService: ConfigService,
   ) {}
+
+  /** [Admin] 주문 목록 조회 (관리자용) */
+  async getAdminOrders(params?: { status?: string }) {
+    const allowedStatuses = [
+      'pending',
+      'paid',
+      'shipped',
+      'delivered',
+      'cancelled',
+    ] as const
+    const status =
+      params?.status && (allowedStatuses as readonly string[]).includes(params.status)
+        ? (params.status as (typeof allowedStatuses)[number])
+        : undefined
+
+    return this.db.query.orders.findMany({
+      where: status ? eq(schema.orders.status, status) : undefined,
+      orderBy: [desc(schema.orders.createdAt)],
+      with: {
+        shippingAddress: {
+          columns: {
+            id: true,
+            label: true,
+            recipientName: true,
+            phone: true,
+            postalCode: true,
+            addressLine1: true,
+            addressLine2: true,
+          },
+        },
+        orderItems: true,
+      },
+    })
+  }
+
+  /** [Admin] 송장번호 입력 후 발송 완료 처리 */
+  async updateAdminOrderShipment(
+    orderId: string,
+    trackingNumber: string,
+  ) {
+    const order = await this.db.query.orders.findFirst({
+      where: eq(schema.orders.id, orderId),
+      columns: { id: true, status: true, trackingNumber: true },
+    })
+
+    if (!order) {
+      throw new NotFoundException('주문을 찾을 수 없습니다.')
+    }
+
+    if (order.status === 'pending' || order.status === 'cancelled') {
+      throw new BadRequestException('발송 처리는 결제 완료된 주문부터 가능합니다.')
+    }
+
+    const [updated] = await this.db
+      .update(schema.orders)
+      .set({
+        status: 'shipped',
+        trackingNumber,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.orders.id, orderId))
+      .returning()
+
+    return updated
+  }
+
+  /** [Admin] pending 주문(초안) 전부 삭제 */
+  async deleteAdminPendingOrders() {
+    return this.db.transaction(async (tx) => {
+      const pendingOrders = await tx.query.orders.findMany({
+        where: eq(schema.orders.status, 'pending'),
+        columns: { id: true },
+      })
+      if (pendingOrders.length === 0) {
+        return { deletedOrders: 0 }
+      }
+
+      const pendingIds = pendingOrders.map((o) => o.id)
+
+      await tx.delete(schema.orderItems).where(
+        // order_items.order_id IN (pendingIds)
+        // Drizzle supports inArray with a list of UUIDs.
+        inArray(schema.orderItems.orderId, pendingIds),
+      )
+      await tx.delete(schema.orders).where(
+        inArray(schema.orders.id, pendingIds),
+      )
+
+      return { deletedOrders: pendingIds.length }
+    })
+  }
 
   /** 카테고리 목록 조회 */
   async getCategories() {
@@ -200,6 +291,48 @@ export class ShopService {
     quantity: number,
     optionId?: string,
   ) {
+    const product = await this.db.query.products.findFirst({
+      where: eq(schema.products.id, productId),
+      columns: { id: true, isActive: true, stockQuantity: true },
+    })
+
+    if (!product) {
+      throw new NotFoundException('상품을 찾을 수 없습니다.')
+    }
+
+    if (!product.isActive) {
+      throw new BadRequestException('판매가 중지된 상품입니다.')
+    }
+
+    if (product.stockQuantity <= 0) {
+      throw new BadRequestException('재고가 없습니다. (품절)')
+    }
+
+    // 상품에 옵션이 존재한다면, optionId를 반드시 선택해야 장바구니에 담을 수 있게 방어
+    const productHasOptions = await this.db.query.productOptions.findMany({
+      where: eq(schema.productOptions.productId, productId),
+      columns: { id: true },
+      limit: 1,
+    })
+
+    if (productHasOptions.length > 0) {
+      if (!optionId) {
+        throw new BadRequestException('옵션을 선택해 주세요.')
+      }
+
+      // 선택된 optionId가 해당 상품의 옵션인지 검증
+      const optionBelongs = await this.db.query.productOptions.findFirst({
+        where: and(
+          eq(schema.productOptions.id, optionId),
+          eq(schema.productOptions.productId, productId),
+        ),
+      })
+
+      if (!optionBelongs) {
+        throw new BadRequestException('잘못된 옵션입니다.')
+      }
+    }
+
     // 동일한 상품/옵션이 이미 있는지 확인
     const existing = await this.db.query.cartItems.findFirst({
       where: and(
@@ -449,7 +582,7 @@ export class ShopService {
   async createReview(
     userId: string,
     productId: string,
-    data: { body: string; rating?: number; imageUrls?: string[] },
+    data: { body: string; rating?: number; imageUrls?: string[]; orderItemId: string },
   ) {
     const product = await this.db.query.products.findFirst({
       where: eq(schema.products.id, productId),
@@ -458,11 +591,37 @@ export class ShopService {
       throw new NotFoundException('상품을 찾을 수 없습니다.');
     }
 
+    const orderItem = await this.db.query.orderItems.findFirst({
+      where: and(
+        eq(schema.orderItems.id, data.orderItemId),
+        eq(schema.orderItems.productId, productId),
+      ),
+      with: {
+        order: {
+          columns: { userId: true, status: true },
+        },
+      },
+    });
+
+    if (!orderItem) {
+      throw new BadRequestException('주문 상품을 찾을 수 없습니다.');
+    }
+
+    if (orderItem.order.userId !== userId) {
+      throw new BadRequestException('잘못된 주문 상품입니다.');
+    }
+
+    // 리뷰는 발송 완료(shipped)된 주문부터 작성 가능하도록 방어
+    if (orderItem.order.status !== 'shipped') {
+      throw new BadRequestException('아직 리뷰를 작성할 수 없습니다.');
+    }
+
     return await this.db.transaction(async (tx) => {
       const [review] = await tx
         .insert(schema.productReviews)
         .values({
           productId,
+          orderItemId: data.orderItemId,
           userId,
           body: data.body,
           rating: data.rating ?? null,
@@ -555,6 +714,32 @@ export class ShopService {
       return specified && specified > 0 ? specified : defaultQty;
     };
 
+    // 옵션이 달라도 같은 상품일 수 있으므로,
+    // "선택된 장바구니 아이템들에서 필요한 총 수량" 기준으로 재고를 한 번에 검증한다.
+    const requiredByProductId = new Map<string, number>()
+    const stockByProductId = new Map<string, number>()
+
+    for (const item of cartItems) {
+      const purchaseQty = purchaseQtyFor(item.id, item.quantity)
+      if (purchaseQty <= 0) continue
+
+      requiredByProductId.set(
+        item.productId,
+        (requiredByProductId.get(item.productId) ?? 0) + purchaseQty,
+      )
+      stockByProductId.set(item.productId, item.product.stockQuantity)
+    }
+
+    for (const [productId, requiredQty] of requiredByProductId.entries()) {
+      const stockQty = stockByProductId.get(productId) ?? 0
+      if (stockQty <= 0) {
+        throw new BadRequestException('재고가 없습니다. (품절)')
+      }
+      if (requiredQty > stockQty) {
+        throw new BadRequestException('재고가 부족합니다.')
+      }
+    }
+
     const subtotal = cartItems.reduce((sum, item) => {
       const purchaseQty = purchaseQtyFor(item.id, item.quantity);
       if (purchaseQty <= 0) return sum;
@@ -615,6 +800,28 @@ export class ShopService {
     }
 
     await this.db.transaction(async (tx) => {
+      // checkout 주문(결제 직전) 생성은 pending draft로 쌓일 수 있습니다.
+      // 동일 유저가 다시 checkout 진입하면 중복 draft를 제거해 주문번호/대기 주문이 왕창 쌓이지 않게 합니다.
+      const pendingOrders = await tx.query.orders.findMany({
+        where: and(eq(schema.orders.userId, userId), eq(schema.orders.status, 'pending')),
+        columns: { id: true },
+      });
+
+      if (pendingOrders.length > 0) {
+        const pendingIds = pendingOrders.map((o) => o.id);
+        await tx
+          .delete(schema.orderItems)
+          .where(inArray(schema.orderItems.orderId, pendingIds));
+        await tx
+          .delete(schema.orders)
+          .where(
+            and(
+              eq(schema.orders.userId, userId),
+              eq(schema.orders.status, 'pending'),
+            ),
+          );
+      }
+
       const [order] = await tx
         .insert(schema.orders)
         .values({
@@ -785,6 +992,25 @@ export class ShopService {
             ? isNull(schema.cartItems.optionId)
             : eq(schema.cartItems.optionId, oi.productOptionId),
         );
+
+        // 재고 차감: stock_quantity 가 0 이하이면 결제를 확정하지 못하게 막는다.
+        const [updatedProduct] = await tx
+          .update(schema.products)
+          .set({
+            stockQuantity: sql`${schema.products.stockQuantity} - ${oi.quantity}`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(schema.products.id, oi.productId),
+              gte(schema.products.stockQuantity, oi.quantity),
+            ),
+          )
+          .returning({ id: schema.products.id });
+
+        if (!updatedProduct) {
+          throw new BadRequestException('재고가 부족합니다.');
+        }
 
         // cart 수량이 주문 수량보다 작거나 같으면 행 자체를 삭제
         await tx.delete(schema.cartItems).where(

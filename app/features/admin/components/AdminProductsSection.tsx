@@ -62,6 +62,7 @@ export const AdminProductsSection = () => {
     },
   })
 
+
   const updateCategoryMutation = useMutation({
     mutationFn: (data: { id: string; name: string; slug: string; sortOrder: number }) =>
       updateCategory(data.id, {
@@ -301,12 +302,13 @@ export const AdminProductsSection = () => {
       </div>
 
       <div className="overflow-x-auto rounded border border-[#eee] bg-white">
-        <table className="min-w-[760px] border-collapse">
+        <table className="min-w-[920px] border-collapse">
           <thead>
             <tr className="border-b border-[#eee] text-left text-[0.85rem] text-dot-secondary">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3 whitespace-nowrap">Stock</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3 whitespace-nowrap">Action</th>
             </tr>
@@ -314,7 +316,7 @@ export const AdminProductsSection = () => {
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-dot-secondary">
+                <td colSpan={6} className="px-4 py-10 text-center text-dot-secondary">
                   No products
                 </td>
               </tr>
@@ -326,6 +328,9 @@ export const AdminProductsSection = () => {
                     {categoryNameById.get(p.categoryId) ?? '-'}
                   </td>
                   <td className="px-4 py-3 text-dot-primary">₩{p.price.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-dot-primary">
+                    <span className="mono text-sm">{p.stockQuantity ?? 0}</span>
+                  </td>
                   <td className="px-4 py-3 text-dot-secondary">{p.slug}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-3 whitespace-nowrap">

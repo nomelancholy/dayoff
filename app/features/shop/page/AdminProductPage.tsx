@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Trash2, Camera, Loader2 } from 'lucide-react'
 const DETAIL_IMAGE_MAX_WIDTH = 2200
 const DETAIL_IMAGE_QUALITY = 0.82
 const DETAIL_IMAGE_COMPRESS_THRESHOLD = 2 * 1024 * 1024 // 2MB
+const DEFAULT_STOCK_QUANTITY = 999
 
 const shouldCompressDetailImage = (file: File): boolean => {
   if (file.size < DETAIL_IMAGE_COMPRESS_THRESHOLD) return false
@@ -78,6 +79,7 @@ export const AdminProductPage = () => {
   const [slug, setSlug] = useState('')
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [stockQuantity, setStockQuantity] = useState(String(DEFAULT_STOCK_QUANTITY))
   const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [detailImages, setDetailImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [options, setOptions] = useState([{ name: '', value: '', sortOrder: 1 }])
@@ -102,6 +104,7 @@ export const AdminProductPage = () => {
     setSlug(product.slug)
     setPrice(String(product.price))
     setCategoryId(product.categoryId)
+    setStockQuantity(String(product.stockQuantity ?? DEFAULT_STOCK_QUANTITY))
     setImages(
       product.images?.length
         ? product.images.map((img) => ({
@@ -170,6 +173,12 @@ export const AdminProductPage = () => {
       slug,
       price: parseInt(price, 10),
       categoryId,
+      stockQuantity: (() => {
+        const n = Number(stockQuantity)
+        if (!Number.isFinite(n)) return DEFAULT_STOCK_QUANTITY
+        // 음수 재고는 허용하지 않음
+        return Math.max(0, Math.floor(n))
+      })(),
       images: images.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       detailImages: detailImages.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       options: options.filter((opt) => opt.name.trim() !== '' && opt.value.trim() !== ''),
@@ -329,6 +338,26 @@ export const AdminProductPage = () => {
                 placeholder="e.g. 82000"
                 required
               />
+            </label>
+
+            {/* Stock */}
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                STOCK <span className="text-red-500">*</span>
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
+                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
+                placeholder="e.g. 999"
+                required
+              />
+              <span className="text-xs text-[#888]">
+                0 이하면 품절로 처리됩니다.
+              </span>
             </label>
 
             {/* Category */}

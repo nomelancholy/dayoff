@@ -43,6 +43,8 @@ export const productReviews = pgTable('product_reviews', {
   productId: uuid('product_id')
     .notNull()
     .references(() => products.id, { onDelete: 'cascade' }),
+  // 주문 상세(order_items) 단위로 리뷰를 묶기 위해 추가
+  orderItemId: uuid('order_item_id'),
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),

@@ -33,6 +33,8 @@ export const products = pgTable('products', {
   name: text('name').notNull(),
   description: text('description'),
   price: integer('price').notNull(),
+  // 관리자 설정 재고 수량. 0 이하이면 판매/결제 진행을 막는다.
+  stockQuantity: integer('stock_quantity').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   /** 구매 전 안내사항 */
   purchaseNotice: text('purchase_notice'),

@@ -75,6 +75,7 @@ export const orders = pgTable('orders', {
   discountAmount: integer('discount_amount').notNull().default(0),
   total: integer('total').notNull(),
   couponId: uuid('coupon_id').references(() => coupons.id),
+  trackingNumber: text('tracking_number'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -105,6 +106,10 @@ export const orderItems = pgTable('order_items', {
 export const ordersRelations = relations(orders, ({ one, many }) => ({
   user: one(users, { fields: [orders.userId], references: [users.id] }),
   coupon: one(coupons, { fields: [orders.couponId], references: [coupons.id] }),
+  shippingAddress: one(addresses, {
+    fields: [orders.shippingAddressId],
+    references: [addresses.id],
+  }),
   orderItems: many(orderItems),
 }));
 

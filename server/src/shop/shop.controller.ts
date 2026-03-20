@@ -28,6 +28,7 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Min,
@@ -66,6 +67,12 @@ class ConfirmTossPaymentDto {
   @IsInt()
   @Min(0)
   amount!: number;
+}
+
+class UpdateAdminOrderShipmentDto {
+  @IsString()
+  @IsNotEmpty()
+  trackingNumber!: string;
 }
 
 const getBaseUrl = (req: Request): string => {
@@ -141,7 +148,7 @@ export class ShopController {
   async createReview(
     @CurrentUser() user: UserRow,
     @Param('id') productId: string,
-    @Body() body: { body: string; rating?: number; imageUrls?: string[] },
+    @Body() body: { body: string; rating?: number; imageUrls?: string[]; orderItemId: string },
   ) {
     return this.shopService.createReview(user.id, productId, body);
   }
@@ -284,5 +291,32 @@ export class ShopController {
   @Roles('admin')
   async deleteProduct(@Param('id') id: string) {
     return this.shopService.deleteProduct(id);
+  }
+
+  /** [Admin] 주문 목록 조회 */
+  @Get('admin/orders')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getAdminOrders(@Query('status') status?: string) {
+    return this.shopService.getAdminOrders({ status });
+  }
+
+  /** [Admin] 송장번호 입력 후 발송 완료(shipped) 처리 */
+  @Patch('admin/orders/:id/shipment')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async updateAdminOrderShipment(
+    @Param('id') id: string,
+    @Body() dto: UpdateAdminOrderShipmentDto,
+  ) {
+    return this.shopService.updateAdminOrderShipment(id, dto.trackingNumber);
+  }
+
+  /** [Admin] pending 주문(초안) 일괄 삭제 */
+  @Delete('admin/orders/pending')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async deleteAdminPendingOrders() {
+    return this.shopService.deleteAdminPendingOrders();
   }
 }

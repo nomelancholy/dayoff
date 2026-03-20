@@ -9,6 +9,7 @@ const REVIEW_BODY_MIN = 10
 
 export interface ProductReviewFormProps {
   productId: string
+  orderItemId: string
   productName?: string
   onSuccess: () => void
   onCancel?: () => void
@@ -17,6 +18,7 @@ export interface ProductReviewFormProps {
 /** 구매평 작성 폼 (Order History 등에서 사용) */
 export const ProductReviewForm = ({
   productId,
+  orderItemId,
   productName,
   onSuccess,
   onCancel,
@@ -28,7 +30,7 @@ export const ProductReviewForm = ({
 
   const reviewMutation = useMutation({
     mutationFn: (data: { body: string; rating?: number; imageUrls?: string[] }) =>
-      createProductReview(productId, data),
+      createProductReview(productId, { ...data, orderItemId }),
     onSuccess: () => {
       setBody('')
       setRating(null)
@@ -153,6 +155,9 @@ export const ProductReviewForm = ({
             </span>
             <span className="mt-1 text-[0.6rem] text-[#888]">
               최대 10장 (JPG, PNG, WEBP)
+            </span>
+            <span className="mt-1 text-[0.6rem] text-[#888]">
+              파일당 30MB까지
             </span>
           </div>
         </label>

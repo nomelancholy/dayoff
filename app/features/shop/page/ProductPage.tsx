@@ -42,6 +42,8 @@ export const ShopProductPage = () => {
   })
 
   const showToast = useUiStore((s) => s.showToast)
+  const hasOptions = !!(product?.options && product.options.length > 0)
+  const isSoldOut = (product?.stockQuantity ?? 0) <= 0
 
   const cartMutation = useMutation({
     mutationFn: () =>
@@ -53,6 +55,8 @@ export const ShopProductPage = () => {
     onSuccess: (data) => {
       const shouldShowCartToast = cartToastRequestedRef.current
       cartToastRequestedRef.current = false
+      const shouldNavigateToCheckout = checkoutFlowRequestedRef.current
+      checkoutFlowRequestedRef.current = false
       const anchor = toastAnchorRef.current
       toastAnchorRef.current = null
 
@@ -65,8 +69,7 @@ export const ShopProductPage = () => {
         })
       }
 
-      if (checkoutFlowRequestedRef.current) {
-        checkoutFlowRequestedRef.current = false
+      if (shouldNavigateToCheckout) {
         navigate('/checkout', {
           state: {
             couponCode: null,
@@ -81,7 +84,10 @@ export const ShopProductPage = () => {
         alert('로그인이 필요합니다.')
         navigate('/login')
       } else {
-        alert('장바구니 담기에 실패했습니다.')
+        const message = isAxiosError(err)
+          ? err.response?.data?.message
+          : undefined
+        alert(message || '장바구니 담기에 실패했습니다.')
       }
     },
   })
@@ -121,6 +127,8 @@ export const ShopProductPage = () => {
   }
 
   const handleAddToCart = () => {
+    // 장바구니 담기에서는 checkout 주문 생성이 절대 일어나면 안 됩니다.
+    checkoutFlowRequestedRef.current = false
     if (!getStoredToken()) {
       alert('로그인이 필요합니다.')
       navigate('/login')
@@ -128,6 +136,16 @@ export const ShopProductPage = () => {
     }
     if (!product) {
       alert('상품 정보를 불러오는 중입니다.')
+      return
+    }
+
+    if (hasOptions && !selectedOptionId) {
+      alert('옵션을 선택해 주세요.')
+      return
+    }
+
+    if (isSoldOut) {
+      alert('품절된 상품입니다.')
       return
     }
     cartMutation.mutate()
@@ -284,7 +302,7 @@ export const ShopProductPage = () => {
                     cartToastRequestedRef.current = true
                     handleAddToCart()
                   }}
-                  disabled={cartMutation.isPending}
+                  disabled={cartMutation.isPending || isSoldOut}
                   className="mono border border-dot-primary bg-white py-3 text-sm font-semibold tracking-wide text-dot-primary transition-colors hover:bg-dot-primary hover:text-white disabled:opacity-50 md:py-4 md:text-base"
                 >
                   {cartMutation.isPending ? '담는 중…' : '장바구니 담기'}
@@ -304,10 +322,20 @@ export const ShopProductPage = () => {
                       return
                     }
 
+                    if (hasOptions && !selectedOptionId) {
+                      alert('옵션을 선택해 주세요.')
+                      return
+                    }
+
                     checkoutFlowRequestedRef.current = true
+                    if (isSoldOut) {
+                      alert('품절된 상품입니다.')
+                      checkoutFlowRequestedRef.current = false
+                      return
+                    }
                     cartMutation.mutate()
                   }}
-                  disabled={cartMutation.isPending}
+                  disabled={cartMutation.isPending || isSoldOut}
                   className="mono bg-dot-primary py-3 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50 md:py-4 md:text-base"
                 >
                   구매하기
