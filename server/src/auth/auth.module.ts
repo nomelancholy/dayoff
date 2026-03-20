@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import type { Provider } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { RolesGuard } from './guards/roles.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { KakaoStrategy } from './strategies/kakao.strategy';
@@ -39,7 +40,7 @@ if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CALLBACK_URL) {
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, ...socialProviders],
+  providers: [AuthService, JwtStrategy, RolesGuard, ...socialProviders],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -405,7 +405,7 @@ function AddressBookSection() {
             onClick={() => setAdding(true)}
             className="mono w-full border border-dashed border-[#ddd] bg-transparent py-6 text-[0.9rem] text-[#666666] transition-colors hover:border-[#1A1A1A] hover:text-[#1A1A1A]"
           >
-            + ADD NEW ADDRESS
+            + 새 주소 추가
           </button>
         )}
       </div>

@@ -38,8 +38,7 @@ export const CLASS_ITEMS: ClassItemData[] = [
     imageAlt: '물레 클래스',
     infoRows: [
       { label: 'TIME', value: '90분' },
-      { label: 'ITEMS', value: '1인 2기물 제작' },
-      { label: 'LEVEL', value: '입문자 가능' },
+      { label: 'ITEMS', value: '1인 최대 2기물' },
     ],
     description:
       '빙글빙글 돌아가는 물레 위에서 흙의 중심을 잡으며 오롯이 손끝의 감각에 집중합니다. 도자공예 전공 선생님의 지도 아래, 백자 흙으로 자신만의 기물을 빚어보세요. 유광 또는 무광 중 선택하여 마감할 수 있습니다.',
@@ -54,11 +53,10 @@ export const CLASS_ITEMS: ClassItemData[] = [
     imageAlt: '컬러 클레이 클래스',
     infoRows: [
       { label: 'TIME', value: '90 - 120분' },
-      { label: 'METHOD', value: '연리문 기법' },
-      { label: 'RESULT', value: '자유로운 패턴의 그릇' },
+      { label: 'ITEMS', value: '1인 1작업' },
     ],
     description:
-      "색을 입힌 흙들을 조합해 우연한 무늬를 만들어내는 '연리문' 기법을 배웁니다. 알록달록한 색소지를 활용해 캐릭터나 꽃, 기하학 패턴 등 자신만의 개성을 듬뿍 담은 그릇을 완성할 수 있는 디오티의 인기 클래스입니다.",
+      '연리문이라는 전통 기법을 사용해 알록달록한 색소지(흙)으로 자신만의 그릇을 만드는 수업입니다. 색상이 다른 흙들이 우연한 무늬를 만들어내게 하거나 원하는 캐릭터나 꽃 기하학 등 다양한 문양을 오려 세기는 기법을 배웁니다. 디오티에서 가장 많이 찾는 클래스인 만큼 만족도가 높습니다.',
     bookingUrl: booking.colorClay,
   },
   {
@@ -70,11 +68,10 @@ export const CLASS_ITEMS: ClassItemData[] = [
     imageAlt: '자유 원데이 클래스',
     infoRows: [
       { label: 'TIME', value: '120분' },
-      { label: 'ITEMS', value: '대형 1개 또는 중소형 2개' },
-      { label: 'STYLE', value: '핸드빌딩 & 페인팅' },
+      { label: 'ITEMS', value: '1~3개' },
     ],
     description:
-      '정해진 형식 없이 자유롭게 흙을 만지며 원하는 오브제를 만듭니다. 화병, 큰 접시, 소쿠리 등 다양한 형태를 시도해 볼 수 있으며, 물감을 이용해 직접 그림을 그리거나 무늬를 새기는 작업도 가능합니다.',
+      '백자토(흙)를 가지고 각자 원하시는 모양의 도자기를 만드는 수업입니다. 화병,큰 그릇,컵,소쿠리 등 다양한 형태의 오브제들을 만드실 수 있습니다. 유약과 물감을 선택 하신 후 뿌리기,바르기,그리기 등 다양하게 창작해 주세요.',
     bookingUrl: booking.freeForm,
   },
 ]

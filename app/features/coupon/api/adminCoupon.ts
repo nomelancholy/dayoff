@@ -50,3 +50,22 @@ export async function deleteAdminCoupon(id: string): Promise<{ ok: boolean }> {
   return apiClient.delete<{ ok: boolean }>(`/coupons/${id}`)
 }
 
+/** 관리자: 회원에게 쿠폰 지급 (`user_coupons` 행 생성) */
+export interface IssuedUserCouponRow {
+  id: string
+  userId: string
+  couponId: string
+  usedAt: string | null
+  orderId: string | null
+  createdAt: string
+}
+
+export async function issueAdminCoupon(
+  couponId: string,
+  userId: string,
+): Promise<IssuedUserCouponRow> {
+  return apiClient.post<IssuedUserCouponRow>(`/coupons/${couponId}/issue`, {
+    userId,
+  })
+}
+

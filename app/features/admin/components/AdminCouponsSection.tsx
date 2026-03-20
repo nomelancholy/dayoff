@@ -2,7 +2,14 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Coupon } from '@/features/coupon/types/coupon'
 import type { DiscountType, UpdateAdminCouponInput } from '@/features/coupon/api/adminCoupon'
-import { createAdminCoupon, deleteAdminCoupon, fetchAdminCoupons, updateAdminCoupon } from '@/features/coupon/api/adminCoupon'
+import {
+  createAdminCoupon,
+  deleteAdminCoupon,
+  fetchAdminCoupons,
+  issueAdminCoupon,
+  updateAdminCoupon,
+} from '@/features/coupon/api/adminCoupon'
+import { getApiErrorMessage } from '@/features/auth/api/auth'
 import { cn } from '@/common/lib/utils'
 
 type CouponFormState = {
@@ -135,6 +142,26 @@ export const AdminCouponsSection = () => {
     },
   })
 
+  const [issueUserIdByCoupon, setIssueUserIdByCoupon] = useState<
+    Record<string, string>
+  >({})
+
+  const issueMutation = useMutation({
+    mutationFn: ({ couponId, userId }: { couponId: string; userId: string }) =>
+      issueAdminCoupon(couponId, userId),
+    onSuccess: (_data, vars) => {
+      setIssueUserIdByCoupon((prev) => {
+        const next = { ...prev }
+        delete next[vars.couponId]
+        return next
+      })
+      alert('해당 회원에게 쿠폰이 지급되었습니다.')
+    },
+    onError: (err: unknown) => {
+      alert(getApiErrorMessage(err, '쿠폰 지급에 실패했습니다.'))
+    },
+  })
+
   const setEditMode = (coupon: Coupon) => {
     setForm({
       mode: 'edit',
@@ -200,13 +227,14 @@ export const AdminCouponsSection = () => {
           ) : list.length === 0 ? (
             <div className="p-6 text-dot-secondary">No coupons</div>
           ) : (
-            <table className="min-w-[740px] border-collapse">
+            <table className="min-w-[960px] border-collapse">
               <thead>
                 <tr className="border-b border-[#eee] text-left text-[0.85rem] text-dot-secondary">
                   <th className="px-4 py-3">Code</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Value</th>
                   <th className="px-4 py-3">Active</th>
+                  <th className="min-w-[280px] px-4 py-3">회원 지급</th>
                   <th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
@@ -225,6 +253,47 @@ export const AdminCouponsSection = () => {
                       >
                         {c.isActive ? 'Y' : 'N'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex max-w-[320px] flex-col gap-2 sm:flex-row sm:items-center">
+                        <input
+                          type="text"
+                          value={issueUserIdByCoupon[c.id] ?? ''}
+                          onChange={(e) =>
+                            setIssueUserIdByCoupon((prev) => ({
+                              ...prev,
+                              [c.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="회원 UUID"
+                          className="min-w-0 flex-1 rounded border border-[#ddd] bg-white px-2 py-1.5 font-mono text-[0.78rem] focus:border-dot-primary focus:outline-none"
+                          disabled={
+                            issueMutation.isPending &&
+                            issueMutation.variables?.couponId === c.id
+                          }
+                        />
+                        <button
+                          type="button"
+                          disabled={
+                            issueMutation.isPending &&
+                            issueMutation.variables?.couponId === c.id
+                          }
+                          onClick={() => {
+                            const uid = (issueUserIdByCoupon[c.id] ?? '').trim()
+                            if (!uid) {
+                              alert('회원 UUID를 입력해 주세요. (USERS 탭 목록에서 확인)')
+                              return
+                            }
+                            issueMutation.mutate({ couponId: c.id, userId: uid })
+                          }}
+                          className="shrink-0 rounded border border-[#1A1A1A] bg-white px-3 py-1.5 text-[0.78rem] font-medium text-dot-primary transition-colors hover:bg-[#f7f7f7] disabled:opacity-50"
+                        >
+                          지급
+                        </button>
+                      </div>
+                      <p className="mt-1 text-[0.7rem] leading-snug text-dot-secondary">
+                        활성·유효기간 내 쿠폰만 지급됩니다. 미사용 동일 쿠폰이 있으면 거절됩니다.
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">

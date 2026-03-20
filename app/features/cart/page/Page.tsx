@@ -64,18 +64,18 @@ export const CartPage = () => {
   if (!token) {
     return (
       <div className="min-h-screen bg-dot-bg px-6 py-48 text-center md:px-16">
-        <span className="mono text-dot-primary">YOUR SELECTION</span>
+        <span className="mono text-dot-primary">선택한 상품</span>
         <h1 className="mt-2 font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
-          Shopping Cart
+          장바구니
         </h1>
         <p className="mt-8 text-[0.9rem] text-dot-secondary">
-          Please login to view your cart.
+          장바구니를 보려면 로그인 해주세요.
         </p>
         <Link
           to="/login"
           className="mt-10 inline-block border border-dot-primary px-8 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
         >
-          Login
+          로그인
         </Link>
       </div>
     )
@@ -216,7 +216,7 @@ export const CartPage = () => {
                       onClick={() => removeMutation.mutate(item.id)}
                       className="mono text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
                     >
-                      REMOVE
+                      삭제
                     </button>
                   </div>
                 </div>
@@ -225,34 +225,36 @@ export const CartPage = () => {
 
             <aside className="h-fit bg-white p-8 lg:sticky lg:top-28">
               <h2 className="mono mb-8 border-b border-[#eee] pb-4 text-[1.5rem] font-normal tracking-[0.12em] text-dot-primary">
-                ORDER SUMMARY
+                주문 요약
               </h2>
               <div className="space-y-4 text-[0.95rem]">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>소계</span>
                   <span>₩{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipping</span>
+                  <span>배송비</span>
                   <span>
-                    {shipping === 0 ? 'Free' : `₩${shipping.toLocaleString()}`}
+                    {shipping === 0
+                      ? '무료'
+                      : `₩${shipping.toLocaleString()}`}
                   </span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between">
-                    <span>Discount</span>
+                    <span>할인</span>
                     <span>-₩{discount.toLocaleString()}</span>
                   </div>
                 )}
               </div>
               <div className="mt-8 flex justify-between border-t border-[#eee] pt-6 text-[1.2rem] font-medium">
-                <span>Total</span>
+                <span>총액</span>
                 <span>₩{total.toLocaleString()}</span>
               </div>
 
               <div className="mt-10 border-t border-[#eee] pt-6">
                 <p className="mono mb-3 text-[0.85rem] tracking-[0.12em] text-dot-primary">
-                  COUPON
+                  쿠폰
                 </p>
                 {visibleCouponError && (
                   <p className="mb-3 rounded border border-red-100 bg-red-50/50 px-3 py-2 text-[10px] text-red-600">
@@ -267,7 +269,7 @@ export const CartPage = () => {
                       </p>
                       <p className="mt-1 text-[0.85rem] text-dot-secondary">
                         -₩{activeCoupon.discountAmount.toLocaleString()}{' '}
-                        applied
+                        적용
                       </p>
                     </div>
                     <button
@@ -280,7 +282,7 @@ export const CartPage = () => {
                       }}
                       className="mono text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
                     >
-                      REMOVE
+                      해제
                     </button>
                   </div>
                 ) : (
@@ -299,7 +301,7 @@ export const CartPage = () => {
                     <input
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
-                      placeholder="Coupon code"
+                      placeholder="쿠폰 코드"
                       className="w-full border border-[#eee] bg-white px-3 py-3 text-[11px] tracking-wide text-dot-primary placeholder:text-[#bbb] focus:border-dot-primary focus:outline-none"
                     />
                     <button
@@ -307,7 +309,7 @@ export const CartPage = () => {
                       disabled={validateMutation.isPending || subtotal <= 0}
                       className="mono shrink-0 border border-dot-primary bg-dot-primary px-4 py-3 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
-                      {validateMutation.isPending ? 'APPLYING…' : 'APPLY'}
+                      {validateMutation.isPending ? '적용 중…' : '적용'}
                     </button>
                   </form>
                 )}
@@ -318,7 +320,7 @@ export const CartPage = () => {
                 onClick={() => alert('주문 기능은 준비 중입니다.')}
                 className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333]"
               >
-                PROCEED TO CHECKOUT
+                결제 진행
               </button>
             </aside>
           </>

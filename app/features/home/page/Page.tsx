@@ -1,36 +1,14 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useReveal } from '@/common/hooks/useReveal'
 import { cn } from '@/common/lib/utils'
+import { fetchProducts } from '@/features/shop/api/shop'
 
 const HERO_IMAGE = '/assets/main_pic.JPG'
 const ABOUT_IMAGE = '/assets/about_pic.jpeg'
 
-const SHOP_PREVIEW_PRODUCTS = [
-  {
-    id: '1',
-    name: 'MOONLIGHT VASE',
-    price: 82000,
-    image:
-      'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&q=80&w=800',
-    alt: 'Ceramic Vase',
-  },
-  {
-    id: '2',
-    name: 'EARTHEN TEA SET',
-    price: 124000,
-    image:
-      'https://images.unsplash.com/photo-1578507065211-1c4e99a5fd24?auto=format&fit=crop&q=80&w=800',
-    alt: 'Tea Set',
-  },
-  {
-    id: '3',
-    name: 'PALE MIST PLATE',
-    price: 45000,
-    image:
-      'https://images.unsplash.com/photo-1449444004900-5895743c3917?auto=format&fit=crop&q=80&w=800',
-    alt: 'Hand-built Plate',
-  },
-] as const
+/** 메인 하단 미리보기에 노출할 상품 개수 */
+const SHOP_PREVIEW_LIMIT = 3
 
 function ScrollIndicator() {
   return (
@@ -46,6 +24,14 @@ function ScrollIndicator() {
 
 export const HomePage = () => {
   const revealRef = useReveal()
+
+  const { data: shopProducts, isLoading: shopPreviewLoading } = useQuery({
+    queryKey: ['shop', 'products', 'home-preview'],
+    queryFn: () => fetchProducts(),
+    staleTime: 60_000,
+  })
+
+  const previewProducts = (shopProducts ?? []).slice(0, SHOP_PREVIEW_LIMIT)
 
   return (
     <div ref={revealRef}>
@@ -126,33 +112,69 @@ export const HomePage = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-12">
-            {SHOP_PREVIEW_PRODUCTS.map((product) => (
-              <Link
-                key={product.id}
-                to={`/shop/${product.id}`}
-                className="reveal-element group block text-dot-primary no-underline"
-              >
-                <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2] transition-(--dot-transition)">
-                  <img
-                    src={product.image}
-                    alt={product.alt}
-                    className="h-full w-full object-cover transition-transform duration-500 ease-dot group-hover:scale-105"
-                  />
-                  <div
-                    className="absolute inset-0 -left-full w-1/2 skew-x-[-25deg] bg-linear-to-r from-transparent via-white/40 to-transparent transition-[left] duration-500 group-hover:left-[150%]"
-                    aria-hidden
-                  />
+            {shopPreviewLoading ? (
+              Array.from({ length: SHOP_PREVIEW_LIMIT }).map((_, i) => (
+                <div
+                  key={`sk-${i}`}
+                  className="reveal-element animate-pulse"
+                  aria-hidden
+                >
+                  <div className="mb-6 aspect-square bg-[#E8E6E1]" />
+                  <div className="flex justify-between gap-4">
+                    <div className="h-4 w-2/5 rounded bg-[#E8E6E1]" />
+                    <div className="h-4 w-16 rounded bg-[#E8E6E1]" />
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[0.9rem] font-normal tracking-[0.05em]">
-                    {product.name}
-                  </h3>
-                  <span className="text-[0.9rem] text-dot-secondary">
-                    ₩{product.price.toLocaleString()}
-                  </span>
-                </div>
-              </Link>
-            ))}
+              ))
+            ) : previewProducts.length === 0 ? (
+              <p className="reveal-element col-span-full text-center text-[0.95rem] text-dot-secondary">
+                등록된 상품이 없습니다.{' '}
+                <Link
+                  to="/shop"
+                  className="font-medium text-dot-primary underline underline-offset-2"
+                >
+                  SHOP
+                </Link>
+                에서 확인해 보세요.
+              </p>
+            ) : (
+              previewProducts.map((product) => {
+                const cover = product.images?.[0]
+                return (
+                  <Link
+                    key={product.id}
+                    to={`/shop/${product.slug}`}
+                    className="reveal-element group block text-dot-primary no-underline"
+                  >
+                    <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2] transition-(--dot-transition)">
+                      {cover?.url ? (
+                        <img
+                          src={cover.url}
+                          alt={cover.alt ?? product.name}
+                          className="h-full w-full object-cover transition-transform duration-500 ease-dot group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[0.8rem] text-dot-secondary">
+                          이미지 없음
+                        </div>
+                      )}
+                      <div
+                        className="absolute inset-0 -left-full w-1/2 skew-x-[-25deg] bg-linear-to-r from-transparent via-white/40 to-transparent transition-[left] duration-500 group-hover:left-[150%]"
+                        aria-hidden
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <h3 className="text-[0.9rem] font-normal tracking-[0.05em]">
+                        {product.name}
+                      </h3>
+                      <span className="shrink-0 text-[0.9rem] text-dot-secondary">
+                        ₩{product.price.toLocaleString()}
+                      </span>
+                    </div>
+                  </Link>
+                )
+              })
+            )}
           </div>
         </div>
       </section>

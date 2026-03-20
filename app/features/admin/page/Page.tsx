@@ -6,6 +6,7 @@ import type { AuthUser } from '@/features/auth/api/auth'
 import { AdminSidebar, type AdminSectionKey } from '../components/AdminSidebar'
 import { AdminProductsSection } from '../components/AdminProductsSection'
 import { AdminCouponsSection } from '../components/AdminCouponsSection'
+import { AdminUsersSection } from '../components/AdminUsersSection'
 
 export const AdminPage = () => {
   const navigate = useNavigate()
@@ -57,9 +58,7 @@ export const AdminPage = () => {
             {activeKey === 'products' ? <AdminProductsSection /> : null}
             {activeKey === 'coupons' ? <AdminCouponsSection /> : null}
             {activeKey === 'users' ? (
-              <div className="py-6 text-center text-dot-secondary">
-                USERS 관리 준비중 (유저 목록 API 필요)
-              </div>
+              <AdminUsersSection currentUserId={adminUser.id} />
             ) : null}
             {activeKey === 'orders' ? (
               <div className="py-6 text-center text-dot-secondary">

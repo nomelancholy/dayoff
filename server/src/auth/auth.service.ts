@@ -4,11 +4,14 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, or, ilike, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
@@ -389,5 +392,108 @@ export class AuthService {
       .delete(schema.addresses)
       .where(eq(schema.addresses.id, addressId));
     return { ok: true };
+  }
+
+  /** 관리자: 회원 목록 (검색·역할 필터·페이지) */
+  async listUsersForAdmin(params: {
+    q?: string;
+    role?: 'member' | 'admin';
+    page?: number;
+    pageSize?: number;
+  }): Promise<{
+    items: Array<{
+      id: string;
+      email: string;
+      fullName: string | null;
+      phone: string | null;
+      provider: AuthProvider;
+      role: 'member' | 'admin';
+      createdAt: Date;
+    }>;
+    total: number;
+    page: number;
+    pageSize: number;
+  }> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
+    const q = params.q?.trim();
+    const roleFilter = params.role;
+
+    const parts: SQL[] = [];
+    if (q) {
+      const pattern = `%${q}%`;
+      parts.push(
+        or(
+          ilike(schema.users.email, pattern),
+          ilike(schema.users.fullName, pattern),
+        )!,
+      );
+    }
+    if (roleFilter === 'member' || roleFilter === 'admin') {
+      parts.push(eq(schema.users.role, roleFilter));
+    }
+    const whereClause = parts.length ? and(...parts) : undefined;
+
+    const countBase = this.db
+      .select({ total: sql<number>`cast(count(*) as int)` })
+      .from(schema.users);
+    const [countRow] = whereClause
+      ? await countBase.where(whereClause)
+      : await countBase;
+
+    const items = await this.db.query.users.findMany({
+      columns: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        provider: true,
+        role: true,
+        createdAt: true,
+      },
+      where: whereClause,
+      orderBy: [desc(schema.users.createdAt)],
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    });
+
+    return {
+      items,
+      total: Number(countRow?.total ?? 0),
+      page,
+      pageSize,
+    };
+  }
+
+  /** 관리자: 회원 역할 변경 (본인 관리자 해제 불가) */
+  async updateUserRoleByAdmin(
+    actorId: string,
+    targetUserId: string,
+    role: 'member' | 'admin',
+  ): Promise<{
+    id: string;
+    email: string;
+    fullName: string | null;
+    role: string;
+  }> {
+    if (actorId === targetUserId && role === 'member') {
+      throw new ForbiddenException(
+        '본인 계정의 관리자 권한을 해제할 수 없습니다.',
+      );
+    }
+    const target = await this.findById(targetUserId);
+    if (!target) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    const [updated] = await this.db
+      .update(schema.users)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(schema.users.id, targetUserId))
+      .returning({
+        id: schema.users.id,
+        email: schema.users.email,
+        fullName: schema.users.fullName,
+        role: schema.users.role,
+      });
+    if (!updated) throw new BadRequestException('역할 변경에 실패했습니다.');
+    return updated;
   }
 }

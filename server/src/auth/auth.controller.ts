@@ -8,6 +8,7 @@ import {
   Delete,
   Param,
   Res,
+  Query,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
@@ -16,8 +17,12 @@ import { AuthService } from './auth.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { UserRow } from './auth.service';
+import { AdminUsersQueryDto } from './dto/admin-users-query.dto';
+import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -25,6 +30,29 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
   ) {}
+
+  @Get('admin/users')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  adminListUsers(@Query() query: AdminUsersQueryDto) {
+    return this.authService.listUsersForAdmin({
+      q: query.q,
+      role: query.role,
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Patch('admin/users/:id/role')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  adminUpdateUserRole(
+    @CurrentUser() actor: UserRow,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserRoleDto,
+  ) {
+    return this.authService.updateUserRoleByAdmin(actor.id, id, dto.role);
+  }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)

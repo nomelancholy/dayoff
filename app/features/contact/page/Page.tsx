@@ -1,5 +1,5 @@
 import { useReveal } from '@/common/hooks/useReveal'
-import { ContactInfo, MapSection, WayfindingSection } from './components'
+import { ContactInfo, MapSection } from './components'
 
 export const ContactPage = () => {
   const revealRef = useReveal()
@@ -12,8 +12,6 @@ export const ContactPage = () => {
           <MapSection />
         </div>
       </main>
-
-      <WayfindingSection />
     </div>
   )
 }

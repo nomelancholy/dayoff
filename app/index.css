@@ -102,12 +102,13 @@ h3,
   mix-blend-mode: soft-light;
 }
 
-/* Reference UI: mono label (Space Grotesk, uppercase, small) */
-.mono {
-  font-family: 'Space Grotesk', sans-serif;
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
+/* Reference UI: mono (Space Grotesk, uppercase). 글자 크기는 text-* 유틸로만 지정 — 고정 font-size는 Tailwind를 덮어써서 제거함 */
+@layer components {
+  .mono {
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
 }
 
 /* Home: scroll indicator line animation */

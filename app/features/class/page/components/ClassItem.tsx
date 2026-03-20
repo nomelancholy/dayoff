@@ -40,9 +40,9 @@ export function ClassItem({ data, reverse = false }: ClassItemProps) {
           href={data.bookingUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mono inline-block w-fit bg-[#1A1A1A] px-10 py-4 text-xs font-medium uppercase tracking-[0.25em] text-white! no-underline transition-all hover:bg-[#333] hover:-translate-y-0.5"
+          className="mono inline-block w-fit bg-[#1A1A1A] px-10 py-4 text-sm font-medium uppercase tracking-[0.25em] text-white! no-underline transition-all hover:bg-[#333] hover:-translate-y-0.5"
         >
-          Book Now
+          예약하기
         </a>
       </div>
     </div>

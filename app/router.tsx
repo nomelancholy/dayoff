@@ -12,6 +12,8 @@ import { AccountPage } from '@/features/account/page/Page'
 import { LoginPage } from '@/features/auth/page/LoginPage'
 import { RegisterPage } from '@/features/auth/page/RegisterPage'
 import { AdminPage } from '@/features/admin/page/Page'
+import { TermsPage } from '@/features/legal/page/TermsPage'
+import { PrivacyPage } from '@/features/legal/page/PrivacyPage'
 
 export const router = createBrowserRouter([
   {
@@ -26,6 +28,8 @@ export const router = createBrowserRouter([
       { path: 'shop/admin/edit/:id', element: <AdminProductPage /> },
       { path: 'class', element: <ClassPage /> },
       { path: 'contact', element: <ContactPage /> },
+      { path: 'terms', element: <TermsPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
       { path: 'cart', element: <CartPage /> },
       { path: 'account', element: <AccountPage /> },
       { path: 'login', element: <LoginPage /> },
