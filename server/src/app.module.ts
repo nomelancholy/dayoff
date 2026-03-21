@@ -12,8 +12,12 @@ import { CouponModule } from './coupon/coupon.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Nest 실행 위치(cwd)가 달라도 항상 프로젝트 루트의 .env를 읽도록 고정
-      envFilePath: join(__dirname, '../../.env'),
+      // Docker 프로덕션은 compose 환경변수만 사용 (빌드 산출물 경로와 무관하게 안전)
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? undefined
+          : join(__dirname, '../../.env'),
     }),
     DatabaseModule,
     AuthModule,
