@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+.env.*
+*.md
+server/node_modules
+server/dist
+server/coverage
+_reference_ui

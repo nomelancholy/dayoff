@@ -117,7 +117,7 @@
 
 - [x] 반응형 전 구간 점검
 - [x] NestJS Guard 및 권한(일반/Admin) 최종 확인
-- [ ] 배포: DigitalOcean Droplet + Docker + GitHub Actions 자동 배포 (섹션 6 참고)
+- [x] 배포: Docker/GHCR/워크플로·`docker-compose.prod.yml` 구성 완료 — Droplet `.env.deploy`·GitHub Secrets·`DEPLOY_ENABLED` 는 섹션 6.3~6.4 참고해 직접 마무리
 
 ### 2.11 관리자 페이지 (Admin)
 
@@ -205,28 +205,33 @@ _reference_ui/
 ### 6.1 인프라
 
 - [x] **DigitalOcean Droplet** 생성
-- [ ] Droplet에 Docker & Docker Compose 설치 (또는 Docker가 pre-installed된 이미지 사용)
-- [ ] 도메인 연결 및 SSL(Let’s Encrypt 등) 설정 (선택)
+- [x] Droplet에 Docker & Docker Compose 설치 (또는 Docker가 pre-installed된 이미지 사용)
+- [ ] 도메인 연결 및 SSL(Let’s Encrypt 등) 설정 (선택, IP만으로도 동작)
 
 ### 6.2 Docker 구성
 
 - [x] 로컬 개발용 **docker-compose.yml** (PostgreSQL 단일 서비스) — 이미 있음
-- [ ] **배포용 Docker 설정** 추가
-  - [ ] 프론트(Vite 빌드 결과) 서빙용 이미지 또는 Nginx
-  - [ ] NestJS API 서버 이미지 (Dockerfile)
-  - [ ] 배포용 `docker-compose` (또는 `docker-compose.prod.yml`): Postgres + API + Frontend(또는 Nginx)
-- [ ] 배포 환경 변수: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL`, 소셜 로그인 콜백 URL 등 Droplet/컨테이너에 주입
+- [x] **배포용 Docker 설정** (`docker-compose.prod.yml`, `server/Dockerfile`, `deploy/Dockerfile.web`, `deploy/nginx.prod.conf`)
+  - [x] 프론트: Vite 빌드 → Nginx 정적 + `/auth`·`/shop`·`/coupons`·`/uploads` → API 프록시
+  - [x] NestJS API 이미지 (컨테이너 기동 시 `drizzle-kit migrate` 후 `node dist/main`)
+  - [x] Postgres + API + Web 한 스택
+- [ ] 배포 환경 변수: Droplet에 `deploy/env.deploy.example` 참고해 `.env.deploy` 작성 (`PUBLIC_ORIGIN`/`FRONTEND_URL`/DB 비밀번호/소셜 콜백 URL 등)
 
 ### 6.3 CI/CD (GitHub Actions)
 
-- [ ] **GitHub Actions 워크플로우** 작성 (예: `.github/workflows/deploy.yml`)
-  - [ ] 트리거: `main`(또는 `master`) 브랜치 push 시
-  - [ ] 단계: 빌드(프론트/백) → Docker 이미지 빌드 → Droplet에 SSH로 접속 후 `docker compose pull`(또는 빌드) & 재기동
-- [ ] GitHub Secrets에 Droplet **SSH 키**(또는 호스트, 사용자명), 필요 시 **Docker 레지스트리** 정보 등록
+- [x] **GitHub Actions** `.github/workflows/deploy.yml` — `main` push 시 API·Web 이미지 빌드 후 **GHCR** 푸시
+- [ ] **GitHub Secrets**: `PUBLIC_ORIGIN`(끝 `/` 없음, `VITE_API_URL` 빌드에 사용), `DROPLET_HOST`, `DROPLET_USER`, `DROPLET_SSH_KEY`, `DROPLET_APP_PATH`(Droplet에서 클론한 레포 경로, 예: `/root/dayoff`)
+- [ ] **GitHub Variables**: `DEPLOY_ENABLED` = `true` 로 두면 위 Secrets가 설정된 뒤 **SSH 배포 job**까지 실행. 미설정 시 이미지 빌드·푸시만 수행.
+- [ ] **GHCR**: 패키지가 비공개면 Droplet에서 한 번 `docker login ghcr.io`(PAT `read:packages`) 필요. 공개면 생략 가능.
 
-### 6.4 진행 순서 요약
+### 6.4 Droplet 최초 1회
 
-1. Droplet 준비 (Docker 설치)
-2. 배포용 Dockerfile + docker-compose.prod 구성
-3. GitHub Actions 워크플로우 작성 및 Secrets 설정
-4. 커밋 푸시 → 자동 배포 동작 확인
+1. `git clone <repo>` 후 루트에 `cp deploy/env.deploy.example .env.deploy` 편집 (`IMAGE_*` 는 본인 GHCR 경로와 일치).
+2. `docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d` (또는 Actions 배포 전 수동으로 한 번 pull/up 검증).
+3. RAM 1GB는 Postgres+API+Nginx에 빠듯할 수 있음 → 가능하면 **2GB** Droplet 권장.
+
+### 6.5 진행 순서 요약
+
+1. Droplet: Docker 설치·`.env.deploy`·(선택) `docker login ghcr.io`
+2. GitHub: Secrets / Variable `DEPLOY_ENABLED`
+3. `main` 푸시 → GHCR 푸시 → (옵션) SSH로 pull & `up -d`

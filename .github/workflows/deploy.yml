@@ -1,0 +1,75 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_API_NAME: dayoff-api
+  IMAGE_WEB_NAME: dayoff-web
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image names (lowercase owner)
+        id: img
+        run: |
+          owner_lc=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "api=${{ env.REGISTRY }}/${owner_lc}/${{ env.IMAGE_API_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "web=${{ env.REGISTRY }}/${owner_lc}/${{ env.IMAGE_WEB_NAME }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.img.outputs.api }}:latest
+            ${{ steps.img.outputs.api }}:${{ github.sha }}
+
+      - name: Build and push Web (Vite + Nginx)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deploy/Dockerfile.web
+          push: true
+          build-args: |
+            VITE_API_URL=${{ secrets.PUBLIC_ORIGIN }}
+          tags: |
+            ${{ steps.img.outputs.web }}:latest
+            ${{ steps.img.outputs.web }}:${{ github.sha }}
+
+  deploy:
+    needs: build-push
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH — pull images and restart
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy pull
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d
