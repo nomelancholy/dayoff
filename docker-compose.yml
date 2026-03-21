@@ -1,6 +1,7 @@
 # 로컬 개발용 PostgreSQL (Supabase 대신 사용)
 # 사용: docker compose up -d
 # 중지: docker compose down
+# 최초(또는 새 볼륨)일 때: cd server && npm run db:migrate
 
 services:
   postgres:

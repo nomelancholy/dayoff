@@ -183,9 +183,12 @@ _reference_ui/
 
 ### 5.1 소셜 로그인 설정
 
-- [ ] **구글 로그인**: [Google Cloud Console](https://console.cloud.google.com/)에서 OAuth 2.0 클라이언트 ID 생성 → `server/.env`에 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback` 등록 후 서버 재시작
-- [ ] **카카오 로그인**: [카카오 개발자 콘솔](https://developers.kakao.com/)에서 앱 생성, 로그인 활성화 → `server/.env`에 `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET`, `KAKAO_CALLBACK_URL=http://localhost:4000/auth/kakao/callback` 등록 후 서버 재시작
-- [v] **네이버 로그인**: [네이버 개발자 센터](https://developer.naver.com/)에서 애플리케이션 등록, 로그인 API 사용 설정 → Redirect URI(Callback URL)는 **백엔드**로 `http://localhost:4000/auth/naver/callback` 등록 → `server/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_CALLBACK_URL=http://localhost:4000/auth/naver/callback` 등록 후 서버 재시작 (성공 시 백엔드가 `FRONTEND_URL`의 `/login?token=...`로 리다이렉트)
+> **공통**: 로그인 성공 시 백엔드가 `FRONTEND_URL/login?token=...`로 보낸다. `server/.env`에 `FRONTEND_URL`(로컬 예: `http://localhost:5173`) 확인.  
+> 프론트 `.env`의 `VITE_API_URL`은 Nest API 베이스와 맞출 것(미설정 시 코드 기본값 `http://localhost:4000`). 각 제공자 콘솔의 Redirect URI는 아래 콜백 URL과 **문자 그대로** 일치해야 한다.
+
+- [x] **구글 로그인**: [Google Cloud Console](https://console.cloud.google.com/)에서 **OAuth 동의 화면** 설정 후 **OAuth 2.0 클라이언트(Web)** 생성 → **승인된 리디렉션 URI**에 `http://localhost:4000/auth/google/callback` → `server/.env`: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback` → 서버 재시작
+- [x] **카카오 로그인**: [카카오 개발자 콘솔](https://developers.kakao.com/)에서 앱 생성 → **제품 설정 → 카카오 로그인** 활성화 → **Redirect URI**에 `http://localhost:4000/auth/kakao/callback` → **앱 키**의 REST API 키를 `KAKAO_CLIENT_ID`, (활성화 시) **Client Secret**을 `KAKAO_CLIENT_SECRET` → `KAKAO_CALLBACK_URL=http://localhost:4000/auth/kakao/callback` → 서버 재시작
+- [x] **네이버 로그인**: [네이버 개발자 센터](https://developer.naver.com/)에서 애플리케이션 등록, 로그인 API 사용 설정 → Redirect URI(Callback URL)는 **백엔드**로 `http://localhost:4000/auth/naver/callback` 등록 → `server/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`, `NAVER_CALLBACK_URL=http://localhost:4000/auth/naver/callback` 등록 후 서버 재시작 (성공 시 백엔드가 `FRONTEND_URL`의 `/login?token=...`로 리다이렉트)
 
 ### 5.3 그 외
 

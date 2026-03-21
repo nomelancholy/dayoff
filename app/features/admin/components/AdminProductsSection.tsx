@@ -26,7 +26,12 @@ export const AdminProductsSection = () => {
     queryFn: fetchCategories,
   })
 
-  const { data: products, isLoading } = useQuery({
+  const {
+    data: products,
+    isLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useQuery({
     queryKey: ['shop', 'admin', 'products'],
     queryFn: () => fetchProducts(),
   })
@@ -96,6 +101,21 @@ export const AdminProductsSection = () => {
 
   if (isLoading) {
     return <div className="text-dot-secondary">Loading…</div>
+  }
+
+  if (productsError) {
+    return (
+      <div className="rounded border border-[#eee] bg-white p-8 text-center text-dot-secondary">
+        <p className="text-sm">상품 목록을 불러오지 못했습니다.</p>
+        <button
+          type="button"
+          onClick={() => void refetchProducts()}
+          className="mono mt-4 text-[0.65rem] uppercase tracking-[0.2em] text-dot-primary underline underline-offset-4"
+        >
+          다시 시도
+        </button>
+      </div>
+    )
   }
 
   const list = products ?? []

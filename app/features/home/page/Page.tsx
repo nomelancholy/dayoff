@@ -23,7 +23,12 @@ function ScrollIndicator() {
 }
 
 export const HomePage = () => {
-  const { data: shopProducts, isLoading: shopPreviewLoading } = useQuery({
+  const {
+    data: shopProducts,
+    isLoading: shopPreviewLoading,
+    isError: shopPreviewError,
+    refetch: refetchShopPreview,
+  } = useQuery({
     queryKey: ['shop', 'products', 'home-preview'],
     queryFn: () => fetchProducts(),
     staleTime: 60_000,
@@ -129,6 +134,17 @@ export const HomePage = () => {
                   </div>
                 </div>
               ))
+            ) : shopPreviewError ? (
+              <div className="reveal-element col-span-full text-center text-[0.95rem] text-dot-secondary">
+                <p>미리보기 상품을 불러오지 못했습니다.</p>
+                <button
+                  type="button"
+                  onClick={() => void refetchShopPreview()}
+                  className="mono mt-3 text-[0.65rem] uppercase tracking-[0.2em] text-dot-primary underline underline-offset-4"
+                >
+                  다시 시도
+                </button>
+              </div>
             ) : previewProducts.length === 0 ? (
               <p className="reveal-element col-span-full text-center text-[0.95rem] text-dot-secondary">
                 등록된 상품이 없습니다.{' '}

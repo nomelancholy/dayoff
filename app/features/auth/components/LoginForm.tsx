@@ -1,4 +1,8 @@
+import { Link } from 'react-router-dom'
 import { socialLoginUrls } from '../api/auth'
+
+const legalLinkClass =
+  'text-dot-primary underline underline-offset-4 transition-opacity hover:opacity-70'
 
 export const LoginForm = () => {
   return (
@@ -27,6 +31,17 @@ export const LoginForm = () => {
             Naver
           </a>
         </div>
+        <p className="mt-8 text-center text-[11px] leading-relaxed text-[#666] md:text-xs">
+          계정 생성 및 로그인함으로써{' '}
+          <Link to="/terms" className={legalLinkClass}>
+            이용약관
+          </Link>
+          {' '}및{' '}
+          <Link to="/privacy" className={legalLinkClass}>
+            개인정보 처리방침
+          </Link>
+          에 동의합니다.
+        </p>
       </div>
     </div>
   )

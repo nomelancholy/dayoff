@@ -25,12 +25,18 @@ export const ShopPage = () => {
     queryFn: fetchCategories,
   })
 
-  const { data: products, isLoading: productsLoading } = useQuery({
+  const {
+    data: products,
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useQuery({
     queryKey: ['shop', 'products', selectedCategoryId],
     queryFn: () => fetchProducts(selectedCategoryId),
   })
 
   const isLoading = categoriesLoading || productsLoading
+  const productList = products ?? []
 
   return (
     <div className="min-h-screen bg-dot-bg">
@@ -98,9 +104,20 @@ export const ShopPage = () => {
               </div>
             ))}
           </div>
-        ) : products && products.length > 0 ? (
+        ) : productsError ? (
+          <div className="py-20 text-center text-dot-secondary">
+            <p className="text-sm">상품 목록을 불러오지 못했습니다.</p>
+            <button
+              type="button"
+              onClick={() => void refetchProducts()}
+              className="mono mt-4 text-[0.65rem] uppercase tracking-[0.2em] text-dot-primary underline underline-offset-4"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : productList.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:gap-x-8 md:gap-y-16 lg:grid-cols-3">
-            {products.map((product) => (
+            {productList.map((product) => (
               <Link
                 key={product.id}
                 to={`/shop/${product.slug}`}
