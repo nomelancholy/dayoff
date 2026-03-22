@@ -17,6 +17,10 @@ dist-ssr
 # 배포용 실제 변수 (템플릿은 deploy/env.deploy.example — 커밋 대상)
 .env.deploy
 
+# 오리진 TLS 키/인증서 (Droplet에만 보관)
+certs/*.pem
+certs/*.key
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
