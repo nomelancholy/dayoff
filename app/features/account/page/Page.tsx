@@ -62,6 +62,7 @@ export const AccountPage = () => {
     data: user,
     isLoading,
     isError,
+    error,
   } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: fetchMe,
@@ -125,7 +126,22 @@ export const AccountPage = () => {
        내 정보
           </h1>
           <p className="mt-6 text-[0.9rem] text-dot-secondary">
-            Session may have expired.
+            로그인 상태를 확인하지 못했습니다. (세션 만료 또는 API 연결 문제)
+          </p>
+          {error &&
+          typeof error === 'object' &&
+          'message' in error &&
+          typeof (error as { message: unknown }).message === 'string' ? (
+            <p className="mt-3 font-mono text-[0.7rem] text-dot-secondary/80 break-all">
+              {(error as { message: string }).message}
+            </p>
+          ) : null}
+          <p className="mt-4 text-[0.75rem] leading-relaxed text-dot-secondary">
+            HTTPS로 보는데 빌드 시 <code className="mono">PUBLIC_ORIGIN</code> 이{' '}
+            <code className="mono">http://</code> 이면 API가 막힙니다.{' '}
+            <code className="mono">FRONTEND_URL</code>·콜백 URL은 주소창 호스트와
+            같게(www 포함) 맞추고, Cloudflare에서 <code className="mono">/auth</code>{' '}
+            캐시는 끄는 것을 권장합니다.
           </p>
           <button
             type="button"

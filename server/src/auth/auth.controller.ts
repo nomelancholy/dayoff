@@ -31,6 +31,13 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
+  /** 소셜 콜백 후 리다이렉트용 (끝 슬래시 제거) */
+  private frontendOrigin(): string {
+    const raw =
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    return raw.replace(/\/+$/, '');
+  }
+
   @Get('admin/users')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
@@ -142,8 +149,7 @@ export class AuthController {
     @Res({ passthrough: false }) res: express.Response,
   ) {
     const result = await this.authService.login(user);
-    const frontUrl =
-      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontUrl = this.frontendOrigin();
     return res.redirect(
       `${frontUrl}/login?token=${encodeURIComponent(result.access_token)}`,
     );
@@ -161,8 +167,7 @@ export class AuthController {
     @Res({ passthrough: false }) res: express.Response,
   ) {
     const result = await this.authService.login(user);
-    const frontUrl =
-      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontUrl = this.frontendOrigin();
     return res.redirect(
       `${frontUrl}/login?token=${encodeURIComponent(result.access_token)}`,
     );
@@ -180,8 +185,7 @@ export class AuthController {
     @Res({ passthrough: false }) res: express.Response,
   ) {
     const result = await this.authService.login(user);
-    const frontUrl =
-      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontUrl = this.frontendOrigin();
     return res.redirect(
       `${frontUrl}/login?token=${encodeURIComponent(result.access_token)}`,
     );

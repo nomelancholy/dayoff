@@ -1,20 +1,19 @@
 import { useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { setStoredToken } from '../api/auth'
 import { LoginForm } from '../components/LoginForm'
 
 export const LoginPage = () => {
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
 
-  // 소셜 로그인 콜백: URL에 token이 있으면 저장 후 계정으로 이동
+  // 소셜 로그인 콜백: token 저장 후 전체 이동(React Query·라우터 타이밍 이슈로 /auth/me 실패 방지)
   useEffect(() => {
     const token = searchParams.get('token')
     if (token) {
       setStoredToken(token)
-      navigate('/account', { replace: true })
+      window.location.replace('/account')
     }
-  }, [searchParams, navigate])
+  }, [searchParams])
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
