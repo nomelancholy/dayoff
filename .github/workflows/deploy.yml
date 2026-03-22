@@ -8,6 +8,8 @@ env:
   REGISTRY: ghcr.io
   IMAGE_API_NAME: dayoff-api
   IMAGE_WEB_NAME: dayoff-web
+  # Node 20 액션 경고 대비 (상위 액션을 최신으로 올리는 것이 본해결)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-push:
@@ -16,10 +18,10 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -32,8 +34,15 @@ jobs:
           echo "api=${{ env.REGISTRY }}/${owner_lc}/${{ env.IMAGE_API_NAME }}" >> "$GITHUB_OUTPUT"
           echo "web=${{ env.REGISTRY }}/${owner_lc}/${{ env.IMAGE_WEB_NAME }}" >> "$GITHUB_OUTPUT"
 
+      - name: Require PUBLIC_ORIGIN for web image
+        run: |
+          if [ -z "${{ secrets.PUBLIC_ORIGIN }}" ]; then
+            echo "::error::Repository secret PUBLIC_ORIGIN 이 없습니다. 예: http://152.x.x.x 또는 https://도메인 (끝 / 없음)"
+            exit 1
+          fi
+
       - name: Build and push API
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./server
           file: ./server/Dockerfile
@@ -43,7 +52,7 @@ jobs:
             ${{ steps.img.outputs.api }}:${{ github.sha }}
 
       - name: Build and push Web (Vite + Nginx)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./deploy/Dockerfile.web
@@ -60,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: SSH — pull images and restart
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
