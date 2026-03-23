@@ -86,8 +86,8 @@ export const HomePage = () => {
             좋은 도자기는 놓여있는 것만으로도 공간의 온도를 바꿉니다.
           </p>
           <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            <b>DOT(Day Off Today)</b>는 당신이 맞이하는 매일의 휴일이 더욱
-            특별해질 수 있도록, 쓰임새와 아름다움의 균형을 고민합니다.
+            <b>DOT(Day Off Today)</b>는 당신이 맞이하는 매순간이 더욱 특별해질
+            수 있도록, 쓰임새와 아름다움의 균형을 고민합니다.
           </p>
           <p className="mt-6 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
             차 한 잔의 여유, 정성스런 식사 시간 속에 <b>DOT</b>의 감각을 더해

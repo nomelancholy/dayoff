@@ -217,6 +217,10 @@ export function fetchMyOrders(): Promise<OrderRow[]> {
   return apiClient.get('/shop/orders')
 }
 
+export function cancelMyOrder(orderId: string): Promise<{ orderNumber: string; status: string }> {
+  return apiClient.post(`/shop/orders/${orderId}/cancel`)
+}
+
 /** 장바구니 목록 조회 */
 export async function fetchCartItems(): Promise<CartItem[]> {
   return apiClient.get('/shop/cart')

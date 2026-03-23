@@ -19,6 +19,7 @@ import {
   fetchMyOrders,
   fetchMyReviews,
   deleteMyReview,
+  cancelMyOrder,
   type MyReviewItem,
   type OrderRow,
   type OrderItemRow,
@@ -59,8 +60,16 @@ export const AccountPage = () => {
   const token = getStoredToken()
 
   type AccountLocationState = { activeSection?: AccountSection }
+  const querySection = new URLSearchParams(location.search).get('section')
+  const initialSectionFromQuery: AccountSection =
+    querySection === 'orders'
+      ? 'orders'
+      : querySection === 'address'
+        ? 'address'
+        : 'profile'
   const initialSection =
-    (location.state as AccountLocationState | null)?.activeSection ?? 'profile'
+    (location.state as AccountLocationState | null)?.activeSection ??
+    initialSectionFromQuery
 
   const [activeSection, setActiveSection] =
     useState<AccountSection>(initialSection)
@@ -845,6 +854,7 @@ function OrderHistorySection() {
     index: number
   } | null>(null)
   const [editingReview, setEditingReview] = useState<MyReviewItem | null>(null)
+  const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderRow | null>(null)
 
   const { data: orders = [] as OrderRow[], isLoading: ordersLoading } =
     useQuery({
@@ -935,6 +945,18 @@ function OrderHistorySection() {
     },
     onError: (err: unknown) => {
       alert(err instanceof Error ? err.message : '리뷰 삭제에 실패했습니다.')
+    },
+  })
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: (orderId: string) => cancelMyOrder(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shop', 'my-orders'] })
+      setCancelConfirmOrder(null)
+      alert('결제가 취소되었습니다.')
+    },
+    onError: (err: unknown) => {
+      alert(getApiErrorMessage(err, '주문 취소에 실패했습니다.'))
     },
   })
 
@@ -1099,6 +1121,47 @@ function OrderHistorySection() {
           </div>
         </div>
       )}
+      {cancelConfirmOrder ? (
+        <div
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-[#f5f3ef]/90 p-6 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="주문 결제 취소 확인"
+        >
+          <div className="w-full max-w-md border border-[#e7e2d8] bg-[#fcfaf6] p-7 shadow-[0_18px_50px_rgba(32,22,8,0.12)]">
+            <h3 className="font-serif text-[1.4rem] tracking-[0.04em] text-dot-primary">
+              결제 취소
+            </h3>
+            <p className="mt-4 text-[0.92rem] leading-relaxed text-dot-secondary">
+              아직 발송되지 않은 주문입니다. 결제를 취소하면 상태가 취소됨으로 변경됩니다.
+            </p>
+            <p className="mt-2 text-[0.82rem] text-dot-secondary">
+              주문번호 #{cancelConfirmOrder.orderNumber}
+            </p>
+
+            <div className="mt-7 flex gap-3">
+              <button
+                type="button"
+                disabled={cancelOrderMutation.isPending}
+                onClick={() => setCancelConfirmOrder(null)}
+                className="mono flex-1 border border-[#d9d3c8] bg-transparent py-2.5 text-[0.82rem] tracking-[0.08em] text-dot-primary transition-colors hover:bg-[#f3eee4] disabled:opacity-60"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={cancelOrderMutation.isPending}
+                onClick={() => {
+                  cancelOrderMutation.mutate(cancelConfirmOrder.id)
+                }}
+                className="mono flex-1 border border-[#1a1a1a] bg-[#1a1a1a] py-2.5 text-[0.82rem] tracking-[0.08em] text-white transition-colors hover:bg-[#333] disabled:opacity-60"
+              >
+                {cancelOrderMutation.isPending ? '취소 처리 중…' : '결제 취소'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {paidOrders.map((order) => (
         <OrderCard
           key={order.id}
@@ -1117,6 +1180,14 @@ function OrderHistorySection() {
             if (!window.confirm('이 리뷰를 삭제할까요?')) return
             deleteReviewMutation.mutate(reviewId)
           }}
+          onCancelOrder={(orderId) => {
+            const target = paidOrders.find((o) => o.id === orderId) ?? null
+            setCancelConfirmOrder(target)
+          }}
+          isCancellingOrder={
+            cancelOrderMutation.isPending &&
+            cancelOrderMutation.variables === order.id
+          }
         />
       ))}
     </div>
@@ -1133,6 +1204,8 @@ interface OrderCardProps {
   onReviewSuccess: () => void
   onEditMyReview: (reviewId: string) => void
   onDeleteMyReview: (reviewId: string) => void
+  onCancelOrder: (orderId: string) => void
+  isCancellingOrder: boolean
 }
 
 function OrderCard({
@@ -1145,6 +1218,8 @@ function OrderCard({
   onReviewSuccess,
   onEditMyReview,
   onDeleteMyReview,
+  onCancelOrder,
+  isCancellingOrder,
 }: OrderCardProps) {
   const orderDate = new Date(order.createdAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -1175,6 +1250,16 @@ function OrderCard({
           <p className="text-[0.85rem] font-medium tracking-widest text-dot-primary">
             {statusLabel[order.status] ?? order.status.toUpperCase()}
           </p>
+          {order.status === 'paid' ? (
+            <button
+              type="button"
+              disabled={isCancellingOrder}
+              onClick={() => onCancelOrder(order.id)}
+              className="mono mt-2 w-fit self-start text-[0.72rem] text-red-600 underline underline-offset-4 transition-colors hover:text-red-700 disabled:opacity-60 md:ml-auto"
+            >
+              {isCancellingOrder ? '취소 처리 중…' : '결제 취소'}
+            </button>
+          ) : null}
         </div>
       </div>
       <ul className="divide-y divide-[#f0f0f0]">

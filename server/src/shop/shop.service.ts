@@ -831,6 +831,7 @@ export class ShopService {
           eq(schema.orders.status, 'paid'),
           eq(schema.orders.status, 'shipped'),
           eq(schema.orders.status, 'delivered'),
+          eq(schema.orders.status, 'cancelled'),
         ),
       ),
       orderBy: [desc(schema.orders.createdAt)],
@@ -850,6 +851,146 @@ export class ShopService {
       },
     });
     return list;
+  }
+
+  /** 내 결제 취소 (발송 전 paid 주문만 가능) */
+  async cancelMyPaidOrder(userId: string, orderId: string) {
+    const order = await this.db.query.orders.findFirst({
+      where: and(eq(schema.orders.id, orderId), eq(schema.orders.userId, userId)),
+      columns: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        couponId: true,
+      },
+      with: {
+        orderItems: {
+          columns: {
+            productId: true,
+            quantity: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('주문을 찾을 수 없습니다.');
+    }
+    if (order.status === 'cancelled') {
+      return { orderNumber: order.orderNumber, status: 'cancelled' as const };
+    }
+    if (order.status !== 'paid') {
+      throw new BadRequestException(
+        '발송 전 결제 완료 주문만 취소할 수 있습니다.',
+      );
+    }
+
+    const secretKey = this.configService.get<string>('TOSS_SECRET_KEY');
+    if (!secretKey) {
+      throw new BadRequestException(
+        '서버 환경설정에 TOSS_SECRET_KEY가 없습니다.',
+      );
+    }
+    const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
+
+    // orderNumber로 paymentKey를 조회한 뒤 취소 요청
+    const paymentLookupRes = await fetch(
+      `https://api.tosspayments.com/v1/payments/orders/${order.orderNumber}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Basic ${basicAuth}`,
+        },
+      },
+    );
+    if (!paymentLookupRes.ok) {
+      const errorBody = await paymentLookupRes.json().catch(() => null);
+      const message =
+        errorBody && typeof errorBody === 'object'
+          ? (errorBody as { message?: unknown }).message
+          : null;
+      throw new BadRequestException(
+        `결제 조회에 실패했습니다.${typeof message === 'string' ? ` ${message}` : ''}`,
+      );
+    }
+
+    const paymentLookupData = (await paymentLookupRes.json()) as {
+      paymentKey?: string;
+    };
+    const paymentKey = paymentLookupData.paymentKey;
+    if (!paymentKey) {
+      throw new BadRequestException('결제 정보를 확인할 수 없습니다.');
+    }
+
+    const cancelRes = await fetch(
+      `https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${basicAuth}`,
+        },
+        body: JSON.stringify({
+          cancelReason: '고객 요청으로 결제를 취소했습니다.',
+        }),
+      },
+    );
+
+    if (!cancelRes.ok) {
+      const errorBody = await cancelRes.json().catch(() => null);
+      const message =
+        errorBody && typeof errorBody === 'object'
+          ? (errorBody as { message?: unknown }).message
+          : null;
+      throw new BadRequestException(
+        `결제 취소에 실패했습니다.${typeof message === 'string' ? ` ${message}` : ''}`,
+      );
+    }
+
+    await this.db.transaction(async (tx) => {
+      const [updatedOrder] = await tx
+        .update(schema.orders)
+        .set({ status: 'cancelled', updatedAt: new Date() })
+        .where(
+          and(eq(schema.orders.id, order.id), eq(schema.orders.status, 'paid')),
+        )
+        .returning({ id: schema.orders.id });
+
+      // 동시 요청으로 이미 취소된 경우
+      if (!updatedOrder) return;
+
+      // 재고 원복
+      for (const oi of order.orderItems) {
+        await tx
+          .update(schema.products)
+          .set({
+            stockQuantity: sql`${schema.products.stockQuantity} + ${oi.quantity}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.products.id, oi.productId));
+      }
+
+      // 쿠폰 사용 롤백
+      if (order.couponId) {
+        await tx
+          .update(schema.coupons)
+          .set({ usedCount: sql`GREATEST(${schema.coupons.usedCount} - 1, 0)` })
+          .where(eq(schema.coupons.id, order.couponId));
+
+        await tx
+          .update(schema.userCoupons)
+          .set({ usedAt: null, orderId: null })
+          .where(
+            and(
+              eq(schema.userCoupons.userId, userId),
+              eq(schema.userCoupons.couponId, order.couponId),
+              eq(schema.userCoupons.orderId, order.id),
+            ),
+          );
+      }
+    });
+
+    return { orderNumber: order.orderNumber, status: 'cancelled' as const };
   }
 
   /** 구매평 작성 (로그인 사용자) */

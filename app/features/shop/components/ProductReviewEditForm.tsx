@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { updateAdminReview, updateMyReview } from '../api/shop'
 import { cn } from '@/common/lib/utils'
+import { useUiStore } from '@/common/store/ui'
 
 const REVIEW_BODY_MAX = 5000
 const REVIEW_BODY_MIN = 10
@@ -26,6 +27,7 @@ export const ProductReviewEditForm = ({
   const [body, setBody] = useState(initialBody)
   const [rating, setRating] = useState<number | null>(initialRating)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const showToast = useUiStore((s) => s.showToast)
 
   const reviewMutation = useMutation({
     mutationFn: async (data: { body: string; rating: number | null }) => {
@@ -54,7 +56,10 @@ export const ProductReviewEditForm = ({
     e.preventDefault()
     const trimmed = body.trim()
     if (trimmed.length < REVIEW_BODY_MIN) {
-      alert(`내용은 최소 ${REVIEW_BODY_MIN}자 이상 입력해 주세요.`)
+      showToast({
+        variant: 'warning',
+        message: `구매평은 최소 ${REVIEW_BODY_MIN}자 이상 작성해 주세요.`,
+      })
       return
     }
     if (trimmed.length > REVIEW_BODY_MAX) {
@@ -113,9 +118,18 @@ export const ProductReviewEditForm = ({
           placeholder="리뷰 내용을 수정해 주세요."
           className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] italic text-dot-primary focus:border-dot-primary focus:outline-none"
           required
-          minLength={REVIEW_BODY_MIN}
           maxLength={REVIEW_BODY_MAX}
         />
+        <p
+          className={cn(
+            'mt-2 text-[0.72rem]',
+            body.trim().length >= REVIEW_BODY_MIN
+              ? 'text-[#5f5a50]'
+              : 'text-amber-700',
+          )}
+        >
+          최소 {REVIEW_BODY_MIN}자 이상 작성해 주세요.
+        </p>
       </div>
 
       <div className="flex gap-4">

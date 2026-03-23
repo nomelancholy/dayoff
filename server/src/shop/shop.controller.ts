@@ -234,6 +234,13 @@ export class ShopController {
     return this.shopService.getMyOrders(user.id);
   }
 
+  /** 내 주문 취소 (발송 전 paid 주문만 가능) */
+  @Post('orders/:id/cancel')
+  @UseGuards(JwtAuthGuard)
+  async cancelMyOrder(@CurrentUser() user: UserRow, @Param('id') id: string) {
+    return this.shopService.cancelMyPaidOrder(user.id, id);
+  }
+
   @Get('cart')
   @UseGuards(JwtAuthGuard)
   async getCartItems(@CurrentUser() user: UserRow) {

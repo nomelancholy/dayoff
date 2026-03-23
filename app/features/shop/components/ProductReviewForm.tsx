@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { createProductReview, uploadReviewImages } from '../api/shop'
 import { cn } from '@/common/lib/utils'
 import { Camera } from 'lucide-react'
+import { useUiStore } from '@/common/store/ui'
 
 const REVIEW_BODY_MAX = 5000
 const REVIEW_BODY_MIN = 10
@@ -27,6 +28,7 @@ export const ProductReviewForm = ({
   const [rating, setRating] = useState<number | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const showToast = useUiStore((s) => s.showToast)
 
   const reviewMutation = useMutation({
     mutationFn: (data: { body: string; rating?: number; imageUrls?: string[] }) =>
@@ -47,7 +49,10 @@ export const ProductReviewForm = ({
     e.preventDefault()
     const trimmed = body.trim()
     if (trimmed.length < REVIEW_BODY_MIN) {
-      alert(`내용은 최소 ${REVIEW_BODY_MIN}자 이상 입력해 주세요.`)
+      showToast({
+        variant: 'warning',
+        message: `구매평은 최소 ${REVIEW_BODY_MIN}자 이상 작성해 주세요.`,
+      })
       return
     }
     if (trimmed.length > REVIEW_BODY_MAX) {
@@ -127,13 +132,22 @@ export const ProductReviewForm = ({
             placeholder="상품을 사용해 보신 소감과 경험을 작성해 주세요. (최소 10자)"
             className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] italic text-dot-primary focus:border-dot-primary focus:outline-none"
             required
-            minLength={REVIEW_BODY_MIN}
             maxLength={REVIEW_BODY_MAX}
           />
           <span className="absolute bottom-2 right-3 mono text-[0.6rem] text-[#999]">
             {body.length}/{REVIEW_BODY_MAX}
           </span>
         </div>
+        <p
+          className={cn(
+            'mt-2 text-[0.72rem]',
+            body.trim().length >= REVIEW_BODY_MIN
+              ? 'text-[#5f5a50]'
+              : 'text-amber-700'
+          )}
+        >
+          최소 {REVIEW_BODY_MIN}자 이상 작성해 주세요.
+        </p>
       </div>
 
       <div className="mb-10">
