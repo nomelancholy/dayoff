@@ -26,6 +26,12 @@ import {
 import { ProductReviewForm } from '@/features/shop/components/ProductReviewForm'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 import { cn } from '@/common/lib/utils'
+import {
+  isOptionalKoreanMobile,
+  KOREAN_PHONE_INVALID_MESSAGE,
+  phoneDigitsOnly,
+} from '@/common/lib/koreanPhone'
+import { useUiStore } from '@/common/store/ui'
 import { LoginForm } from '@/features/auth/components/LoginForm'
 import { isOutOfDeliveryPostalCode } from '@/common/lib/outOfDeliveryAreas'
 
@@ -87,21 +93,6 @@ export const AccountPage = () => {
 
           <div className="mt-12">
             <LoginForm />
-          </div>
-
-          <div className="mt-12 border-t border-[#eee] pt-10 text-center">
-            <p className="mb-6 text-[0.8rem] text-dot-secondary">
-              Day Off가 처음이신가요?
-            </p>
-            <Link
-              to="/login"
-              className={cn(
-                'mono inline-block w-full border border-dot-primary bg-transparent px-4 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary no-underline',
-                'transition-colors hover:bg-dot-primary hover:text-white'
-              )}
-            >
-              Login
-            </Link>
           </div>
         </div>
       </div>
@@ -226,22 +217,42 @@ export const AccountPage = () => {
 /** 프로필 수정 폼 (reference: account.html .profile-form) */
 function ProfileSection({ user }: { user: AuthUser }) {
   const queryClient = useQueryClient()
+  const showToast = useUiStore((s) => s.showToast)
   const [fullName, setFullName] = useState(user.fullName ?? '')
   const [phone, setPhone] = useState(formatPhone(user.phone ?? ''))
 
   const profileMutation = useMutation({
-    mutationFn: () =>
-      updateProfile({
+    mutationFn: () => {
+      const digits = phoneDigitsOnly(phone)
+      return updateProfile({
         fullName: fullName.trim() || undefined,
-        phone: phone.trim() || undefined,
-      }),
+        phone: digits.length > 0 ? digits : undefined,
+      })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+      showToast({
+        variant: 'success',
+        message: '프로필이 저장되었습니다.',
+      })
+    },
+    onError: (err: unknown) => {
+      showToast({
+        variant: 'warning',
+        message: getApiErrorMessage(err, '저장에 실패했습니다.'),
+      })
     },
   })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isOptionalKoreanMobile(phone)) {
+      showToast({
+        variant: 'warning',
+        message: KOREAN_PHONE_INVALID_MESSAGE,
+      })
+      return
+    }
     profileMutation.mutate()
   }
 
@@ -287,6 +298,10 @@ function ProfileSection({ user }: { user: AuthUser }) {
             placeholder="010-1234-5678"
             className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] text-dot-primary placeholder:text-dot-secondary focus:border-dot-primary focus:outline-none"
           />
+          <p className="mt-1 text-[0.7rem] text-dot-secondary">
+            010·011 등 국내 휴대폰 번호만 입력 가능합니다. 비워 두면 저장 시 번호가
+            삭제됩니다.
+          </p>
         </div>
         <button
           type="submit"
@@ -295,18 +310,6 @@ function ProfileSection({ user }: { user: AuthUser }) {
         >
           {profileMutation.isPending ? '저장 중…' : '변경사항 저장'}
         </button>
-        {profileMutation.isError && (
-          <p className="text-[0.85rem] text-red-600">
-            {(
-              profileMutation.error as {
-                response?: { data?: { message?: string } }
-                message?: string
-              }
-            )?.response?.data?.message ??
-              (profileMutation.error as Error)?.message ??
-              '저장에 실패했습니다.'}
-          </p>
-        )}
       </form>
     </section>
   )

@@ -190,7 +190,16 @@ export class AuthService {
       updates.fullName = data.fullName?.trim() || null;
     }
     if (data.phone !== undefined) {
-      updates.phone = data.phone?.trim() || null;
+      const digits = data.phone.replace(/\D/g, '');
+      if (digits.length === 0) {
+        updates.phone = null;
+      } else if (!/^(?:010\d{8}|01[1-9]\d{7,8})$/.test(digits)) {
+        throw new BadRequestException(
+          '휴대폰 번호를 010-1234-5678 형식(또는 011 등 10자리)으로 입력해 주세요.',
+        );
+      } else {
+        updates.phone = digits;
+      }
     }
 
     if (data.newPassword) {

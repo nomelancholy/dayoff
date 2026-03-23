@@ -59,6 +59,7 @@ jobs:
           push: true
           build-args: |
             VITE_API_URL=${{ secrets.PUBLIC_ORIGIN }}
+            VITE_NAVER_MAP_CLIENT_ID=${{ secrets.VITE_NAVER_MAP_CLIENT_ID }}
           tags: |
             ${{ steps.img.outputs.web }}:latest
             ${{ steps.img.outputs.web }}:${{ github.sha }}

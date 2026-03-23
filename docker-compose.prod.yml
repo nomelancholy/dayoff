@@ -43,6 +43,9 @@ services:
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
       NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
       NAVER_CALLBACK_URL: ${NAVER_CALLBACK_URL:-}
+      # 토스페이먼츠 (미설정 시 checkout/toss 호출 시 400) — .env.deploy 에만 두면 됨, GitHub Actions 불필요
+      TOSS_WIDGET_CLIENT_KEY: ${TOSS_WIDGET_CLIENT_KEY:-}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
     volumes:
       - dayoff_uploads:/app/uploads
     networks: [dayoff]
@@ -54,6 +57,7 @@ services:
       dockerfile: deploy/Dockerfile.web
       args:
         VITE_API_URL: ${PUBLIC_ORIGIN:?PUBLIC_ORIGIN required no trailing slash}
+        VITE_NAVER_MAP_CLIENT_ID: ${VITE_NAVER_MAP_CLIENT_ID:-}
     restart: unless-stopped
     depends_on:
       - api
