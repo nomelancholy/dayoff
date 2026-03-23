@@ -193,8 +193,8 @@ _reference_ui/
 ### 5.3 그 외
 
 - [ ] Magic UI 컴포넌트 연동 (필요 시)
-- [ ] 배포 시 `FRONTEND_URL`, `DATABASE_URL`, `JWT_SECRET` 등 환경 변수 설정
-- [ ] 반응형 전 구간 점검 및 Admin 권한 최종 확인
+- [x] 배포 시 `FRONTEND_URL`, `DATABASE_URL`, `JWT_SECRET` 등 환경 변수 설정
+- [x] 반응형 전 구간 점검 및 Admin 권한 최종 확인
 
 ---
 
@@ -206,7 +206,7 @@ _reference_ui/
 
 - [x] **DigitalOcean Droplet** 생성
 - [x] Droplet에 Docker & Docker Compose 설치 (또는 Docker가 pre-installed된 이미지 사용)
-- [ ] 도메인 연결 및 SSL(Let’s Encrypt 등) 설정 (선택, IP만으로도 동작)
+- [x] 도메인 연결 및 SSL(Let’s Encrypt 등) 설정 (선택, IP만으로도 동작)
 
 ### 6.2 Docker 구성
 
@@ -215,14 +215,14 @@ _reference_ui/
   - [x] 프론트: Vite 빌드 → Nginx 정적 + `/auth`·`/shop`·`/coupons`·`/uploads` → API 프록시
   - [x] NestJS API 이미지 (컨테이너 기동 시 `drizzle-kit migrate` 후 `node dist/main`)
   - [x] Postgres + API + Web 한 스택
-- [ ] 배포 환경 변수: Droplet에 `deploy/env.deploy.example` 참고해 `.env.deploy` 작성 (`PUBLIC_ORIGIN`/`FRONTEND_URL`/DB 비밀번호/소셜 콜백 URL 등)
+- [x] 배포 환경 변수: Droplet에 `deploy/env.deploy.example` 참고해 `.env.deploy` 작성 (`PUBLIC_ORIGIN`/`FRONTEND_URL`/DB 비밀번호/소셜 콜백 URL 등)
 
 ### 6.3 CI/CD (GitHub Actions)
 
 - [x] **GitHub Actions** `.github/workflows/deploy.yml` — `main` push 시 API·Web 이미지 빌드 후 **GHCR** 푸시
-- [ ] **GitHub Secrets**: `PUBLIC_ORIGIN`(끝 `/` 없음, `VITE_API_URL` 빌드에 사용), `DROPLET_HOST`, `DROPLET_USER`, `DROPLET_SSH_KEY`, `DROPLET_APP_PATH`(Droplet에서 클론한 레포 경로, 예: `/root/dayoff`)
-- [ ] **GitHub Variables**: `DEPLOY_ENABLED` = `true` 로 두면 위 Secrets가 설정된 뒤 **SSH 배포 job**까지 실행. 미설정 시 이미지 빌드·푸시만 수행.
-- [ ] **GHCR**: 패키지가 비공개면 Droplet에서 한 번 `docker login ghcr.io`(PAT `read:packages`) 필요. 공개면 생략 가능.
+- [x] **GitHub Secrets**: `PUBLIC_ORIGIN`(끝 `/` 없음, `VITE_API_URL` 빌드에 사용), `DROPLET_HOST`, `DROPLET_USER`, `DROPLET_SSH_KEY`, `DROPLET_APP_PATH`(Droplet에서 클론한 레포 경로, 예: `/root/dayoff`)
+- [x] **GitHub Variables**: `DEPLOY_ENABLED` = `true` 로 두면 위 Secrets가 설정된 뒤 **SSH 배포 job**까지 실행. 미설정 시 이미지 빌드·푸시만 수행.
+- [x] **GHCR**: 패키지가 비공개면 Droplet에서 한 번 `docker login ghcr.io`(PAT `read:packages`) 필요. 공개면 생략 가능.
 
 ### 6.4 Droplet 최초 1회
 

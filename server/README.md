@@ -1,3 +1,100 @@
+# Dayoff Server (NestJS)
+
+디오티(DIOTI) 서비스 백엔드 서버입니다.  
+NestJS + Drizzle ORM + PostgreSQL 기반으로 인증, 주문/결제, 관리자 기능을 제공합니다.
+
+## 기술 스택
+
+- NestJS 11
+- TypeScript
+- PostgreSQL
+- Drizzle ORM / Drizzle Kit
+- Passport (JWT, Google, Kakao, Naver)
+- Toss Payments
+- Resend (React Email 템플릿)
+
+## 요구 사항
+
+- Node.js 20+
+- npm
+- PostgreSQL (로컬 또는 Docker)
+
+## 시작하기
+
+```bash
+cd "/Volumes/sub ssd/dev/dayoff/server"
+npm install
+```
+
+## 실행
+
+```bash
+# 개발 (watch)
+npm run start:dev
+
+# 일반 실행
+npm run start
+
+# 프로덕션 빌드 실행
+npm run build
+npm run start:prod
+```
+
+## DB 작업
+
+```bash
+# 스키마 기준 SQL 마이그레이션 생성
+npm run db:generate
+
+# 코드 스키마를 DB에 바로 반영 (개발 편의)
+npm run db:push
+
+# 생성된 마이그레이션 적용
+npm run db:migrate
+
+# migrate 이력 부트스트랩
+npm run db:bootstrap
+
+# 샘플 데이터
+npm run db:seed-example
+npm run db:seed-orders
+
+# DB Studio
+npm run db:studio
+```
+
+## 메일 발송(Resend)
+
+이 서버는 아래 이벤트에서 메일을 발송합니다.
+
+- 회원가입 완료
+- 주문 결제 완료
+- 발송 완료
+
+## 결제/주문 관련 참고
+
+- Toss 결제 승인: `POST /shop/checkout/toss/confirm`
+- 내 주문 취소(발송 전 paid 주문): `POST /shop/orders/:id/cancel`
+- 주문 취소는 토스 결제 취소 + 재고 원복 + 쿠폰 사용 롤백까지 처리합니다.
+
+## 테스트
+
+```bash
+npm run test
+npm run test:e2e
+npm run test:cov
+```
+
+## 배포
+
+루트의 배포 파일을 사용합니다.
+
+- `docker-compose.prod.yml`
+- `deploy/env.deploy.example`
+- `.github/workflows/deploy.yml`
+
+운영에서는 `.env.deploy` 값을 채운 뒤 compose로 실행합니다.
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
@@ -43,7 +140,7 @@ $ npm install
   npm run db:bootstrap
   npm run db:migrate
   ```
-- `npm run db:generate` — 스키마 변경 후 새 마이그레이션 SQL 생성.  
+- `npm run db:generate` — 스키마 변경 후 새 마이그레이션 SQL 생성.
 - `npm run db:studio` — Drizzle Studio로 DB 조회.
 - `npm run db:seed-example` — 예시 상품 1개(상세 이미지, 구매 안내, 취급 주의, 구매평 1개 포함) 시드. 한 번만 실행해도 됨.
 
