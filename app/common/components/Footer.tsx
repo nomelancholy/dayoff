@@ -12,6 +12,15 @@ export const Footer = () => {
       <p className="mono text-dot-primary">
         © 2019 DOT. CERAMIC STUDIO. ALL RIGHTS RESERVED.
       </p>
+      <div className="mt-5 space-y-1 text-[0.8rem] leading-6 text-dot-secondary md:text-[0.85rem]">
+        <p>
+          상호명: 디오티(DOT) | 사업자등록번호: 6530501467 | 대표자: 신은지
+        </p>
+        <p>
+          사업장 소재지: 서울특별시 중구 마른내로4길 31-3 3층 (우 : 04556)
+        </p>
+        <p>통신판매업번호: 2022-서울중구-1157</p>
+      </div>
       <nav
         className="mt-6 flex flex-wrap items-center justify-center gap-x-1 gap-y-2 text-[0.85rem] md:text-[0.9rem]"
         aria-label="법적 고지"
