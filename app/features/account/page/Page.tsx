@@ -1320,12 +1320,13 @@ function OrderItemRow({
   onDeleteMyReview,
 }: OrderItemRowProps) {
   const canWriteReview = orderStatus === 'shipped'
+  const productPath = `/shop/${item.product?.slug ?? item.productId}`
 
   return (
     <li className="px-6 py-8">
       <div className="flex flex-col gap-6 md:flex-row md:items-start">
         <div className="h-24 w-24 shrink-0 overflow-hidden rounded-sm bg-[#F2F2F2]">
-          <Link to={`/shop/${item.productId}`}>
+          <Link to={productPath}>
             {item.product?.images?.[0]?.url ? (
               <img
                 src={item.product.images[0].url}
@@ -1343,7 +1344,7 @@ function OrderItemRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-1">
             <Link
-              to={`/shop/${item.productId}`}
+              to={productPath}
               className="text-[1.2rem] font-normal tracking-wide text-dot-primary hover:underline"
             >
               {item.productName.toUpperCase()}

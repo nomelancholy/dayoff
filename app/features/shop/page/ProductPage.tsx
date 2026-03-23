@@ -13,7 +13,7 @@ import {
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { useUiStore } from '@/common/store/ui'
 import { cn } from '@/common/lib/utils'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Pencil } from 'lucide-react'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 
 export const ShopProductPage = () => {
@@ -26,10 +26,12 @@ export const ShopProductPage = () => {
   >()
   const [mainImageIndex, setMainImageIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<'detail' | 'reviews'>('detail')
+  const [isOptionMenuOpen, setIsOptionMenuOpen] = useState(false)
   const token = getStoredToken()
   const checkoutFlowRequestedRef = useRef(false)
   const cartToastRequestedRef = useRef(false)
   const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
+  const optionMenuRef = useRef<HTMLDivElement | null>(null)
 
   const [reviewLightbox, setReviewLightbox] = useState<{
     images: ProductReviewImage[]
@@ -46,6 +48,10 @@ export const ShopProductPage = () => {
     enabled: !!token,
   })
   const isAdmin = user?.role === 'admin'
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [slug])
 
   useEffect(() => {
     if (!reviewLightbox) return
@@ -76,6 +82,28 @@ export const ShopProductPage = () => {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [reviewLightbox])
+
+  useEffect(() => {
+    if (!isOptionMenuOpen) return
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!optionMenuRef.current) return
+      if (!optionMenuRef.current.contains(e.target as Node)) {
+        setIsOptionMenuOpen(false)
+      }
+    }
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOptionMenuOpen(false)
+    }
+
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isOptionMenuOpen])
 
   const openReviewLightbox = (images: ProductReviewImage[], index: number) => {
     if (!images.length) return
@@ -233,6 +261,11 @@ export const ShopProductPage = () => {
 
   const images = product.images?.length ? product.images : []
   const mainImage = images[mainImageIndex]
+  const selectedOption =
+    product.options?.find((opt) => opt.id === selectedOptionId) ?? null
+  const selectedOptionLabel = selectedOption
+    ? `${selectedOption.name}: ${selectedOption.value}`
+    : '옵션을 선택해 주세요'
 
   return (
     <div className="min-h-screen bg-dot-bg">
@@ -331,18 +364,51 @@ export const ShopProductPage = () => {
                   <label className="mono mb-3 block text-sm tracking-[0.15em] text-dot-primary md:text-base">
                     OPTIONS
                   </label>
-                  <select
-                    value={selectedOptionId}
-                    onChange={(e) => setSelectedCategoryId(e.target.value)}
-                    className="w-full border border-[#eee] bg-white px-4 py-4 text-base focus:border-dot-primary focus:outline-none md:text-lg"
-                  >
-                    <option value="">Select an option</option>
-                    {product.options.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.name}: {opt.value}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative" ref={optionMenuRef}>
+                    <button
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={isOptionMenuOpen}
+                      onClick={() => setIsOptionMenuOpen((prev) => !prev)}
+                      className="flex w-full items-center justify-between rounded-sm border border-[#E9E5DC] bg-white px-4 py-4 text-left text-base text-dot-primary shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-dot-primary/60 focus:border-dot-primary focus:outline-none focus:ring-2 focus:ring-dot-primary/15 md:text-lg"
+                    >
+                      <span className={cn(!selectedOptionId && 'text-dot-secondary')}>
+                        {selectedOptionLabel}
+                      </span>
+                      <ChevronDown
+                        size={18}
+                        className={cn(
+                          'shrink-0 text-dot-secondary transition-transform duration-200',
+                          isOptionMenuOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                    {isOptionMenuOpen && (
+                      <div
+                        role="listbox"
+                        className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 max-h-64 overflow-y-auto rounded-sm border border-[#E9E5DC] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+                      >
+                        {product.options.map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategoryId(opt.id)
+                              setIsOptionMenuOpen(false)
+                            }}
+                            className={cn(
+                              'block w-full px-4 py-3 text-left text-[0.95rem] transition-colors',
+                              selectedOptionId === opt.id
+                                ? 'bg-[#F4F1EB] text-dot-primary'
+                                : 'text-dot-secondary hover:bg-[#F7F5F1] hover:text-dot-primary'
+                            )}
+                          >
+                            {opt.name}: {opt.value}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               <div className="mb-8">

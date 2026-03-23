@@ -142,7 +142,7 @@ export const ShopPage = () => {
                   </span>
                 )}
                 <div className="flex items-center justify-between">
-                  <h3 className="font-serif text-[0.95rem] font-normal tracking-[0.05em] text-dot-primary">
+                  <h3 className="font-sans text-[0.95rem] font-medium tracking-[0.01em] text-dot-primary">
                     {product.name}
                   </h3>
                   <span className="text-[0.9rem] font-light text-dot-secondary">

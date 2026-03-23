@@ -148,11 +148,11 @@ export const AdminProductPage = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateProduct>[1] }) =>
       updateProduct(id, data),
-    onSuccess: (_, { id }) => {
+    onSuccess: (updatedProduct, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['shop', 'product', id] })
       queryClient.invalidateQueries({ queryKey: ['shop', 'products'] })
       alert('상품이 수정되었습니다.')
-      navigate(`/shop/${productId}`)
+      navigate(`/shop/${updatedProduct.slug ?? productId}`)
     },
     onError: (err: any) => {
       setError(getApiErrorMessage(err, '상품 수정에 실패했습니다.'))
@@ -276,7 +276,11 @@ export const AdminProductPage = () => {
       )}
       <div className="mx-auto max-w-3xl">
         <button
-          onClick={() => (isEditMode && productId ? navigate(`/shop/${productId}`) : navigate('/shop'))}
+          onClick={() =>
+            isEditMode && productId
+              ? navigate(`/shop/${product?.slug ?? productId}`)
+              : navigate('/shop')
+          }
           className="mb-8 flex items-center gap-2 text-xs uppercase tracking-widest text-[#999] hover:text-dot-primary transition-colors"
         >
           <ArrowLeft size={14} />
