@@ -1,4 +1,5 @@
 import apiClient from '@/common/lib/apiClient'
+import { getViteApiBaseUrl } from '@/common/lib/viteApiBaseUrl'
 
 export interface AuthUser {
   id: string
@@ -111,7 +112,7 @@ export async function deleteAddress(id: string): Promise<void> {
 }
 
 /** 소셜 로그인 시작 — 브라우저를 이 URL로 보내면 됨 */
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API_BASE = getViteApiBaseUrl()
 export const socialLoginUrls = {
   google: `${API_BASE}/auth/google`,
   kakao: `${API_BASE}/auth/kakao`,

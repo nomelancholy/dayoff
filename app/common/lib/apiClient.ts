@@ -1,7 +1,8 @@
 import axios, { type AxiosRequestConfig } from 'axios';
+import { getViteApiBaseUrl } from '@/common/lib/viteApiBaseUrl';
 
 const rawClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
+  baseURL: getViteApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },

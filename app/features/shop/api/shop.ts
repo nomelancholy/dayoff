@@ -1,4 +1,5 @@
 import apiClient from '@/common/lib/apiClient'
+import { getViteApiBaseUrl } from '@/common/lib/viteApiBaseUrl'
 
 export interface Category {
   id: string
@@ -292,7 +293,7 @@ export async function uploadReviewImages(files: File[]): Promise<{ urls: string[
   if (!files.length) return { urls: [] }
   const form = new FormData()
   files.forEach((f) => form.append('files', f))
-  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const baseURL = getViteApiBaseUrl()
   const token = localStorage.getItem('auth_token')
   const res = await fetch(`${baseURL}/shop/upload`, {
     method: 'POST',
@@ -311,7 +312,7 @@ export async function uploadProductImages(files: File[]): Promise<{ urls: string
   if (!files.length) return { urls: [] }
   const form = new FormData()
   files.forEach((f) => form.append('files', f))
-  const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const baseURL = getViteApiBaseUrl()
   const token = localStorage.getItem('auth_token')
   const res = await fetch(`${baseURL}/shop/admin/upload`, {
     method: 'POST',
