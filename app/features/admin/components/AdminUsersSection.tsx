@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getApiErrorMessage } from '@/features/auth/api/auth'
 import {
   fetchAdminUsers,
+  fetchAdminUserAddresses,
   updateAdminUserRole,
   type UserRole,
   type AdminUserListItem,
+  type AdminUserAddressItem,
 } from '../api/adminUsers'
 import { cn } from '@/common/lib/utils'
 
@@ -26,6 +28,12 @@ const providerLabel = (p: string): string => {
   if (p === 'google') return '구글'
   if (p === 'naver') return '네이버'
   return p
+}
+
+const formatAddressLine = (address: AdminUserAddressItem): string => {
+  const base = [address.addressLine1, address.addressLine2].filter(Boolean).join(' ')
+  if (address.postalCode) return `(${address.postalCode}) ${base}`
+  return base
 }
 
 export const AdminUsersSection = ({
@@ -153,53 +161,21 @@ export const AdminUsersSection = ({
                 <th className="px-4 py-3">로그인</th>
                 <th className="px-4 py-3">역할</th>
                 <th className="px-4 py-3">가입일</th>
+                <th className="w-24 px-4 py-3 text-center whitespace-nowrap">주소록</th>
               </tr>
             </thead>
             <tbody>
               {items.map((u) => (
-                <tr key={u.id} className="border-b border-[#f3f3f3]">
-                  <td className="px-4 py-3 font-medium text-dot-primary">
-                    {u.email}
-                  </td>
-                  <td className="px-4 py-3 text-dot-secondary">
-                    {u.fullName ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-dot-secondary">
-                    {u.phone ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-[0.85rem] text-dot-secondary">
-                    {providerLabel(u.provider)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={u.role}
-                      disabled={
-                        roleMutation.isPending &&
-                        roleMutation.variables?.userId === u.id
-                      }
-                      onChange={(e) =>
-                        onRowRoleChange(u, e.target.value as UserRole)
-                      }
-                      className={cn(
-                        'rounded border border-[#ddd] bg-white px-2 py-1.5 text-[0.82rem] focus:border-dot-primary focus:outline-none',
-                        u.role === 'admin' && 'font-medium text-dot-primary',
-                      )}
-                    >
-                      <option
-                        value="member"
-                        disabled={
-                          u.id === currentUserId && u.role === 'admin'
-                        }
-                      >
-                        member
-                      </option>
-                      <option value="admin">admin</option>
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 text-[0.85rem] text-dot-secondary whitespace-nowrap">
-                    {formatJoined(u.createdAt)}
-                  </td>
-                </tr>
+                <AdminUserRow
+                  key={u.id}
+                  user={u}
+                  currentUserId={currentUserId}
+                  roleMutationPending={
+                    roleMutation.isPending &&
+                    roleMutation.variables?.userId === u.id
+                  }
+                  onRoleChange={onRowRoleChange}
+                />
               ))}
             </tbody>
           </table>
@@ -231,5 +207,114 @@ export const AdminUsersSection = ({
         </div>
       </div>
     </section>
+  )
+}
+
+const AdminUserRow = ({
+  user,
+  currentUserId,
+  roleMutationPending,
+  onRoleChange,
+}: {
+  user: AdminUserListItem
+  currentUserId: string
+  roleMutationPending: boolean
+  onRoleChange: (user: AdminUserListItem, next: UserRole) => void
+}) => {
+  const [expanded, setExpanded] = useState(false)
+  const {
+    data: addresses,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['admin', 'user-addresses', user.id],
+    queryFn: () => fetchAdminUserAddresses(user.id),
+    enabled: expanded,
+  })
+
+  return (
+    <>
+      <tr className="border-b border-[#f3f3f3]">
+        <td className="px-4 py-3 font-medium text-dot-primary">{user.email}</td>
+        <td className="px-4 py-3 text-dot-secondary">{user.fullName ?? '—'}</td>
+        <td className="px-4 py-3 text-dot-secondary">{user.phone ?? '—'}</td>
+        <td className="px-4 py-3 text-[0.85rem] text-dot-secondary">
+          {providerLabel(user.provider)}
+        </td>
+        <td className="px-4 py-3">
+          <select
+            value={user.role}
+            disabled={roleMutationPending}
+            onChange={(e) => onRoleChange(user, e.target.value as UserRole)}
+            className={cn(
+              'rounded border border-[#ddd] bg-white px-2 py-1.5 text-[0.82rem] focus:border-dot-primary focus:outline-none',
+              user.role === 'admin' && 'font-medium text-dot-primary'
+            )}
+          >
+            <option
+              value="member"
+              disabled={user.id === currentUserId && user.role === 'admin'}
+            >
+              member
+            </option>
+            <option value="admin">admin</option>
+          </select>
+        </td>
+        <td className="px-4 py-3 whitespace-nowrap text-[0.85rem] text-dot-secondary">
+          {formatJoined(user.createdAt)}
+        </td>
+        <td className="w-24 px-4 py-3 text-center whitespace-nowrap">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            aria-label={expanded ? '주소록 접기' : '주소록 펼치기'}
+            className="inline-flex h-7 w-7 items-center justify-center rounded border border-[#ddd] text-[0.82rem] text-dot-primary transition-colors hover:bg-[#f7f7f7]"
+          >
+            {expanded ? '▾' : '▸'}
+          </button>
+        </td>
+      </tr>
+      {expanded ? (
+        <tr className="border-b border-[#f3f3f3] bg-[#fcfcfc]">
+          <td colSpan={7} className="px-6 py-4">
+            <div className="space-y-2">
+              <p className="text-[0.8rem] font-medium text-dot-primary">주소록</p>
+              {isLoading ? (
+                <p className="text-[0.82rem] text-dot-secondary">불러오는 중…</p>
+              ) : isError ? (
+                <p className="text-[0.82rem] text-red-600">
+                  주소록 조회에 실패했습니다.
+                </p>
+              ) : !addresses?.length ? (
+                <p className="text-[0.82rem] text-dot-secondary">
+                  등록된 주소가 없습니다.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {addresses.map((address) => (
+                    <li
+                      key={address.id}
+                      className="rounded border border-[#ececec] bg-white px-3 py-2"
+                    >
+                      <p className="text-[0.82rem] font-medium text-dot-primary">
+                        {address.label}
+                        {address.isDefault ? ' · 기본 배송지' : ''}
+                      </p>
+                      <p className="text-[0.82rem] text-dot-secondary">
+                        수령인: {address.recipientName ?? '—'} · 연락처:{' '}
+                        {address.phone ?? '—'}
+                      </p>
+                      <p className="text-[0.82rem] text-dot-secondary">
+                        {formatAddressLine(address)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </td>
+        </tr>
+      ) : null}
+    </>
   )
 }

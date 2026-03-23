@@ -19,6 +19,20 @@ export interface AdminUsersListResponse {
   pageSize: number
 }
 
+export interface AdminUserAddressItem {
+  id: string
+  userId: string
+  label: string
+  recipientName: string | null
+  phone: string | null
+  postalCode: string | null
+  addressLine1: string
+  addressLine2: string | null
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface FetchAdminUsersParams {
   q?: string
   role?: UserRole
@@ -50,4 +64,10 @@ export async function updateAdminUserRole(
   role: UserRole
 ): Promise<{ id: string; email: string; fullName: string | null; role: string }> {
   return apiClient.patch(`/auth/admin/users/${userId}/role`, { role })
+}
+
+export async function fetchAdminUserAddresses(
+  userId: string
+): Promise<AdminUserAddressItem[]> {
+  return apiClient.get<AdminUserAddressItem[]>(`/auth/admin/users/${userId}/addresses`)
 }

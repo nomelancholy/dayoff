@@ -264,7 +264,7 @@ function ProfileSection({ user }: { user: AuthUser }) {
       <form className="max-w-[600px] space-y-8" onSubmit={handleSubmit}>
         <div>
           <label className="mono mb-2 block text-[0.85rem] text-dot-primary">
-            이름
+            닉네임
           </label>
           <input
             type="text"

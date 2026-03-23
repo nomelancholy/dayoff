@@ -50,6 +50,13 @@ export class AuthController {
     });
   }
 
+  @Get('admin/users/:id/addresses')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  adminListUserAddresses(@Param('id') id: string) {
+    return this.authService.listUserAddressesForAdmin(id);
+  }
+
   @Patch('admin/users/:id/role')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')

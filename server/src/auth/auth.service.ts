@@ -485,6 +485,20 @@ export class AuthService {
     };
   }
 
+  /** 관리자: 특정 회원 주소 목록 */
+  async listUserAddressesForAdmin(userId: string) {
+    const target = await this.findById(userId);
+    if (!target) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+
+    return this.db.query.addresses.findMany({
+      where: eq(schema.addresses.userId, userId),
+      orderBy: [
+        desc(schema.addresses.isDefault),
+        desc(schema.addresses.createdAt),
+      ],
+    });
+  }
+
   /** 관리자: 회원 역할 변경 (본인 관리자 해제 불가) */
   async updateUserRoleByAdmin(
     actorId: string,
