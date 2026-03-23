@@ -94,6 +94,12 @@ export class AuthController {
     });
   }
 
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  async deleteMe(@CurrentUser() user: UserRow) {
+    return this.authService.deleteMyAccount(user.id);
+  }
+
   @Get('addresses')
   @UseGuards(JwtAuthGuard)
   async getAddresses(@CurrentUser() user: UserRow) {

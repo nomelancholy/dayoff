@@ -111,6 +111,11 @@ export async function deleteAddress(id: string): Promise<void> {
   await apiClient.delete(`/auth/addresses/${id}`)
 }
 
+/** 내 계정 탈퇴 */
+export async function deleteMyAccount(): Promise<{ ok: true }> {
+  return apiClient.delete<{ ok: true }>('/auth/me')
+}
+
 /** 소셜 로그인 시작 — 브라우저를 이 URL로 보내면 됨 */
 const API_BASE = getViteApiBaseUrl()
 export const socialLoginUrls = {

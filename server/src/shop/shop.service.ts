@@ -12,6 +12,7 @@ import { DRIZZLE } from '../common/database/database.module';
 import { CouponService } from '../coupon/coupon.service';
 import * as schema from '../db/schema';
 import { isOutOfDeliveryPostalCode } from './out-of-delivery-areas';
+import { EmailService } from '../common/email/email.service';
 
 @Injectable()
 export class ShopService {
@@ -19,6 +20,7 @@ export class ShopService {
     @Inject(DRIZZLE) private readonly db: NodePgDatabase<typeof schema>,
     private readonly couponService: CouponService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   /** [Admin] 주문 목록 조회 (관리자용) */
@@ -62,7 +64,7 @@ export class ShopService {
   ) {
     const order = await this.db.query.orders.findFirst({
       where: eq(schema.orders.id, orderId),
-      columns: { id: true, status: true, trackingNumber: true },
+      columns: { id: true, status: true },
     })
 
     if (!order) {
@@ -73,6 +75,8 @@ export class ShopService {
       throw new BadRequestException('발송 처리는 결제 완료된 주문부터 가능합니다.')
     }
 
+    const shouldSendShippedMail = order.status !== 'shipped';
+
     const [updated] = await this.db
       .update(schema.orders)
       .set({
@@ -82,6 +86,42 @@ export class ShopService {
       })
       .where(eq(schema.orders.id, orderId))
       .returning()
+
+    if (updated && shouldSendShippedMail) {
+      const shippedOrder = await this.db.query.orders.findFirst({
+        where: eq(schema.orders.id, updated.id),
+        columns: {
+          orderNumber: true,
+          trackingNumber: true,
+        },
+        with: {
+          user: {
+            columns: {
+              email: true,
+              fullName: true,
+            },
+          },
+          orderItems: {
+            columns: {
+              productName: true,
+              optionLabel: true,
+              quantity: true,
+              lineTotal: true,
+            },
+          },
+        },
+      });
+
+      if (shippedOrder?.user?.email && shippedOrder.trackingNumber) {
+        await this.emailService.sendOrderShippedEmail({
+          to: shippedOrder.user.email,
+          name: shippedOrder.user.fullName,
+          orderNumber: shippedOrder.orderNumber,
+          trackingNumber: shippedOrder.trackingNumber,
+          items: shippedOrder.orderItems,
+        });
+      }
+    }
 
     return updated
   }
@@ -1186,6 +1226,7 @@ export class ShopService {
       );
     }
 
+    let finalized = false;
     await this.db.transaction(async (tx) => {
       const [updatedOrder] = await tx
         .update(schema.orders)
@@ -1196,6 +1237,7 @@ export class ShopService {
         .returning();
 
       if (!updatedOrder) return;
+      finalized = true;
 
       if (order.couponId) {
         await tx
@@ -1260,6 +1302,42 @@ export class ShopService {
           .where(and(baseCond, gt(schema.cartItems.quantity, oi.quantity)));
       }
     });
+
+    if (finalized) {
+      const paidOrder = await this.db.query.orders.findFirst({
+        where: eq(schema.orders.id, order.id),
+        columns: {
+          orderNumber: true,
+          total: true,
+        },
+        with: {
+          user: {
+            columns: {
+              email: true,
+              fullName: true,
+            },
+          },
+          orderItems: {
+            columns: {
+              productName: true,
+              optionLabel: true,
+              quantity: true,
+              lineTotal: true,
+            },
+          },
+        },
+      });
+
+      if (paidOrder?.user?.email) {
+        await this.emailService.sendOrderPaidEmail({
+          to: paidOrder.user.email,
+          name: paidOrder.user.fullName,
+          orderNumber: paidOrder.orderNumber,
+          total: paidOrder.total,
+          items: paidOrder.orderItems,
+        });
+      }
+    }
 
     return { orderNumber: order.orderNumber, status: 'paid' };
   }

@@ -6,10 +6,12 @@ import { randomBytes } from 'crypto';
 import { ShopService } from './shop.service';
 import { ShopController } from './shop.controller';
 import { CouponModule } from '../coupon/coupon.module';
+import { EmailModule } from '../common/email/email.module';
 
 @Module({
   imports: [
     CouponModule,
+    EmailModule,
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads/review',

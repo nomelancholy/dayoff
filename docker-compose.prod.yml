@@ -46,6 +46,10 @@ services:
       # 토스페이먼츠 (미설정 시 checkout/toss 호출 시 400) — .env.deploy 에만 두면 됨, GitHub Actions 불필요
       TOSS_WIDGET_CLIENT_KEY: ${TOSS_WIDGET_CLIENT_KEY:-}
       TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
+      # resend 이메일 (미설정 시 메일 전송만 skip)
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      RESEND_REPLY_TO: ${RESEND_REPLY_TO:-}
     volumes:
       - dayoff_uploads:/app/uploads
     networks: [dayoff]

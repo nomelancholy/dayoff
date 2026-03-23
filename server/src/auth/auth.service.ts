@@ -10,12 +10,13 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { eq, and, desc, or, ilike, sql } from 'drizzle-orm';
+import { eq, and, desc, or, ilike, sql, inArray } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
 import type { AuthProvider } from '../db/schema/users';
+import { EmailService } from '../common/email/email.service';
 
 export type UserRow = typeof schema.users.$inferSelect;
 
@@ -41,6 +42,7 @@ export class AuthService {
     @Inject(DRIZZLE) private readonly db: NodePgDatabase<typeof schema>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly emailService: EmailService,
   ) {}
 
   private async hashPassword(password: string): Promise<string> {
@@ -103,6 +105,10 @@ export class AuthService {
       throw new BadRequestException(msg);
     }
     if (!user) throw new UnauthorizedException('회원가입 처리에 실패했습니다.');
+    await this.emailService.sendWelcomeEmail({
+      to: user.email,
+      name: user.fullName,
+    });
     const access_token = this.jwtService.sign(
       { sub: user.id, email: user.email, role: user.role },
       {
@@ -241,6 +247,50 @@ export class AuthService {
     };
   }
 
+  /** 내 계정 탈퇴 (사용자 연관 데이터 정리 후 users 삭제) */
+  async deleteMyAccount(userId: string): Promise<{ ok: true }> {
+    const user = await this.findById(userId);
+    if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
+
+    await this.db.transaction(async (tx) => {
+      const myOrders = await tx.query.orders.findMany({
+        where: eq(schema.orders.userId, userId),
+        columns: { id: true },
+      });
+      const orderIds = myOrders.map((o) => o.id);
+
+      if (orderIds.length > 0) {
+        await tx
+          .delete(schema.orderItems)
+          .where(inArray(schema.orderItems.orderId, orderIds));
+        await tx.delete(schema.orders).where(eq(schema.orders.userId, userId));
+      }
+
+      await tx
+        .delete(schema.userCoupons)
+        .where(eq(schema.userCoupons.userId, userId));
+      await tx
+        .delete(schema.cartItems)
+        .where(eq(schema.cartItems.userId, userId));
+      await tx
+        .delete(schema.productQa)
+        .where(eq(schema.productQa.userId, userId));
+      await tx
+        .delete(schema.addresses)
+        .where(eq(schema.addresses.userId, userId));
+
+      const [deletedUser] = await tx
+        .delete(schema.users)
+        .where(eq(schema.users.id, userId))
+        .returning({ id: schema.users.id });
+      if (!deletedUser) {
+        throw new BadRequestException('회원 탈퇴 처리에 실패했습니다.');
+      }
+    });
+
+    return { ok: true };
+  }
+
   /** 소셜 로그인: provider+providerId로 기존 유저 찾거나 새로 생성 */
   async findOrCreateSocialUser(
     provider: AuthProvider,
@@ -286,6 +336,10 @@ export class AuthService {
       .returning();
     if (!created)
       throw new UnauthorizedException('소셜 계정 생성에 실패했습니다.');
+    await this.emailService.sendWelcomeEmail({
+      to: created.email,
+      name: created.fullName,
+    });
     return created;
   }
 

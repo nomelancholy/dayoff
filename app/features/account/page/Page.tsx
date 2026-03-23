@@ -10,6 +10,7 @@ import {
   createAddress,
   updateAddress,
   deleteAddress,
+  deleteMyAccount,
   type AuthUser,
   type AddressRow,
   getApiErrorMessage,
@@ -216,10 +217,12 @@ export const AccountPage = () => {
 
 /** 프로필 수정 폼 (reference: account.html .profile-form) */
 function ProfileSection({ user }: { user: AuthUser }) {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const showToast = useUiStore((s) => s.showToast)
   const [fullName, setFullName] = useState(user.fullName ?? '')
   const [phone, setPhone] = useState(formatPhone(user.phone ?? ''))
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const profileMutation = useMutation({
     mutationFn: () => {
@@ -240,6 +243,25 @@ function ProfileSection({ user }: { user: AuthUser }) {
       showToast({
         variant: 'warning',
         message: getApiErrorMessage(err, '저장에 실패했습니다.'),
+      })
+    },
+  })
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: deleteMyAccount,
+    onSuccess: () => {
+      clearStoredToken()
+      queryClient.clear()
+      showToast({
+        variant: 'success',
+        message: '회원 탈퇴가 완료되었습니다.',
+      })
+      navigate('/login', { replace: true })
+    },
+    onError: (err: unknown) => {
+      showToast({
+        variant: 'warning',
+        message: getApiErrorMessage(err, '회원 탈퇴에 실패했습니다.'),
       })
     },
   })
@@ -310,7 +332,58 @@ function ProfileSection({ user }: { user: AuthUser }) {
         >
           {profileMutation.isPending ? '저장 중…' : '변경사항 저장'}
         </button>
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            disabled={deleteAccountMutation.isPending}
+            onClick={() => {
+              setDeleteConfirmOpen(true)
+            }}
+            className="mono border-none bg-transparent text-[0.8rem] text-red-600 underline underline-offset-4 transition-colors hover:text-red-700 disabled:opacity-60"
+          >
+            {deleteAccountMutation.isPending ? '탈퇴 처리 중…' : '회원 탈퇴'}
+          </button>
+        </div>
       </form>
+
+      {deleteConfirmOpen ? (
+        <div
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-[#f5f3ef]/90 p-6 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="회원 탈퇴 확인"
+        >
+          <div className="w-full max-w-md border border-[#e7e2d8] bg-[#fcfaf6] p-7 shadow-[0_18px_50px_rgba(32,22,8,0.12)]">
+            <h3 className="font-serif text-[1.4rem] tracking-[0.04em] text-dot-primary">
+              회원 탈퇴
+            </h3>
+            <p className="mt-4 text-[0.92rem] leading-relaxed text-dot-secondary">
+              탈퇴 시 주문, 배송, 리뷰 내역이 함께 삭제되며 복구할 수 없습니다.
+            </p>
+
+            <div className="mt-7 flex gap-3">
+              <button
+                type="button"
+                disabled={deleteAccountMutation.isPending}
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="mono flex-1 border border-[#d9d3c8] bg-transparent py-2.5 text-[0.82rem] tracking-[0.08em] text-dot-primary transition-colors hover:bg-[#f3eee4] disabled:opacity-60"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={deleteAccountMutation.isPending}
+                onClick={() => {
+                  deleteAccountMutation.mutate()
+                }}
+                className="mono flex-1 border border-[#1a1a1a] bg-[#1a1a1a] py-2.5 text-[0.82rem] tracking-[0.08em] text-white transition-colors hover:bg-[#333] disabled:opacity-60"
+              >
+                {deleteAccountMutation.isPending ? '탈퇴 처리 중…' : '탈퇴하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
