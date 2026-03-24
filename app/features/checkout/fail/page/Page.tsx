@@ -3,9 +3,9 @@ import { Link, useSearchParams } from 'react-router-dom'
 export const CheckoutFailPage = () => {
   const [params] = useSearchParams()
 
-  const code = params.get('code')
-  const message = params.get('message')
-  const orderId = params.get('orderId')
+  const code = params.get('resultCode') ?? params.get('code')
+  const message = params.get('resultMessage') ?? params.get('message')
+  const reserveId = params.get('reserveId')
 
   return (
     <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
@@ -18,7 +18,7 @@ export const CheckoutFailPage = () => {
         </p>
 
         <div className="mt-6 text-left text-[0.95rem] text-dot-secondary">
-          {orderId ? <div>OrderId: {orderId}</div> : null}
+          {reserveId ? <div>ReserveId: {reserveId}</div> : null}
           {code ? <div>Code: {code}</div> : null}
         </div>
 

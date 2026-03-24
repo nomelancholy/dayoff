@@ -234,3 +234,40 @@ export const OrderShippedEmail = ({
     </Body>
   </Html>
 );
+
+export const ProductRestockedEmail = ({
+  displayName,
+  productName,
+  productUrl,
+}: {
+  displayName: string;
+  productName: string;
+  productUrl: string;
+}) => (
+  <Html>
+    <Head />
+    <Preview>요청하신 상품이 재입고되었습니다</Preview>
+    <Body style={styles.body}>
+      <Container style={styles.container}>
+        <Text style={styles.brand}>D O T.</Text>
+        <Heading style={styles.heading}>재입고 알림을 전해드립니다</Heading>
+        <Text style={styles.text}>
+          {displayName}님이 기다리시던 상품이 다시 준비되었습니다.
+        </Text>
+        <Section style={styles.card}>
+          <Text style={styles.cardLabel}>재입고 상품</Text>
+          <Text style={styles.listItem}>{productName}</Text>
+        </Section>
+        <Section style={{ marginTop: '18px' }}>
+          <Button href={productUrl} style={styles.button}>
+            상품 보러 가기
+          </Button>
+        </Section>
+        <Hr style={{ borderColor: '#e8e2d6', margin: '22px 0 14px' }} />
+        <Text style={styles.footer}>
+          재입고 알림 신청은 발송 후 자동으로 초기화됩니다.
+        </Text>
+      </Container>
+    </Body>
+  </Html>
+);

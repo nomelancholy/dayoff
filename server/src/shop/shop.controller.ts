@@ -37,7 +37,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-class CreateTossCheckoutDto {
+class CreateNaverCheckoutDto {
   @IsOptional()
   @IsString()
   couponCode?: string;
@@ -59,17 +59,12 @@ class CreateTossCheckoutDto {
   cartItemQuantities?: number[];
 }
 
-class ConfirmTossPaymentDto {
+class ConfirmNaverPaymentDto {
   @IsString()
-  paymentKey!: string;
+  paymentId!: string;
 
-  // Toss 요청 시 전달했던 orderId (우리는 orders.order_number 사용)
   @IsString()
-  orderId!: string;
-
-  @IsInt()
-  @Min(0)
-  amount!: number;
+  merchantPayKey!: string;
 }
 
 class UpdateAdminOrderShipmentDto {
@@ -151,6 +146,24 @@ export class ShopController {
     return this.shopService.getProduct(slugOrId);
   }
 
+  @Get('products/:id/restock-notifications/me')
+  @UseGuards(JwtAuthGuard)
+  async getMyRestockNotificationStatus(
+    @CurrentUser() user: UserRow,
+    @Param('id') productId: string,
+  ) {
+    return this.shopService.hasMyRestockSubscription(user.id, productId);
+  }
+
+  @Post('products/:id/restock-notifications')
+  @UseGuards(JwtAuthGuard)
+  async subscribeRestockNotification(
+    @CurrentUser() user: UserRow,
+    @Param('id') productId: string,
+  ) {
+    return this.shopService.subscribeRestockNotification(user.id, productId);
+  }
+
   /** 구매평용 이미지 업로드 (로그인 사용자, multipart/form-data, field name: files) */
   @Post('upload')
   @UseGuards(JwtAuthGuard)
@@ -170,7 +183,13 @@ export class ShopController {
   async createReview(
     @CurrentUser() user: UserRow,
     @Param('id') productId: string,
-    @Body() body: { body: string; rating?: number; imageUrls?: string[]; orderItemId: string },
+    @Body()
+    body: {
+      body: string;
+      rating?: number;
+      imageUrls?: string[];
+      orderItemId: string;
+    },
   ) {
     return this.shopService.createReview(user.id, productId, body);
   }
@@ -277,14 +296,14 @@ export class ShopController {
     return this.shopService.removeFromCart(user.id, id);
   }
 
-  /** Toss Payments: 체크아웃 주문 생성 (결제 요청 직전 pending 상태 생성) */
-  @Post('checkout/toss')
+  /** Naver Pay: 체크아웃 주문 생성 (결제 요청 직전 pending 상태 생성) */
+  @Post('checkout/naver')
   @UseGuards(JwtAuthGuard)
-  async createTossCheckout(
+  async createNaverCheckout(
     @CurrentUser() user: UserRow,
-    @Body() dto: CreateTossCheckoutDto,
+    @Body() dto: CreateNaverCheckoutDto,
   ) {
-    return this.shopService.createTossCheckoutOrder(
+    return this.shopService.createNaverCheckoutOrder(
       user.id,
       dto.couponCode ?? null,
       dto.cartItemIds,
@@ -293,17 +312,16 @@ export class ShopController {
     );
   }
 
-  /** Toss Payments: 결제 승인 검증 + 주문 paid 처리 */
-  @Post('checkout/toss/confirm')
+  /** Naver Pay: 결제 승인 검증 + 주문 paid 처리 */
+  @Post('checkout/naver/confirm')
   @UseGuards(JwtAuthGuard)
-  async confirmTossPayment(
+  async confirmNaverPayment(
     @CurrentUser() user: UserRow,
-    @Body() dto: ConfirmTossPaymentDto,
+    @Body() dto: ConfirmNaverPaymentDto,
   ) {
-    return this.shopService.confirmTossPaymentAndFinalizeOrder(user.id, {
-      paymentKey: dto.paymentKey,
-      orderId: dto.orderId,
-      amount: dto.amount,
+    return this.shopService.confirmNaverPaymentAndFinalizeOrder(user.id, {
+      paymentId: dto.paymentId,
+      merchantPayKey: dto.merchantPayKey,
     });
   }
 

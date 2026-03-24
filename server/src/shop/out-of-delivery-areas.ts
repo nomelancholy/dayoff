@@ -1,4 +1,4 @@
-export type PostalRange = { start: number; end: number }
+export type PostalRange = { start: number; end: number };
 
 // `out-of-delivery-areas.md`의 우편번호 구간(포함) 기반
 // - 비교는 숫자(5자리 우편번호) 기준
@@ -33,19 +33,16 @@ const OUT_OF_DELIVERY_RANGES: PostalRange[] = [
   { start: 59650, end: 59650 }, // 전남 여수
   { start: 59766, end: 59766 }, // 전남 여수
   { start: 59781, end: 59790 }, // 전남 여수
-]
+];
 
 export function isOutOfDeliveryPostalCode(
   postalCode: string | null | undefined,
 ) {
-  const digits = postalCode?.replace(/\D/g, '') ?? ''
-  if (digits.length < 5) return false
+  const digits = postalCode?.replace(/\D/g, '') ?? '';
+  if (digits.length < 5) return false;
 
-  const num = Number(digits)
-  if (!Number.isFinite(num)) return false
+  const num = Number(digits);
+  if (!Number.isFinite(num)) return false;
 
-  return OUT_OF_DELIVERY_RANGES.some(
-    (r) => num >= r.start && num <= r.end,
-  )
+  return OUT_OF_DELIVERY_RANGES.some((r) => num >= r.start && num <= r.end);
 }
-

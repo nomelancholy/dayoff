@@ -7,7 +7,20 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, asc, desc, isNull, sql, ne, inArray, or, gt, gte, lte } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  asc,
+  desc,
+  isNull,
+  sql,
+  ne,
+  inArray,
+  or,
+  gt,
+  gte,
+  lte,
+} from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { CouponService } from '../coupon/coupon.service';
 import * as schema from '../db/schema';
@@ -23,6 +36,39 @@ export class ShopService {
     private readonly emailService: EmailService,
   ) {}
 
+  private getNaverApiBaseUrl() {
+    const mode =
+      this.configService.get<string>('NAVER_PAY_MODE') ?? 'development';
+    return mode === 'production'
+      ? 'https://pay.paygate.naver.com'
+      : 'https://dev-pay.paygate.naver.com';
+  }
+
+  private getNaverSdkMode(): 'development' | 'production' {
+    const mode =
+      this.configService.get<string>('NAVER_PAY_MODE') ?? 'development';
+    return mode === 'production' ? 'production' : 'development';
+  }
+
+  private getNaverHeaders(extra?: Record<string, string>) {
+    const clientId = this.configService.get<string>('NAVER_PAY_CLIENT_ID');
+    const clientSecret = this.configService.get<string>(
+      'NAVER_PAY_CLIENT_SECRET',
+    );
+    const chainId = this.configService.get<string>('NAVER_PAY_CHAIN_ID');
+    if (!clientId || !clientSecret || !chainId) {
+      throw new BadRequestException(
+        '서버 환경설정에 NAVER_PAY_CLIENT_ID/NAVER_PAY_CLIENT_SECRET/NAVER_PAY_CHAIN_ID가 필요합니다.',
+      );
+    }
+    return {
+      'X-Naver-Client-Id': clientId,
+      'X-Naver-Client-Secret': clientSecret,
+      'X-NaverPay-Chain-Id': chainId,
+      ...extra,
+    };
+  }
+
   /** [Admin] 주문 목록 조회 (관리자용) */
   async getAdminOrders(params?: { status?: string }) {
     const allowedStatuses = [
@@ -31,11 +77,12 @@ export class ShopService {
       'shipped',
       'delivered',
       'cancelled',
-    ] as const
+    ] as const;
     const status =
-      params?.status && (allowedStatuses as readonly string[]).includes(params.status)
+      params?.status &&
+      (allowedStatuses as readonly string[]).includes(params.status)
         ? (params.status as (typeof allowedStatuses)[number])
-        : undefined
+        : undefined;
 
     return this.db.query.orders.findMany({
       where: status ? eq(schema.orders.status, status) : undefined,
@@ -54,25 +101,24 @@ export class ShopService {
         },
         orderItems: true,
       },
-    })
+    });
   }
 
   /** [Admin] 송장번호 입력 후 발송 완료 처리 */
-  async updateAdminOrderShipment(
-    orderId: string,
-    trackingNumber: string,
-  ) {
+  async updateAdminOrderShipment(orderId: string, trackingNumber: string) {
     const order = await this.db.query.orders.findFirst({
       where: eq(schema.orders.id, orderId),
       columns: { id: true, status: true },
-    })
+    });
 
     if (!order) {
-      throw new NotFoundException('주문을 찾을 수 없습니다.')
+      throw new NotFoundException('주문을 찾을 수 없습니다.');
     }
 
     if (order.status === 'pending' || order.status === 'cancelled') {
-      throw new BadRequestException('발송 처리는 결제 완료된 주문부터 가능합니다.')
+      throw new BadRequestException(
+        '발송 처리는 결제 완료된 주문부터 가능합니다.',
+      );
     }
 
     const shouldSendShippedMail = order.status !== 'shipped';
@@ -85,7 +131,7 @@ export class ShopService {
         updatedAt: new Date(),
       })
       .where(eq(schema.orders.id, orderId))
-      .returning()
+      .returning();
 
     if (updated && shouldSendShippedMail) {
       const shippedOrder = await this.db.query.orders.findFirst({
@@ -123,7 +169,7 @@ export class ShopService {
       }
     }
 
-    return updated
+    return updated;
   }
 
   /** [Admin] pending 주문(초안) 전부 삭제 */
@@ -132,24 +178,24 @@ export class ShopService {
       const pendingOrders = await tx.query.orders.findMany({
         where: eq(schema.orders.status, 'pending'),
         columns: { id: true },
-      })
+      });
       if (pendingOrders.length === 0) {
-        return { deletedOrders: 0 }
+        return { deletedOrders: 0 };
       }
 
-      const pendingIds = pendingOrders.map((o) => o.id)
+      const pendingIds = pendingOrders.map((o) => o.id);
 
       await tx.delete(schema.orderItems).where(
         // order_items.order_id IN (pendingIds)
         // Drizzle supports inArray with a list of UUIDs.
         inArray(schema.orderItems.orderId, pendingIds),
-      )
-      await tx.delete(schema.orders).where(
-        inArray(schema.orders.id, pendingIds),
-      )
+      );
+      await tx
+        .delete(schema.orders)
+        .where(inArray(schema.orders.id, pendingIds));
 
-      return { deletedOrders: pendingIds.length }
-    })
+      return { deletedOrders: pendingIds.length };
+    });
   }
 
   /** 카테고리 목록 조회 */
@@ -305,6 +351,47 @@ export class ShopService {
     return { ...product, reviews };
   }
 
+  async hasMyRestockSubscription(userId: string, productId: string) {
+    const row = await this.db.query.productRestockSubscriptions.findFirst({
+      where: and(
+        eq(schema.productRestockSubscriptions.userId, userId),
+        eq(schema.productRestockSubscriptions.productId, productId),
+      ),
+      columns: { id: true },
+    });
+    return { subscribed: !!row };
+  }
+
+  async subscribeRestockNotification(userId: string, productId: string) {
+    const product = await this.db.query.products.findFirst({
+      where: eq(schema.products.id, productId),
+      columns: { id: true, stockQuantity: true },
+    });
+    if (!product) {
+      throw new NotFoundException('상품을 찾을 수 없습니다.');
+    }
+    if (product.stockQuantity > 0) {
+      throw new BadRequestException('현재 구매 가능한 상품입니다.');
+    }
+
+    const existing = await this.db.query.productRestockSubscriptions.findFirst({
+      where: and(
+        eq(schema.productRestockSubscriptions.userId, userId),
+        eq(schema.productRestockSubscriptions.productId, productId),
+      ),
+      columns: { id: true },
+    });
+    if (existing) {
+      return { subscribed: true };
+    }
+
+    await this.db.insert(schema.productRestockSubscriptions).values({
+      userId,
+      productId,
+    });
+    return { subscribed: true };
+  }
+
   /** 장바구니 목록 조회 */
   async getCartItems(userId: string) {
     return this.db.query.cartItems.findMany({
@@ -334,18 +421,18 @@ export class ShopService {
     const product = await this.db.query.products.findFirst({
       where: eq(schema.products.id, productId),
       columns: { id: true, isActive: true, stockQuantity: true },
-    })
+    });
 
     if (!product) {
-      throw new NotFoundException('상품을 찾을 수 없습니다.')
+      throw new NotFoundException('상품을 찾을 수 없습니다.');
     }
 
     if (!product.isActive) {
-      throw new BadRequestException('판매가 중지된 상품입니다.')
+      throw new BadRequestException('판매가 중지된 상품입니다.');
     }
 
     if (product.stockQuantity <= 0) {
-      throw new BadRequestException('재고가 없습니다. (품절)')
+      throw new BadRequestException('재고가 없습니다. (품절)');
     }
 
     // 상품에 옵션이 존재한다면, optionId를 반드시 선택해야 장바구니에 담을 수 있게 방어
@@ -353,11 +440,11 @@ export class ShopService {
       where: eq(schema.productOptions.productId, productId),
       columns: { id: true },
       limit: 1,
-    })
+    });
 
     if (productHasOptions.length > 0) {
       if (!optionId) {
-        throw new BadRequestException('옵션을 선택해 주세요.')
+        throw new BadRequestException('옵션을 선택해 주세요.');
       }
 
       // 선택된 optionId가 해당 상품의 옵션인지 검증
@@ -366,10 +453,10 @@ export class ShopService {
           eq(schema.productOptions.id, optionId),
           eq(schema.productOptions.productId, productId),
         ),
-      })
+      });
 
       if (!optionBelongs) {
-        throw new BadRequestException('잘못된 옵션입니다.')
+        throw new BadRequestException('잘못된 옵션입니다.');
       }
     }
 
@@ -569,7 +656,17 @@ export class ShopService {
       normalizedData.stockQuantity = Math.floor(stockQuantity);
     }
 
-    return await this.db.transaction(async (tx) => {
+    const restockMailTargets = await this.db.transaction(async (tx) => {
+      const before = await tx.query.products.findFirst({
+        where: eq(schema.products.id, id),
+        columns: {
+          stockQuantity: true,
+        },
+      });
+      if (!before) {
+        throw new NotFoundException('상품을 찾을 수 없습니다.');
+      }
+
       if (Object.keys(normalizedData).length > 0) {
         await tx
           .update(schema.products)
@@ -620,9 +717,63 @@ export class ShopService {
           );
         }
       }
+      const after = await tx.query.products.findFirst({
+        where: eq(schema.products.id, id),
+        columns: {
+          id: true,
+          name: true,
+          slug: true,
+          stockQuantity: true,
+        },
+      });
+      if (!after) {
+        throw new NotFoundException('상품을 찾을 수 없습니다.');
+      }
 
-      return this.getProduct(id);
+      const becameInStock =
+        before.stockQuantity <= 0 && after.stockQuantity > 0;
+      if (!becameInStock) return [];
+
+      const subscriptions = await tx.query.productRestockSubscriptions.findMany(
+        {
+          where: eq(schema.productRestockSubscriptions.productId, id),
+          with: {
+            user: {
+              columns: {
+                email: true,
+                fullName: true,
+              },
+            },
+          },
+        },
+      );
+
+      await tx
+        .delete(schema.productRestockSubscriptions)
+        .where(eq(schema.productRestockSubscriptions.productId, id));
+
+      return subscriptions
+        .filter((item) => !!item.user?.email)
+        .map((item) => ({
+          email: item.user.email,
+          name: item.user.fullName,
+          productName: after.name,
+          productSlug: after.slug,
+        }));
     });
+
+    if (restockMailTargets.length > 0) {
+      for (const target of restockMailTargets) {
+        await this.emailService.sendProductRestockedEmail({
+          to: target.email,
+          name: target.name,
+          productName: target.productName,
+          productSlug: target.productSlug,
+        });
+      }
+    }
+
+    return this.getProduct(id);
   }
 
   /** 내가 작성한 구매평 목록 (productId별 1개, 상품 정보 포함) */
@@ -856,12 +1007,16 @@ export class ShopService {
   /** 내 결제 취소 (발송 전 paid 주문만 가능) */
   async cancelMyPaidOrder(userId: string, orderId: string) {
     const order = await this.db.query.orders.findFirst({
-      where: and(eq(schema.orders.id, orderId), eq(schema.orders.userId, userId)),
+      where: and(
+        eq(schema.orders.id, orderId),
+        eq(schema.orders.userId, userId),
+      ),
       columns: {
         id: true,
         orderNumber: true,
         status: true,
         couponId: true,
+        total: true,
       },
       with: {
         orderItems: {
@@ -885,65 +1040,82 @@ export class ShopService {
       );
     }
 
-    const secretKey = this.configService.get<string>('TOSS_SECRET_KEY');
-    if (!secretKey) {
-      throw new BadRequestException(
-        '서버 환경설정에 TOSS_SECRET_KEY가 없습니다.',
-      );
-    }
-    const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
-
-    // orderNumber로 paymentKey를 조회한 뒤 취소 요청
-    const paymentLookupRes = await fetch(
-      `https://api.tosspayments.com/v1/payments/orders/${order.orderNumber}`,
-      {
-        method: 'GET',
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-        },
-      },
-    );
-    if (!paymentLookupRes.ok) {
-      const errorBody = await paymentLookupRes.json().catch(() => null);
-      const message =
-        errorBody && typeof errorBody === 'object'
-          ? (errorBody as { message?: unknown }).message
-          : null;
-      throw new BadRequestException(
-        `결제 조회에 실패했습니다.${typeof message === 'string' ? ` ${message}` : ''}`,
-      );
-    }
-
-    const paymentLookupData = (await paymentLookupRes.json()) as {
-      paymentKey?: string;
+    const apiBase = this.getNaverApiBaseUrl();
+    const now = new Date();
+    const start = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
+    const formatYmdHms = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return `${y}${m}${day}${hh}${mm}${ss}`;
     };
-    const paymentKey = paymentLookupData.paymentKey;
-    if (!paymentKey) {
-      throw new BadRequestException('결제 정보를 확인할 수 없습니다.');
-    }
 
-    const cancelRes = await fetch(
-      `https://api.tosspayments.com/v1/payments/${paymentKey}/cancel`,
+    const historyRes = await fetch(
+      `${apiBase}/naverpay-partner/naverpay/payments/v2.2/list/history`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${basicAuth}`,
-        },
+        headers: this.getNaverHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-          cancelReason: '고객 요청으로 결제를 취소했습니다.',
+          startTime: formatYmdHms(start),
+          endTime: formatYmdHms(now),
+          rowsPerPage: 100,
         }),
       },
     );
-
-    if (!cancelRes.ok) {
-      const errorBody = await cancelRes.json().catch(() => null);
-      const message =
-        errorBody && typeof errorBody === 'object'
-          ? (errorBody as { message?: unknown }).message
-          : null;
+    if (!historyRes.ok) {
+      throw new BadRequestException('네이버페이 결제 조회에 실패했습니다.');
+    }
+    const historyData = (await historyRes.json()) as {
+      code?: string;
+      message?: string;
+      body?: { list?: Array<{ merchantPayKey?: string; paymentId?: string }> };
+    };
+    if (historyData.code !== 'Success') {
       throw new BadRequestException(
-        `결제 취소에 실패했습니다.${typeof message === 'string' ? ` ${message}` : ''}`,
+        `네이버페이 결제 조회에 실패했습니다.${historyData.message ? ` ${historyData.message}` : ''}`,
+      );
+    }
+    const paymentId =
+      historyData.body?.list?.find(
+        (item) => item.merchantPayKey === order.orderNumber,
+      )?.paymentId ?? null;
+    if (!paymentId) {
+      throw new BadRequestException(
+        '결제 정보를 찾을 수 없습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+
+    const cancelForm = new URLSearchParams({
+      paymentId,
+      cancelAmount: String(order.total),
+      cancelReason: '고객 요청으로 결제를 취소했습니다.',
+      cancelRequester: '1',
+      taxScopeAmount: String(order.total),
+      taxExScopeAmount: '0',
+    });
+    const cancelRes = await fetch(
+      `${apiBase}/naverpay-partner/naverpay/payments/v1/cancel`,
+      {
+        method: 'POST',
+        headers: this.getNaverHeaders({
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }),
+        body: cancelForm.toString(),
+      },
+    );
+    if (!cancelRes.ok) {
+      throw new BadRequestException('네이버페이 결제 취소에 실패했습니다.');
+    }
+    const cancelData = (await cancelRes.json()) as {
+      code?: string;
+      message?: string;
+    };
+    if (cancelData.code !== 'Success') {
+      throw new BadRequestException(
+        `결제 취소에 실패했습니다.${cancelData.message ? ` ${cancelData.message}` : ''}`,
       );
     }
 
@@ -997,7 +1169,12 @@ export class ShopService {
   async createReview(
     userId: string,
     productId: string,
-    data: { body: string; rating?: number; imageUrls?: string[]; orderItemId: string },
+    data: {
+      body: string;
+      rating?: number;
+      imageUrls?: string[];
+      orderItemId: string;
+    },
   ) {
     const product = await this.db.query.products.findFirst({
       where: eq(schema.products.id, productId),
@@ -1063,7 +1240,7 @@ export class ShopService {
     });
   }
 
-  async createTossCheckoutOrder(
+  async createNaverCheckoutOrder(
     userId: string,
     couponCode?: string | null,
     cartItemIds?: string[],
@@ -1131,27 +1308,27 @@ export class ShopService {
 
     // 옵션이 달라도 같은 상품일 수 있으므로,
     // "선택된 장바구니 아이템들에서 필요한 총 수량" 기준으로 재고를 한 번에 검증한다.
-    const requiredByProductId = new Map<string, number>()
-    const stockByProductId = new Map<string, number>()
+    const requiredByProductId = new Map<string, number>();
+    const stockByProductId = new Map<string, number>();
 
     for (const item of cartItems) {
-      const purchaseQty = purchaseQtyFor(item.id, item.quantity)
-      if (purchaseQty <= 0) continue
+      const purchaseQty = purchaseQtyFor(item.id, item.quantity);
+      if (purchaseQty <= 0) continue;
 
       requiredByProductId.set(
         item.productId,
         (requiredByProductId.get(item.productId) ?? 0) + purchaseQty,
-      )
-      stockByProductId.set(item.productId, item.product.stockQuantity)
+      );
+      stockByProductId.set(item.productId, item.product.stockQuantity);
     }
 
     for (const [productId, requiredQty] of requiredByProductId.entries()) {
-      const stockQty = stockByProductId.get(productId) ?? 0
+      const stockQty = stockByProductId.get(productId) ?? 0;
       if (stockQty <= 0) {
-        throw new BadRequestException('재고가 없습니다. (품절)')
+        throw new BadRequestException('재고가 없습니다. (품절)');
       }
       if (requiredQty > stockQty) {
-        throw new BadRequestException('재고가 부족합니다.')
+        throw new BadRequestException('재고가 부족합니다.');
       }
     }
 
@@ -1160,7 +1337,9 @@ export class ShopService {
       if (purchaseQty <= 0) return sum;
       // 안전장치: 지정 구매 수량이 장바구니 수량보다 클 수 없도록 방어
       if (purchaseQty > item.quantity) {
-        throw new BadRequestException('구매 수량이 장바구니 수량을 초과했습니다.');
+        throw new BadRequestException(
+          '구매 수량이 장바구니 수량을 초과했습니다.',
+        );
       }
       return sum + item.product.price * purchaseQty;
     }, 0);
@@ -1202,23 +1381,15 @@ export class ShopService {
 
     const frontUrl =
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
-    const successUrl = `${frontUrl}/checkout/success`;
-    const failUrl = `${frontUrl}/checkout/fail`;
-
-    const widgetClientKey = this.configService.get<string>(
-      'TOSS_WIDGET_CLIENT_KEY',
-    );
-    if (!widgetClientKey) {
-      throw new BadRequestException(
-        '서버 환경설정에 TOSS_WIDGET_CLIENT_KEY가 없습니다.',
-      );
-    }
 
     await this.db.transaction(async (tx) => {
       // checkout 주문(결제 직전) 생성은 pending draft로 쌓일 수 있습니다.
       // 동일 유저가 다시 checkout 진입하면 중복 draft를 제거해 주문번호/대기 주문이 왕창 쌓이지 않게 합니다.
       const pendingOrders = await tx.query.orders.findMany({
-        where: and(eq(schema.orders.userId, userId), eq(schema.orders.status, 'pending')),
+        where: and(
+          eq(schema.orders.userId, userId),
+          eq(schema.orders.status, 'pending'),
+        ),
         columns: { id: true },
       });
 
@@ -1271,25 +1442,54 @@ export class ShopService {
       );
     });
 
+    const clientId = this.configService.get<string>('NAVER_PAY_CLIENT_ID');
+    const chainId = this.configService.get<string>('NAVER_PAY_CHAIN_ID');
+    if (!clientId || !chainId) {
+      throw new BadRequestException(
+        '서버 환경설정에 NAVER_PAY_CLIENT_ID/NAVER_PAY_CHAIN_ID가 필요합니다.',
+      );
+    }
+
     return {
-      orderId: orderNumber, // Toss의 orderId (우리는 orderNumber로 사용)
-      orderName,
-      amount: total, // KRW int
-      widgetClientKey,
-      customerKey: userId,
-      successUrl,
-      failUrl,
+      mode: this.getNaverSdkMode(),
+      clientId,
+      chainId,
+      merchantUserKey: userId,
+      merchantPayKey: orderNumber,
+      productName: orderName,
+      productCount: cartItems.reduce((sum, item) => {
+        const purchaseQty = purchaseQtyFor(item.id, item.quantity);
+        return purchaseQty > 0 ? sum + purchaseQty : sum;
+      }, 0),
+      totalPayAmount: total,
+      taxScopeAmount: total,
+      taxExScopeAmount: 0,
+      returnUrl: `${frontUrl}/checkout/success?merchantPayKey=${encodeURIComponent(orderNumber)}`,
+      productItems: cartItems
+        .map((item) => {
+          const purchaseQty = purchaseQtyFor(item.id, item.quantity);
+          if (purchaseQty <= 0) return null;
+          return {
+            categoryType: 'ETC',
+            categoryId: 'ETC',
+            uid: item.productId,
+            name: item.product.name,
+            payReferrer: 'ETC',
+            count: purchaseQty,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
     };
   }
 
-  async confirmTossPaymentAndFinalizeOrder(
+  async confirmNaverPaymentAndFinalizeOrder(
     userId: string,
-    params: { paymentKey: string; orderId: string; amount: number },
+    params: { paymentId: string; merchantPayKey: string },
   ) {
-    const { paymentKey, orderId, amount } = params;
+    const { paymentId, merchantPayKey } = params;
     const order = await this.db.query.orders.findFirst({
       where: and(
-        eq(schema.orders.orderNumber, orderId),
+        eq(schema.orders.orderNumber, merchantPayKey),
         eq(schema.orders.userId, userId),
       ),
       with: {
@@ -1305,65 +1505,49 @@ export class ShopService {
       return { orderNumber: order.orderNumber, status: order.status };
     }
 
-    if (order.total !== amount) {
-      throw new BadRequestException(
-        '결제 금액이 주문 금액과 일치하지 않습니다.',
-      );
-    }
-
-    const secretKey = this.configService.get<string>('TOSS_SECRET_KEY');
-    if (!secretKey) {
-      throw new BadRequestException(
-        '서버 환경설정에 TOSS_SECRET_KEY가 없습니다.',
-      );
-    }
-
-    const basicAuth = Buffer.from(`${secretKey}:`).toString('base64');
-
+    const apiBase = this.getNaverApiBaseUrl();
+    const applyPayload = new URLSearchParams({
+      paymentId,
+    });
     const paymentRes = await fetch(
-      'https://api.tosspayments.com/v1/payments/confirm',
+      `${apiBase}/naverpay-partner/naverpay/payments/v2.2/apply/payment`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${basicAuth}`,
-        },
-        body: JSON.stringify({
-          paymentKey,
-          orderId,
-          amount,
+        headers: this.getNaverHeaders({
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-NaverPay-Idempotency-Key': `apply-${paymentId}`,
         }),
+        body: applyPayload.toString(),
       },
     );
-
     if (!paymentRes.ok) {
-      const errorBody = await paymentRes.json().catch(() => null);
-      const tossCode =
-        errorBody && typeof errorBody === 'object'
-          ? (errorBody as { code?: unknown }).code
-          : undefined;
-      const tossMessage =
-        errorBody && typeof errorBody === 'object'
-          ? (errorBody as { message?: unknown }).message
-          : undefined;
-
-      // 동일 paymentKey/orderId로 confirm이 동시에 여러 번 호출되면
-      // Toss에서 "이미 처리중" 응답을 줄 수 있습니다.
-      if (tossCode === 'ALREADY_PROCESSING_REQUEST') {
-        return { orderNumber: order.orderNumber, status: order.status };
-      }
-
-      const text = typeof tossMessage === 'string' ? tossMessage : '';
-
+      throw new BadRequestException('네이버페이 결제 승인에 실패했습니다.');
+    }
+    const paymentData = (await paymentRes.json()) as {
+      code?: string;
+      message?: string;
+      body?: {
+        detail?: {
+          merchantPayKey?: string;
+          totalPayAmount?: number;
+        };
+      };
+    };
+    if (paymentData.code !== 'Success') {
       throw new BadRequestException(
-        `토스 결제 확인에 실패했습니다.${text ? ` ${text}` : ''}`,
+        `네이버페이 결제 승인에 실패했습니다.${paymentData.message ? ` ${paymentData.message}` : ''}`,
       );
     }
-
-    const paymentData: { status?: string } = await paymentRes.json();
-    if (paymentData.status && paymentData.status !== 'DONE') {
+    const approvedOrderNumber = paymentData.body?.detail?.merchantPayKey;
+    if (!approvedOrderNumber || approvedOrderNumber !== order.orderNumber) {
       throw new BadRequestException(
-        `결제가 완료되지 않았습니다. 상태: ${paymentData.status}`,
+        '승인된 결제 정보가 주문 정보와 일치하지 않습니다.',
+      );
+    }
+    const approvedAmount = paymentData.body?.detail?.totalPayAmount;
+    if (typeof approvedAmount !== 'number' || approvedAmount !== order.total) {
+      throw new BadRequestException(
+        '결제 금액이 주문 금액과 일치하지 않습니다.',
       );
     }
 
@@ -1430,9 +1614,9 @@ export class ShopService {
         }
 
         // cart 수량이 주문 수량보다 작거나 같으면 행 자체를 삭제
-        await tx.delete(schema.cartItems).where(
-          and(baseCond, lte(schema.cartItems.quantity, oi.quantity)),
-        );
+        await tx
+          .delete(schema.cartItems)
+          .where(and(baseCond, lte(schema.cartItems.quantity, oi.quantity)));
 
         // cart 수량이 더 많으면 주문 수량만큼만 차감
         await tx
@@ -1499,6 +1683,9 @@ export class ShopService {
       await tx
         .delete(schema.cartItems)
         .where(eq(schema.cartItems.productId, id));
+      await tx
+        .delete(schema.productRestockSubscriptions)
+        .where(eq(schema.productRestockSubscriptions.productId, id));
 
       const [deleted] = await tx
         .delete(schema.products)

@@ -17,6 +17,7 @@ import { RegisterPage } from '@/features/auth/page/RegisterPage'
 import { AdminPage } from '@/features/admin/page/Page'
 import { TermsPage } from '@/features/legal/page/TermsPage'
 import { PrivacyPage } from '@/features/legal/page/PrivacyPage'
+import { BusinessInfoPage } from '@/features/legal/page/BusinessInfoPage'
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'contact', element: <ContactPage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'business-info', element: <BusinessInfoPage /> },
       { path: 'cart', element: <CartPage /> },
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'checkout/success', element: <CheckoutSuccessPage /> },

@@ -1,0 +1,80 @@
+# NaverPay Developer center
+
+> NaverPay Developer center provides API documents, design guidelines, and technical support for developers.
+
+
+## docs
+
+
+### ai-solutions
+
+- [LLM 으로 네이버페이 연동](https://docs.pay.naver.com/docs/ai-solutions/llms.md): 이 문서는 네이버페이 LLM 지원에 대해 안내합니다.
+- [Model Context Protocol](https://docs.pay.naver.com/docs/ai-solutions/mcp.md): 이 문서는 네이버페이 MCP 지원에 대해 안내합니다.
+
+### common
+
+- [인증](https://docs.pay.naver.com/docs/common/authentication.md): 이 문서는 네이버페이 API 인증 방식과 요청 헤더 구성 방법을 안내합니다.
+- [하위 호환성](https://docs.pay.naver.com/docs/common/backward-compatibility.md): 이 문서는 네이버페이 API의 하위 호환성 정책과 변경 기준을 안내합니다.
+- [변경 이력](https://docs.pay.naver.com/docs/common/change-log.md): 이 문서는 네이버페이 API의 변경 이력과 주요 업데이트 사항을 안내합니다.
+- [방화벽](https://docs.pay.naver.com/docs/common/firewall.md): 이 문서는 네이버페이 API 연동 시 필요한 방화벽 설정 방법을 안내합니다.
+- [HTTP Status Code](https://docs.pay.naver.com/docs/common/http-status-code.md): 이 문서는 네이버페이 API에서 사용하는 HTTP 상태 코드와 의미를 안내합니다.
+- [API 멱등성](https://docs.pay.naver.com/docs/common/idempotency.md): 이 문서는 네이버페이 API의 멱등성 처리 방식과 관련 헤더 사용법을 안내합니다.
+- [온라인 결제 연동 개요](https://docs.pay.naver.com/docs/common/online-payment-overview.md): 이 문서는 온라인 결제 연동의 전체적인 개요와 주요 흐름을 안내합니다.
+- [플랫폼 지원환경](https://docs.pay.naver.com/docs/common/platform-support.md): 이 문서는 네이버페이 API의 지원 플랫폼 및 브라우저 환경을 안내합니다.
+- [기본 응답 형식](https://docs.pay.naver.com/docs/common/response-format.md): 이 문서는 네이버페이 API의 기본 응답 데이터 구조와 예시를 안내합니다.
+- [API URL 형식](https://docs.pay.naver.com/docs/common/url-format.md): 이 문서는 네이버페이 API의 URL 형식과 호출 규칙을 안내합니다.
+
+### more-information
+
+- [지원 은행 정보](https://docs.pay.naver.com/docs/more-information/bank-code.md): 지원 은행 코드 및 은행명 정보를 안내합니다.
+- [지원 카드 정보](https://docs.pay.naver.com/docs/more-information/card-code.md): 지원 카드사 코드 및 카드사명 정보를 안내합니다.
+- [차액정산 요청](https://docs.pay.naver.com/docs/more-information/difference-settlement/difference-apply.md): 차액정산 요청 API 및 사용 예시를 안내합니다.
+- [차액 정산 접수 결과조회](https://docs.pay.naver.com/docs/more-information/difference-settlement/difference-apply-result.md): 차액 정산 접수 결과 조회 API 및 사용 예시를 안내합니다.
+- [차액 정산 처리 결과조회](https://docs.pay.naver.com/docs/more-information/difference-settlement/difference-processing-result.md): 차액 정산 처리 결과 조회 API 및 안내 정보를 제공합니다.
+- [개요 및 흐름](https://docs.pay.naver.com/docs/more-information/difference-settlement/difference-settlement-overview.md): 차액 정산의 개요 및 전체 흐름을 안내합니다.
+- [하부 가맹점 등록](https://docs.pay.naver.com/docs/more-information/difference-settlement/difference-submalls.md): 하부 가맹점(서브몰) 등록/수정 API 및 안내 정보를 제공합니다.
+- [단건결제 예약](https://docs.pay.naver.com/docs/more-information/non-sdk-integration/onetime-payment-reserve.md): 결제예약을 수행하고 결제예약 ID를 반환합니다.
+- [결제창 호출](https://docs.pay.naver.com/docs/more-information/non-sdk-integration/payment-window-call.md): 결제창 호출 및 네이버 로그인 연동에 관한 내용
+- [자동결제 등록창 호출](https://docs.pay.naver.com/docs/more-information/non-sdk-integration/recurrent-payment-auth-window.md): 자동결제 등록 창을 호출하며, 자동결제 등록 예약 응답으로 받은 등록예약번호(reserveId)를 사용합니다. 자동결제 등록 창은 사용자가 네이버에 로그인되어 있지 않은 경우 네이버 로그인 페이지로 유도하는 기능을 제공합니다.
+- [자동결제 등록 예약](https://docs.pay.naver.com/docs/more-information/non-sdk-integration/recurrent-regist-reserve.md): 네이버페이 자동결제 등록예약 요청 API 문서
+- [상품 상세 정보](https://docs.pay.naver.com/docs/more-information/product-item.md): 결제 상품의 유형, 분류, 식별값에 대한 상세 정보를 안내합니다.
+- [보안 가이드](https://docs.pay.naver.com/docs/more-information/security.md): 네이버페이 결제 연동 시 필요한 보안 가이드와 검증 항목을 안내합니다.
+
+### onetime-payment
+
+- [현금영수증 금액 조회](https://docs.pay.naver.com/docs/onetime-payment/additional/cash-receipt.md): 현금영수증 금액 조회 API 문서입니다.
+- [포인트 적립 요청](https://docs.pay.naver.com/docs/onetime-payment/additional/naver-point-accumulate.md): 포인트 적립 요청 API 문서입니다.
+- [결제 내역 조회](https://docs.pay.naver.com/docs/onetime-payment/additional/payments_history.md): 결제 내역 조회 API 문서입니다.
+- [거래 완료](https://docs.pay.naver.com/docs/onetime-payment/additional/purchase-confirm.md): 거래 완료(구매확정) API 문서입니다.
+- [정산 내역 조회](https://docs.pay.naver.com/docs/onetime-payment/additional/settle-info.md): 정산 내역 조회 API 문서입니다.
+- [개요](https://docs.pay.naver.com/docs/onetime-payment/onetime-payment-overview.md): 네이버페이 단건결제의 전체 결제 흐름과 개요를 설명합니다.
+- [단건 결제 승인](https://docs.pay.naver.com/docs/onetime-payment/payment/apply.md): 단건 결제 승인 API 문서입니다.
+- [단건 결제 취소](https://docs.pay.naver.com/docs/onetime-payment/payment/cancel.md): 네이버페이 단건결제 취소 API 문서입니다.
+- [결제창 호출](https://docs.pay.naver.com/docs/onetime-payment/payment/payment-auth-window.md): 결제창 호출 방법 및 안내 문서입니다.
+
+### recurrent-payment
+
+- [현금영수증 금액 조회](https://docs.pay.naver.com/docs/recurrent-payment/additional/cash-receipt.md): 네이버페이 자동결제 현금영수증 금액 조회 API 문서입니다.
+- [포인트 적립 요청](https://docs.pay.naver.com/docs/recurrent-payment/additional/naver-point-accumulate.md): 네이버페이 자동결제 포인트 적립 요청 API 문서입니다.
+- [결제 내역 조회](https://docs.pay.naver.com/docs/recurrent-payment/additional/payments_history.md): 네이버페이 자동결제 결제 내역 조회 API 문서입니다.
+- [거래 완료](https://docs.pay.naver.com/docs/recurrent-payment/additional/purchase-confirm.md): 네이버페이 자동결제 거래 완료(구매확정) API 문서입니다.
+- [정산 내역 조회](https://docs.pay.naver.com/docs/recurrent-payment/additional/settle-info.md)
+- [자동결제 등록 해지](https://docs.pay.naver.com/docs/recurrent-payment/binding/recurrent-expire-request.md): 네이버페이 자동결제 등록 해지 API 문서입니다.
+- [자동결제 등록 내역 조회](https://docs.pay.naver.com/docs/recurrent-payment/binding/recurrent-regist-list.md): 네이버페이 자동결제 등록 내역 조회 API 문서입니다.
+- [자동결제 등록창 호출](https://docs.pay.naver.com/docs/recurrent-payment/binding/recurrent-register.md): 네이버페이 자동결제 등록창 호출 및 연동 방법 안내 문서입니다.
+- [자동결제 등록 완료](https://docs.pay.naver.com/docs/recurrent-payment/binding/recurrent-register-approval.md): 네이버페이 자동결제 등록 완료 API 문서입니다.
+- [자동결제 승인](https://docs.pay.naver.com/docs/recurrent-payment/payment/recurrent-pay-approval.md): 네이버페이 자동결제 승인 API 문서입니다.
+- [자동결제 예약](https://docs.pay.naver.com/docs/recurrent-payment/payment/recurrent-pay-reserve.md): 네이버페이 자동결제 예약 API 문서입니다.
+- [자동결제 취소](https://docs.pay.naver.com/docs/recurrent-payment/payment/recurrent-payment-cancel.md): 네이버페이 자동결제 취소 API 문서입니다.
+- [개요](https://docs.pay.naver.com/docs/recurrent-payment/recurrent-payment-overview.md): 네이버페이 자동결제의 전체 개요와 등록 흐름을 안내합니다.
+
+### settlement
+
+- [차액 정산 내역 조회](https://docs.pay.naver.com/docs/settlement/difference-settlement-api/difference-settle.md): 차액 정산 내역 조회 API 문서입니다.
+- [우대수수료 환급 내역 조회](https://docs.pay.naver.com/docs/settlement/preferential-commission-api/preferential-commission.md): 우대수수료 환급 내역 조회 API 문서입니다.
+- [수수료 상세 내역 조회](https://docs.pay.naver.com/docs/settlement/settlement-api/commission-details.md): 수수료 상세 내역 조회 API 문서입니다.
+- [일별 정산 내역 조회](https://docs.pay.naver.com/docs/settlement/settlement-api/daily-settle.md): 일별 정산 내역 조회 API 문서입니다.
+- [건별 정산 내역 조회](https://docs.pay.naver.com/docs/settlement/settlement-api/settle-by-case.md): 건별 정산 내역 조회 API 문서입니다.
+- [개요](https://docs.pay.naver.com/docs/settlement/settlement-overview.md): 네이버페이 정산의 전체 흐름과 개요를 설명합니다.
+- [일별 부가세 신고 내역 조회](https://docs.pay.naver.com/docs/settlement/vat-declaration-api/daily-vat-declaration.md): 일별 부가세 신고 내역 조회 API 문서입니다.
+- [건별 부가세 신고 내역 조회](https://docs.pay.naver.com/docs/settlement/vat-declaration-api/vat-declaration-by-case.md): 건별 부가세 신고 내역 조회 API 문서입니다.

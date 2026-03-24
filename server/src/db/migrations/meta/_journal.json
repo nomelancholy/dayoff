@@ -50,6 +50,13 @@
       "when": 1774012900000,
       "tag": "0006_add_stock_quantity_to_products",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1774030000000,
+      "tag": "0007_add_product_restock_subscriptions",
+      "breakpoints": true
     }
   ]
 }

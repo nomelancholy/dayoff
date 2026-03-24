@@ -2,41 +2,51 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { isAxiosError } from 'axios'
-import { createTossCheckout, type CreateTossCheckoutResponse } from '../api/checkout'
+import { createNaverCheckout, type CreateNaverCheckoutResponse } from '../api/checkout'
 import {
   fetchAddresses,
-  fetchMe,
   getStoredToken,
   getApiErrorMessage,
 } from '@/features/auth/api/auth'
 import { fetchCartItems } from '@/features/shop/api/shop'
 import { isOutOfDeliveryPostalCode } from '@/common/lib/outOfDeliveryAreas'
 
-type TossWidgets = {
-  setAmount: (params: { currency: string; value: number }) => Promise<void>
-  renderPaymentMethods: (params: {
-    selector: string
-    variantKey: string
-  }) => Promise<unknown>
-  renderAgreement: (params: { selector: string; variantKey: string }) => Promise<unknown>
-  requestPayment: (params: {
-    orderId: string
-    orderName: string
-    successUrl: string
-    failUrl: string
-    customerEmail?: string
-    customerName?: string
-    customerMobilePhone?: string
-  }) => Promise<void>
+type NaverPay = {
+  open: (params: {
+    merchantUserKey: string
+    merchantPayKey: string
+    productName: string
+    productCount: number
+    totalPayAmount: number
+    taxScopeAmount: number
+    taxExScopeAmount: number
+    returnUrl: string
+    productItems: Array<{
+      categoryType: string
+      categoryId: string
+      uid: string
+      name: string
+      payReferrer: string
+      count: number
+    }>
+  }) => void
 }
 
-type TossPaymentsFactory = (clientKey: string) => {
-  widgets: (params: { customerKey: string }) => TossWidgets
+type NaverPayFactory = {
+  create: (params: {
+    mode: 'development' | 'production'
+    payType: 'normal'
+    clientId: string
+    chainId: string
+    openType: 'page'
+  }) => NaverPay
 }
 
 declare global {
   interface Window {
-    TossPayments?: TossPaymentsFactory
+    Naver?: {
+      Pay: NaverPayFactory
+    }
   }
 }
 
@@ -67,21 +77,21 @@ function toCheckoutPageErrorMessage(err: unknown): string {
   return candidate
 }
 
-function loadTossScript() {
-  const existing = document.getElementById('tosspayments-sdk')
+function loadNaverPayScript() {
+  const existing = document.getElementById('naverpay-sdk')
   if (existing) {
-    if (window.TossPayments) return Promise.resolve()
+    if (window.Naver?.Pay) return Promise.resolve()
     // 스크립트 태그는 남아있지만 객체가 안 올라온 케이스(부분 로드)를 대비
     existing.remove()
   }
 
   return new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
-    script.id = 'tosspayments-sdk'
-    script.src = 'https://js.tosspayments.com/v2/standard'
+    script.id = 'naverpay-sdk'
+    script.src = 'https://nsp.pay.naver.com/sdk/js/naverpay.min.js'
     script.async = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('TossPayments SDK 로드 실패'))
+    script.onerror = () => reject(new Error('NaverPay SDK 로드 실패'))
     document.body.appendChild(script)
   })
 }
@@ -101,12 +111,6 @@ export const CheckoutPage = () => {
   const cartItemIds = state?.cartItemIds ?? []
   const cartItemQuantities = state?.cartItemQuantities
 
-  const { data: me } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: fetchMe,
-    enabled: !!token,
-  })
-
   const {
     data: addresses,
     isLoading: addressesLoading,
@@ -120,13 +124,13 @@ export const CheckoutPage = () => {
     refetchOnMount: true,
   })
 
-  const [initData, setInitData] = useState<CreateTossCheckoutResponse | null>(null)
+  const [initData, setInitData] = useState<CreateNaverCheckoutResponse | null>(null)
   const [widgetsReady, setWidgetsReady] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
   const [initRetryNonce, setInitRetryNonce] = useState(0)
 
-  const widgetsRef = useRef<TossWidgets | null>(null)
+  const naverPayRef = useRef<NaverPay | null>(null)
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const didAutoRedirectToAddressRef = useRef(false)
   const lastCreateKeyRef = useRef<string | null>(null)
@@ -178,7 +182,7 @@ export const CheckoutPage = () => {
           '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.',
         )
       }
-      return createTossCheckout({
+      return createNaverCheckout({
         couponCode,
         cartItemIds,
         cartItemQuantities,
@@ -229,7 +233,7 @@ export const CheckoutPage = () => {
     setPageError(null)
     setInitData(null)
     setWidgetsReady(false)
-    widgetsRef.current = null
+    naverPayRef.current = null
     createMutation.mutate()
   }, [
     token,
@@ -283,61 +287,28 @@ export const CheckoutPage = () => {
     let cancelled = false
     setPageError(null)
     setWidgetsReady(false)
-    widgetsRef.current = null
+    naverPayRef.current = null
     ;(async () => {
       try {
-        await loadTossScript()
+        await loadNaverPayScript()
         if (cancelled) return
-        if (!window.TossPayments) {
-          throw new Error('TossPayments 객체가 없습니다.')
+        if (!window.Naver?.Pay) {
+          throw new Error('Naver.Pay 객체가 없습니다.')
         }
-
-        const tossPayments = window.TossPayments(initData.widgetClientKey)
-        const widgets = tossPayments.widgets({ customerKey: initData.customerKey })
-
-        await widgets.setAmount({
-          currency: 'KRW',
-          value: initData.amount,
+        const naverPay = window.Naver.Pay.create({
+          mode: initData.mode,
+          payType: 'normal',
+          clientId: initData.clientId,
+          chainId: initData.chainId,
+          openType: 'page',
         })
 
-        let paymentMethodsOk = false
-        let agreementOk = false
-
-        try {
-          await widgets.renderPaymentMethods({
-            selector: '#tosspayment-method',
-            variantKey: 'DEFAULT',
-          })
-          paymentMethodsOk = true
-        } catch (err) {
-          // 결제 수단 렌더가 안 되면 의미가 없지만, agreement는 실패해도 결제 수단은 보일 수 있음
-          console.error('renderPaymentMethods error:', err)
-        }
-
-        try {
-          await widgets.renderAgreement({
-            selector: '#tosspayment-agreement',
-            variantKey: 'AGREEMENT',
-          })
-          agreementOk = true
-        } catch (err) {
-          console.error('renderAgreement error:', err)
-        }
-
-        widgetsRef.current = widgets
-        // 결제 수단이 정상 렌더됐으면 페이지 상단 배너는 표시하지 않음
-        setWidgetsReady(paymentMethodsOk)
-        if (!paymentMethodsOk) {
-          throw new Error(
-            '결제 수단(UI) 렌더에 실패했습니다. 다시 시도해 주세요.',
-          )
-        }
-        // agreement만 실패한 경우엔 배너를 띄우지 않고 결제 수단만 제공
-        if (!agreementOk) setPageError(null)
+        naverPayRef.current = naverPay
+        setWidgetsReady(true)
       } catch (err) {
         if (cancelled) return
         const extra = err instanceof Error ? ` (${err.message})` : ''
-        console.error('Toss widget init error:', err)
+        console.error('NaverPay init error:', err)
         setPageError(
           getApiErrorMessage(
             err,
@@ -354,21 +325,23 @@ export const CheckoutPage = () => {
 
   const handleRequestPayment = async () => {
     if (!initData) return
-    if (!widgetsRef.current) return
+    if (!naverPayRef.current) return
     if (!widgetsReady) return
 
     setRequesting(true)
     setPageError(null)
 
     try {
-      await widgetsRef.current.requestPayment({
-        orderId: initData.orderId,
-        orderName: initData.orderName,
-        successUrl: initData.successUrl,
-        failUrl: initData.failUrl,
-        customerEmail: me?.email ?? undefined,
-        customerName: me?.fullName ?? undefined,
-        customerMobilePhone: me?.phone ?? undefined,
+      naverPayRef.current.open({
+        merchantUserKey: initData.merchantUserKey,
+        merchantPayKey: initData.merchantPayKey,
+        productName: initData.productName,
+        productCount: initData.productCount,
+        totalPayAmount: initData.totalPayAmount,
+        taxScopeAmount: initData.taxScopeAmount,
+        taxExScopeAmount: initData.taxExScopeAmount,
+        returnUrl: initData.returnUrl,
+        productItems: initData.productItems,
       })
     } catch (err) {
       setPageError(
@@ -404,7 +377,7 @@ export const CheckoutPage = () => {
             결제
           </h1>
           <p className="mt-3 text-[0.95rem] text-dot-secondary">
-            토스페이먼츠로 안전하게 결제하세요.
+            네이버페이로 안전하게 결제하세요.
           </p>
         </header>
 
@@ -529,18 +502,6 @@ export const CheckoutPage = () => {
                 </div>
               )}
 
-              <h2 className="mono mb-5 text-[0.85rem] tracking-[0.12em] text-dot-primary">
-                결제 수단
-              </h2>
-              <div id="tosspayment-method" />
-
-              <div className="mt-8">
-                <h2 className="mono mb-5 text-[0.85rem] tracking-[0.12em] text-dot-primary">
-                  이용약관
-                </h2>
-                <div id="tosspayment-agreement" />
-              </div>
-
               <button
                 type="button"
                 onClick={handleRequestPayment}
@@ -558,7 +519,7 @@ export const CheckoutPage = () => {
               <div className="space-y-3 text-[0.95rem] text-dot-secondary">
                 <div className="flex justify-between">
                   <span>상품</span>
-                  <span className="text-dot-primary">{initData.orderName}</span>
+                  <span className="text-dot-primary">{initData.productName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>상품 소계</span>
@@ -585,7 +546,7 @@ export const CheckoutPage = () => {
                 <div className="flex justify-between pt-3 border-t border-[#eee]">
                   <span>총액</span>
                   <span className="text-dot-primary">
-                    ₩{initData.amount.toLocaleString('ko-KR')}
+                    ₩{initData.totalPayAmount.toLocaleString('ko-KR')}
                   </span>
                 </div>
               </div>

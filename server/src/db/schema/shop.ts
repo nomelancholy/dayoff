@@ -1,4 +1,11 @@
-import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { users } from './users';
 import { products, productOptions } from './products';
@@ -122,3 +129,40 @@ export const productQaRelations = relations(productQa, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+/** 상품 재입고 알림 신청 */
+export const productRestockSubscriptions = pgTable(
+  'product_restock_subscriptions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userProductUnique: uniqueIndex('restock_subscriptions_user_product_idx').on(
+      table.userId,
+      table.productId,
+    ),
+  }),
+);
+
+export const productRestockSubscriptionsRelations = relations(
+  productRestockSubscriptions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [productRestockSubscriptions.userId],
+      references: [users.id],
+    }),
+    product: one(products, {
+      fields: [productRestockSubscriptions.productId],
+      references: [products.id],
+    }),
+  }),
+);

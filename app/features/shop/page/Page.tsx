@@ -117,22 +117,37 @@ export const ShopPage = () => {
           </div>
         ) : productList.length > 0 ? (
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:gap-x-8 md:gap-y-16 lg:grid-cols-3">
-            {productList.map((product) => (
+            {productList.map((product) => {
+              const isSoldOut = product.stockQuantity <= 0
+              return (
               <Link
                 key={product.id}
                 to={`/shop/${product.slug}`}
-                className="group block text-inherit no-underline transition-opacity duration-400 hover:opacity-90"
+                className={cn(
+                  'group block text-inherit no-underline transition-opacity duration-400',
+                  isSoldOut ? 'opacity-70 hover:opacity-80' : 'hover:opacity-90'
+                )}
               >
                 <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2]">
                   {product.images && product.images[0] ? (
                     <img
                       src={product.images[0].url}
                       alt={product.images[0].alt || product.name}
-                      className="h-full w-full object-cover transition-transform duration-[0.6s] ease-dot group-hover:scale-105"
+                      className={cn(
+                        'h-full w-full object-cover transition-transform duration-[0.6s] ease-dot',
+                        isSoldOut
+                          ? 'grayscale-[0.6] contrast-[0.9]'
+                          : 'group-hover:scale-105'
+                      )}
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center text-[9px] uppercase tracking-widest text-[#ccc]">
                       No Image
+                    </div>
+                  )}
+                  {isSoldOut && (
+                    <div className="absolute left-3 top-3 rounded-sm bg-black/80 px-2.5 py-1 text-[0.62rem] font-medium tracking-[0.12em] text-white">
+                      SOLD OUT
                     </div>
                   )}
                 </div>
@@ -150,7 +165,8 @@ export const ShopPage = () => {
                   </span>
                 </div>
               </Link>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div className="py-20 text-center text-dot-secondary">

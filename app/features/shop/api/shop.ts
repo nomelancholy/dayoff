@@ -124,6 +124,18 @@ export async function fetchProduct(id: string): Promise<Product> {
   return apiClient.get(`/shop/products/${id}`)
 }
 
+export async function fetchMyRestockNotificationStatus(
+  productId: string
+): Promise<{ subscribed: boolean }> {
+  return apiClient.get(`/shop/products/${productId}/restock-notifications/me`)
+}
+
+export async function subscribeRestockNotification(
+  productId: string
+): Promise<{ subscribed: boolean }> {
+  return apiClient.post(`/shop/products/${productId}/restock-notifications`)
+}
+
 /** 내가 작성한 구매평 목록 (Order History용) */
 export interface MyReviewItem {
   id: string

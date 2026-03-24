@@ -4,6 +4,7 @@ import { render } from '@react-email/render';
 import * as React from 'react';
 import {
   OrderPaidEmail,
+  ProductRestockedEmail,
   OrderShippedEmail,
   WelcomeEmail,
 } from './email.templates';
@@ -179,6 +180,37 @@ export class EmailService {
       await this.sendEmail({ to: params.to, subject, html, text });
     } catch (err) {
       console.error('[mail] shipped email failed', err);
+    }
+  }
+
+  async sendProductRestockedEmail(params: {
+    to: string;
+    name?: string | null;
+    productName: string;
+    productSlug: string;
+  }) {
+    const displayName = params.name?.trim() || '고객';
+    const subject = `[디오티] 요청하신 상품이 재입고되었습니다`;
+    const productUrl = `${this.frontendUrl}/shop/${params.productSlug}`;
+    const html = await render(
+      React.createElement(ProductRestockedEmail, {
+        displayName,
+        productName: params.productName,
+        productUrl,
+      }),
+    );
+    const text = [
+      `${displayName}님이 알림 신청하신 상품이 재입고되었습니다.`,
+      `상품명: ${params.productName}`,
+      `상품 보러 가기: ${productUrl}`,
+      '',
+      '재입고 알림 신청은 발송 후 자동으로 초기화됩니다.',
+    ].join('\n');
+
+    try {
+      await this.sendEmail({ to: params.to, subject, html, text });
+    } catch (err) {
+      console.error('[mail] restocked email failed', err);
     }
   }
 }

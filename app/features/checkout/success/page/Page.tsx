@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { confirmTossPayment } from '../../api/checkout'
+import { confirmNaverPayment } from '../../api/checkout'
 import { getApiErrorMessage, getStoredToken } from '@/features/auth/api/auth'
 
 export const CheckoutSuccessPage = () => {
@@ -9,12 +9,12 @@ export const CheckoutSuccessPage = () => {
   const [params] = useSearchParams()
   const navigate = useNavigate()
 
-  const paymentKey = params.get('paymentKey') ?? ''
-  const orderId = params.get('orderId') ?? ''
-  const amountRaw = params.get('amount')
-  const amount = amountRaw ? Number(amountRaw) : NaN
+  const resultCode = params.get('resultCode') ?? ''
+  const paymentId = params.get('paymentId') ?? ''
+  const merchantPayKey = params.get('merchantPayKey') ?? ''
 
-  const canConfirm = token && paymentKey && orderId && Number.isFinite(amount)
+  const canConfirm =
+    token && resultCode === 'Success' && paymentId && merchantPayKey
 
   const didConfirmRef = useRef(false)
   const [confirmedResult, setConfirmedResult] = useState<
@@ -27,10 +27,9 @@ export const CheckoutSuccessPage = () => {
 
   const confirmMutation = useMutation({
     mutationFn: () =>
-      confirmTossPayment({
-        paymentKey,
-        orderId,
-        amount,
+      confirmNaverPayment({
+        paymentId,
+        merchantPayKey,
       }),
     onSuccess: (data) => {
       setConfirmedResult({
@@ -89,7 +88,7 @@ export const CheckoutSuccessPage = () => {
           결제 정보를 불러오지 못했습니다
         </h1>
         <p className="mt-6 text-[0.95rem] text-dot-secondary">
-          브라우저에서 결제 완료 페이지를 다시 열어주세요.
+          결제 결과가 정상이 아니거나 필수 정보가 누락되었습니다.
         </p>
         <Link
           to="/account"

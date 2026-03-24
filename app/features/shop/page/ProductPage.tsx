@@ -7,6 +7,8 @@ import {
   fetchProduct,
   addToCart,
   deleteMyReview,
+  fetchMyRestockNotificationStatus,
+  subscribeRestockNotification,
   type ProductReview,
   type ProductReviewImage,
 } from '../api/shop'
@@ -138,6 +140,33 @@ export const ShopProductPage = () => {
   const showToast = useUiStore((s) => s.showToast)
   const hasOptions = !!(product?.options && product.options.length > 0)
   const isSoldOut = (product?.stockQuantity ?? 0) <= 0
+  const { data: restockStatus } = useQuery({
+    queryKey: ['shop', 'restock-notification', product?.id, user?.id],
+    queryFn: () => fetchMyRestockNotificationStatus(product!.id),
+    enabled: !!token && !!user?.id && !!product?.id && isSoldOut,
+  })
+
+  const restockMutation = useMutation({
+    mutationFn: () => subscribeRestockNotification(product!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['shop', 'restock-notification', product?.id, user?.id],
+      })
+      showToast({
+        variant: 'success',
+        message: '재입고 알림 메일 신청이 완료되었습니다.',
+      })
+    },
+    onError: (err: unknown) => {
+      const message = isAxiosError(err)
+        ? err.response?.data?.message
+        : undefined
+      showToast({
+        variant: 'warning',
+        message: message || '재입고 알림 신청에 실패했습니다.',
+      })
+    },
+  })
 
   const cartMutation = useMutation({
     mutationFn: () =>
@@ -351,6 +380,11 @@ export const ShopProductPage = () => {
             <div className="mt-4 text-xl font-light text-dot-primary md:text-2xl">
               ₩{product.price.toLocaleString()}
             </div>
+            {isSoldOut && (
+              <p className="mt-3 text-sm font-medium tracking-[0.08em] text-[#8A5A44] md:text-base">
+                품절된 상품입니다. 재입고 시 다시 찾아와 주세요.
+              </p>
+            )}
             {product.description ? (
               <p className="mt-12 whitespace-pre-line text-base font-light leading-relaxed text-dot-secondary md:text-lg">
                 {product.description}
@@ -435,6 +469,33 @@ export const ShopProductPage = () => {
                   </button>
                 </div>
               </div>
+              {isSoldOut && (
+                <div className="mb-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!getStoredToken()) {
+                        showToast({
+                          variant: 'warning',
+                          message: '로그인 후 재입고 알림을 신청할 수 있습니다.',
+                        })
+                        navigate('/login')
+                        return
+                      }
+                      if (restockStatus?.subscribed) return
+                      restockMutation.mutate()
+                    }}
+                    disabled={restockMutation.isPending || !!restockStatus?.subscribed}
+                    className="mono w-full border border-[#1f1f1f] bg-[#1f1f1f] px-5 py-3 text-sm tracking-[0.08em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70 md:py-4 md:text-base"
+                  >
+                    {restockStatus?.subscribed
+                      ? '재입고 알림 신청 완료'
+                      : restockMutation.isPending
+                        ? '신청 중...'
+                        : '재입고 메일 받기'}
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <button
                   type="button"

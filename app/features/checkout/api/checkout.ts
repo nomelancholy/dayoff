@@ -1,32 +1,45 @@
 import apiClient from '@/common/lib/apiClient'
 
-export interface CreateTossCheckoutResponse {
-  orderId: string
-  orderName: string
-  amount: number
-  widgetClientKey: string
-  customerKey: string
-  successUrl: string
-  failUrl: string
+export interface NaverProductItem {
+  categoryType: string
+  categoryId: string
+  uid: string
+  name: string
+  payReferrer: string
+  count: number
 }
 
-export interface ConfirmTossPaymentResponse {
+export interface CreateNaverCheckoutResponse {
+  mode: 'development' | 'production'
+  clientId: string
+  chainId: string
+  merchantUserKey: string
+  merchantPayKey: string
+  productName: string
+  productCount: number
+  totalPayAmount: number
+  taxScopeAmount: number
+  taxExScopeAmount: number
+  returnUrl: string
+  productItems: NaverProductItem[]
+}
+
+export interface ConfirmNaverPaymentResponse {
   orderNumber: string
   status: 'paid' | string
 }
 
-export interface ConfirmTossPaymentRequest {
-  paymentKey: string
-  orderId: string
-  amount: number
+export interface ConfirmNaverPaymentRequest {
+  paymentId: string
+  merchantPayKey: string
 }
 
-export async function createTossCheckout(params: {
+export async function createNaverCheckout(params: {
   couponCode?: string | null
   cartItemIds: string[]
   cartItemQuantities?: number[]
   shippingAddressId: string
-}): Promise<CreateTossCheckoutResponse> {
+}): Promise<CreateNaverCheckoutResponse> {
   const payload =
     params.couponCode != null && params.couponCode.trim()
       ? {
@@ -41,14 +54,14 @@ export async function createTossCheckout(params: {
           shippingAddressId: params.shippingAddressId,
         }
 
-  return apiClient.post<CreateTossCheckoutResponse>('/shop/checkout/toss', payload)
+  return apiClient.post<CreateNaverCheckoutResponse>('/shop/checkout/naver', payload)
 }
 
-export async function confirmTossPayment(
-  payload: ConfirmTossPaymentRequest,
-): Promise<ConfirmTossPaymentResponse> {
-  return apiClient.post<ConfirmTossPaymentResponse>(
-    '/shop/checkout/toss/confirm',
+export async function confirmNaverPayment(
+  payload: ConfirmNaverPaymentRequest,
+): Promise<ConfirmNaverPaymentResponse> {
+  return apiClient.post<ConfirmNaverPaymentResponse>(
+    '/shop/checkout/naver/confirm',
     payload,
   )
 }
