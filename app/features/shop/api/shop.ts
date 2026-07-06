@@ -62,6 +62,9 @@ export interface Product {
   isActive: boolean
   purchaseNotice?: string | null
   handlingNotice?: string | null
+  shippingNotice?: string | null
+  exchangeReturnNotice?: string | null
+  careGuide?: string | null
   createdAt: string
   updatedAt: string
   category?: Category
@@ -272,6 +275,9 @@ export async function createProduct(data: {
   isActive?: boolean
   purchaseNotice?: string
   handlingNotice?: string
+  shippingNotice?: string
+  exchangeReturnNotice?: string
+  careGuide?: string
   images?: { url: string; alt?: string; sortOrder?: number }[]
   options?: { name: string; value: string; sortOrder?: number }[]
   detailImages?: { url: string; alt?: string; sortOrder?: number }[]
@@ -292,6 +298,9 @@ export async function updateProduct(
     isActive?: boolean
     purchaseNotice?: string
     handlingNotice?: string
+    shippingNotice?: string
+    exchangeReturnNotice?: string
+    careGuide?: string
     images?: { url: string; alt?: string; sortOrder?: number }[]
     options?: { name: string; value: string; sortOrder?: number }[]
     detailImages?: { url: string; alt?: string; sortOrder?: number }[]

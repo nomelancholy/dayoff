@@ -80,6 +80,10 @@ export const AdminProductPage = () => {
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [stockQuantity, setStockQuantity] = useState(String(DEFAULT_STOCK_QUANTITY))
+  const [purchaseNotice, setPurchaseNotice] = useState('')
+  const [shippingNotice, setShippingNotice] = useState('')
+  const [exchangeReturnNotice, setExchangeReturnNotice] = useState('')
+  const [careGuide, setCareGuide] = useState('')
   const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [detailImages, setDetailImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [options, setOptions] = useState([{ name: '', value: '', sortOrder: 1 }])
@@ -105,6 +109,10 @@ export const AdminProductPage = () => {
     setPrice(String(product.price))
     setCategoryId(product.categoryId)
     setStockQuantity(String(product.stockQuantity ?? DEFAULT_STOCK_QUANTITY))
+    setPurchaseNotice(product.purchaseNotice ?? '')
+    setShippingNotice(product.shippingNotice ?? '')
+    setExchangeReturnNotice(product.exchangeReturnNotice ?? '')
+    setCareGuide(product.careGuide ?? product.handlingNotice ?? '')
     setImages(
       product.images?.length
         ? product.images.map((img) => ({
@@ -179,6 +187,11 @@ export const AdminProductPage = () => {
         // 음수 재고는 허용하지 않음
         return Math.max(0, Math.floor(n))
       })(),
+      purchaseNotice,
+      shippingNotice,
+      exchangeReturnNotice,
+      careGuide,
+      handlingNotice: careGuide,
       images: images.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       detailImages: detailImages.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       options: options.filter((opt) => opt.name.trim() !== '' && opt.value.trim() !== ''),
@@ -382,6 +395,70 @@ export const AdminProductPage = () => {
                   </option>
                 ))}
               </select>
+            </label>
+          </div>
+
+          {/* Product guide accordion content */}
+          <div className="space-y-4 rounded border border-[#eee] bg-white p-5">
+            <div>
+              <h2 className="font-serif text-lg tracking-[0.08em] text-dot-primary">
+                상품별 안내 문구
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-[#888]">
+                상품 상세에서 접고 펼치는 안내 영역으로 노출됩니다.
+              </p>
+            </div>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                주의사항
+              </span>
+              <textarea
+                value={purchaseNotice}
+                onChange={(e) => setPurchaseNotice(e.target.value)}
+                rows={6}
+                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                placeholder="상품별 주의사항을 입력해 주세요."
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                배송
+              </span>
+              <textarea
+                value={shippingNotice}
+                onChange={(e) => setShippingNotice(e.target.value)}
+                rows={6}
+                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                placeholder="상품별 배송 안내를 입력해 주세요."
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                교환 반품
+              </span>
+              <textarea
+                value={exchangeReturnNotice}
+                onChange={(e) => setExchangeReturnNotice(e.target.value)}
+                rows={6}
+                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                placeholder="상품별 교환/반품 안내를 입력해 주세요."
+              />
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                케어 가이드
+              </span>
+              <textarea
+                value={careGuide}
+                onChange={(e) => setCareGuide(e.target.value)}
+                rows={6}
+                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                placeholder="상품별 케어 가이드를 입력해 주세요."
+              />
             </label>
           </div>
 

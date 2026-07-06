@@ -57,6 +57,13 @@
       "when": 1774030000000,
       "tag": "0007_add_product_restock_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774040000000,
+      "tag": "0008_product_notice_accordion_fields",
+      "breakpoints": true
     }
   ]
 }

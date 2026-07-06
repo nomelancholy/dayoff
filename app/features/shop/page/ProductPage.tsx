@@ -18,6 +18,14 @@ import { cn } from '@/common/lib/utils'
 import { ArrowLeft, ChevronDown, Pencil } from 'lucide-react'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 
+type ProductGuideKey =
+  | 'purchaseNotice'
+  | 'shippingNotice'
+  | 'exchangeReturnNotice'
+  | 'careGuide'
+
+const hasGuideText = (value?: string | null) => !!value?.trim()
+
 export const ShopProductPage = () => {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
@@ -27,9 +35,8 @@ export const ShopProductPage = () => {
     string | undefined
   >()
   const [mainImageIndex, setMainImageIndex] = useState(0)
-  const [activeTab, setActiveTab] = useState<'detail' | 'delivery' | 'reviews'>(
-    'detail',
-  )
+  const [activeTab, setActiveTab] = useState<'detail' | 'reviews'>('detail')
+  const [openGuideKey, setOpenGuideKey] = useState<ProductGuideKey | null>(null)
   const [isOptionMenuOpen, setIsOptionMenuOpen] = useState(false)
   const token = getStoredToken()
   const checkoutFlowRequestedRef = useRef(false)
@@ -138,6 +145,29 @@ export const ShopProductPage = () => {
     queryFn: () => fetchProduct(slug!),
     enabled: !!slug,
   })
+
+  useEffect(() => {
+    if (!product) return
+
+    const firstGuideKey = [
+      { key: 'purchaseNotice' as const, body: product.purchaseNotice },
+      { key: 'shippingNotice' as const, body: product.shippingNotice },
+      {
+        key: 'exchangeReturnNotice' as const,
+        body: product.exchangeReturnNotice,
+      },
+      { key: 'careGuide' as const, body: product.careGuide ?? product.handlingNotice },
+    ].find((section) => hasGuideText(section.body))?.key
+
+    setOpenGuideKey(firstGuideKey ?? null)
+  }, [
+    product?.id,
+    product?.purchaseNotice,
+    product?.shippingNotice,
+    product?.exchangeReturnNotice,
+    product?.careGuide,
+    product?.handlingNotice,
+  ])
 
   const showToast = useUiStore((s) => s.showToast)
   const hasOptions = !!(product?.options && product.options.length > 0)
@@ -297,6 +327,32 @@ export const ShopProductPage = () => {
   const selectedOptionLabel = selectedOption
     ? `${selectedOption.name}: ${selectedOption.value}`
     : '옵션을 선택해 주세요'
+  const guideSections: Array<{
+    key: ProductGuideKey
+    label: string
+    body: string | null | undefined
+  }> = [
+    {
+      key: 'purchaseNotice' as const,
+      label: 'PLEASE NOTE',
+      body: product.purchaseNotice,
+    },
+    {
+      key: 'shippingNotice' as const,
+      label: 'SHIPPING',
+      body: product.shippingNotice,
+    },
+    {
+      key: 'exchangeReturnNotice' as const,
+      label: 'RETURNS / EXCHANGES',
+      body: product.exchangeReturnNotice,
+    },
+    {
+      key: 'careGuide' as const,
+      label: 'CARE GUIDE',
+      body: product.careGuide ?? product.handlingNotice,
+    },
+  ].filter((section) => hasGuideText(section.body))
 
   return (
     <div className="min-h-screen bg-dot-bg">
@@ -562,7 +618,6 @@ export const ShopProductPage = () => {
           <div className="mono sticky top-20 z-800 flex justify-center gap-12 border-b border-[#eee] bg-dot-bg md:gap-16">
             {[
               { id: 'detail' as const, label: 'DETAIL' },
-              { id: 'delivery' as const, label: 'DELIVERY' },
               {
                 id: 'reviews' as const,
                 label: `REVIEWS ${product.reviews?.length ? `(${product.reviews.length})` : ''}`,
@@ -601,85 +656,48 @@ export const ShopProductPage = () => {
                   ))}
                 </div>
               )}
-              {product.purchaseNotice && (
-                <div className="mt-12">
-                  <h3 className="mono mb-4 text-base text-dot-primary md:text-lg">
-                    구매 전 안내사항
-                  </h3>
-                  <p className="whitespace-pre-line text-base leading-relaxed text-dot-secondary md:text-lg">
-                    {product.purchaseNotice}
-                  </p>
-                </div>
-              )}
-              {product.handlingNotice && (
-                <div className="mt-8">
-                  <h3 className="mono mb-4 text-base text-dot-primary md:text-lg">
-                    취급 및 구매 주의사항
-                  </h3>
-                  <p className="whitespace-pre-line text-base leading-relaxed text-dot-secondary md:text-lg">
-                    {product.handlingNotice}
-                  </p>
+              {guideSections.length > 0 && (
+                <div className="mt-12 border-t border-[#eee]">
+                  {guideSections.map((section) => {
+                    const isOpen = openGuideKey === section.key
+                    return (
+                      <div key={section.key} className="border-b border-[#eee]">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenGuideKey(isOpen ? null : section.key)
+                          }
+                          className="mono flex w-full items-center gap-5 py-5 text-left text-sm tracking-[0.08em] text-dot-primary transition-opacity hover:opacity-70 md:text-base"
+                          aria-expanded={isOpen}
+                        >
+                          <span
+                            className={cn(
+                              'inline-block w-3 text-dot-secondary transition-transform',
+                              isOpen && 'rotate-90',
+                            )}
+                          >
+                            &gt;
+                          </span>
+                          <span>{section.label}</span>
+                        </button>
+                        {isOpen && (
+                          <div className="pb-8 pl-8">
+                            <p className="whitespace-pre-line text-base font-light leading-relaxed text-dot-primary md:text-lg">
+                              {section.body}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
               {!product.detailImages?.length &&
-                !product.purchaseNotice &&
-                !product.handlingNotice && (
+                guideSections.length === 0 && (
                   <p className="text-base text-dot-secondary md:text-lg">
                     No additional details.
                   </p>
                 )}
-            </div>
-          )}
-
-          {activeTab === 'delivery' && (
-            <div className="mx-auto max-w-[1000px] py-16">
-              <h3 className="mono text-center text-xl text-dot-primary md:text-2xl">
-                DELIVERY GUIDE
-              </h3>
-
-              <div className="mt-12 grid grid-cols-1 gap-8 text-dot-primary md:grid-cols-2">
-                <div className="border-t border-[#eee] pt-6">
-                  <h4 className="mono text-sm tracking-[0.15em] md:text-base">
-                    배송 방법
-                  </h4>
-                  <p className="mt-4 text-base font-light leading-relaxed text-dot-secondary md:text-lg">
-                    결제 완료 후 상품 제작 및 검수를 거쳐 택배로 발송됩니다. 발송
-                    후 등록된 운송장 번호로 배송 현황을 확인하실 수 있습니다.
-                  </p>
-                </div>
-
-                <div className="border-t border-[#eee] pt-6">
-                  <h4 className="mono text-sm tracking-[0.15em] md:text-base">
-                    배송 기간
-                  </h4>
-                  <p className="mt-4 text-base font-light leading-relaxed text-dot-secondary md:text-lg">
-                    재고 보유 상품은 영업일 기준 2-5일 내 출고됩니다. 주문 제작
-                    또는 수작업 특성상 준비 기간이 더 필요한 경우 개별 안내드립니다.
-                  </p>
-                </div>
-
-                <div className="border-t border-[#eee] pt-6">
-                  <h4 className="mono text-sm tracking-[0.15em] md:text-base">
-                    배송비
-                  </h4>
-                  <p className="mt-4 text-base font-light leading-relaxed text-dot-secondary md:text-lg">
-                    기본 배송비는 4,000원입니다. 일부 지역은 배송 여건에 따라
-                    5,000원이 적용될 수 있으며, 최종 배송비는 결제 단계에서
-                    배송지 기준으로 확인됩니다.
-                  </p>
-                </div>
-
-                <div className="border-t border-[#eee] pt-6">
-                  <h4 className="mono text-sm tracking-[0.15em] md:text-base">
-                    포장 안내
-                  </h4>
-                  <p className="mt-4 text-base font-light leading-relaxed text-dot-secondary md:text-lg">
-                    도자기 상품은 파손 방지를 위해 완충 포장 후 발송됩니다. 상품
-                    수령 시 파손이 확인되면 포장 상태와 상품 사진을 함께 남겨
-                    문의해 주세요.
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 

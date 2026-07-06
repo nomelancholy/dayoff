@@ -40,6 +40,12 @@ export const products = pgTable('products', {
   purchaseNotice: text('purchase_notice'),
   /** 취급 및 구매 주의사항 */
   handlingNotice: text('handling_notice'),
+  /** 배송 안내 */
+  shippingNotice: text('shipping_notice'),
+  /** 교환/반품 안내 */
+  exchangeReturnNotice: text('exchange_return_notice'),
+  /** 케어 가이드 */
+  careGuide: text('care_guide'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
