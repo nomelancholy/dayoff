@@ -352,7 +352,7 @@ export const ShopProductPage = () => {
       label: 'CARE GUIDE',
       body: product.careGuide ?? product.handlingNotice,
     },
-  ].filter((section) => hasGuideText(section.body))
+  ]
 
   return (
     <div className="min-h-screen bg-dot-bg">
@@ -656,48 +656,46 @@ export const ShopProductPage = () => {
                   ))}
                 </div>
               )}
-              {guideSections.length > 0 && (
-                <div className="mt-12 border-t border-[#eee]">
-                  {guideSections.map((section) => {
-                    const isOpen = openGuideKey === section.key
-                    return (
-                      <div key={section.key} className="border-b border-[#eee]">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setOpenGuideKey(isOpen ? null : section.key)
-                          }
-                          className="mono flex w-full items-center gap-5 py-5 text-left text-sm tracking-[0.08em] text-dot-primary transition-opacity hover:opacity-70 md:text-base"
-                          aria-expanded={isOpen}
+              <div className="mt-12 border-t border-[#eee]">
+                {guideSections.map((section) => {
+                  const isOpen = openGuideKey === section.key
+                  const hasBody = hasGuideText(section.body)
+                  return (
+                    <div key={section.key} className="border-b border-[#eee]">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenGuideKey(isOpen ? null : section.key)
+                        }
+                        className="mono flex w-full items-center gap-5 py-5 text-left text-sm tracking-[0.08em] text-dot-primary transition-opacity hover:opacity-70 md:text-base"
+                        aria-expanded={isOpen}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block w-3 text-dot-secondary transition-transform',
+                            isOpen && 'rotate-90',
+                          )}
                         >
-                          <span
+                          &gt;
+                        </span>
+                        <span>{section.label}</span>
+                      </button>
+                      {isOpen && (
+                        <div className="pb-8 pl-8">
+                          <p
                             className={cn(
-                              'inline-block w-3 text-dot-secondary transition-transform',
-                              isOpen && 'rotate-90',
+                              'whitespace-pre-line text-base font-light leading-relaxed md:text-lg',
+                              hasBody ? 'text-dot-primary' : 'text-dot-secondary',
                             )}
                           >
-                            &gt;
-                          </span>
-                          <span>{section.label}</span>
-                        </button>
-                        {isOpen && (
-                          <div className="pb-8 pl-8">
-                            <p className="whitespace-pre-line text-base font-light leading-relaxed text-dot-primary md:text-lg">
-                              {section.body}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              {!product.detailImages?.length &&
-                guideSections.length === 0 && (
-                  <p className="text-base text-dot-secondary md:text-lg">
-                    No additional details.
-                  </p>
-                )}
+                            {hasBody ? section.body : '안내 문구가 준비 중입니다.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
 
