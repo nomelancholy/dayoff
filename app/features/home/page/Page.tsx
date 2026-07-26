@@ -4,7 +4,7 @@ import { useReveal } from '@/common/hooks/useReveal'
 import { cn } from '@/common/lib/utils'
 import { fetchProducts } from '@/features/shop/api/shop'
 
-const HERO_IMAGE = '/assets/main_pic.jpg'
+const HERO_IMAGE = '/assets/main_pic_01.jpg'
 const HERO_IMAGE_SECONDARY = '/assets/main_pic_02.JPG'
 const HERO_IMAGE_TERTIARY = '/assets/main_pic_03.jpg'
 const ABOUT_IMAGE = '/assets/about_pic.jpg'
