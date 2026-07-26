@@ -508,19 +508,19 @@ export const ShopProductPage = () => {
               )}
               <span>{product.name}</span>
             </nav>
-            <h1 className="font-serif text-3xl font-normal leading-tight tracking-[0.12em] text-dot-primary md:text-4xl">
+            <h1 className="mono text-xl font-normal leading-tight tracking-[0.08em] text-dot-primary md:text-2xl">
               {product.name}
             </h1>
-            <div className="mt-4 text-xl font-light text-dot-primary md:text-2xl">
-              ₩{product.price.toLocaleString()}
+            <div className="mono mt-4 text-base font-normal tracking-[0.04em] text-dot-primary md:text-lg">
+              {product.price.toLocaleString()} 원
             </div>
             {isSoldOut && (
               <p className="mt-3 text-sm font-medium tracking-[0.08em] text-[#8A5A44] md:text-base">
-                품절된 상품입니다. 재입고 시 다시 찾아와 주세요.
+                품절된 상품입니다.
               </p>
             )}
             {product.description ? (
-              <p className="mt-12 whitespace-pre-line text-base font-light leading-relaxed text-dot-secondary md:text-lg">
+              <p className="mono mt-12 whitespace-pre-line text-base font-normal leading-relaxed text-dot-secondary md:text-lg">
                 {product.description}
               </p>
             ) : null}
@@ -538,7 +538,7 @@ export const ShopProductPage = () => {
                       aria-haspopup="listbox"
                       aria-expanded={isOptionMenuOpen}
                       onClick={() => setIsOptionMenuOpen((prev) => !prev)}
-                      className="flex w-full items-center justify-between rounded-sm border border-[#E9E5DC] bg-white px-4 py-4 text-left text-base text-dot-primary shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-dot-primary/60 focus:border-dot-primary focus:outline-none focus:ring-2 focus:ring-dot-primary/15 md:text-lg"
+                      className="flex w-full items-center justify-between rounded-sm border border-[#E9E5DC] bg-transparent px-4 py-4 text-left text-base text-dot-primary transition-colors hover:border-dot-primary/60 focus:border-dot-primary focus:outline-none focus:ring-2 focus:ring-dot-primary/15 md:text-lg"
                     >
                       <span className={cn(!selectedOptionId && 'text-dot-secondary')}>
                         {selectedOptionLabel}
@@ -554,7 +554,7 @@ export const ShopProductPage = () => {
                     {isOptionMenuOpen && (
                       <div
                         role="listbox"
-                        className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 max-h-64 overflow-y-auto rounded-sm border border-[#E9E5DC] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+                        className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 max-h-64 overflow-y-auto rounded-sm border border-[#E9E5DC] bg-dot-bg shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
                       >
                         {product.options.map((opt) => (
                           <button
@@ -724,27 +724,58 @@ export const ShopProductPage = () => {
               role="tabpanel"
               className="mx-auto min-h-56 max-w-[1000px] py-16"
             >
-              <div className="divide-y divide-[#eee]">
-                {activeGuideGroup.sections.map((section) => (
-                  <section key={section.key} className="py-10 first:pt-0 last:pb-0">
-                    <h3 className="mono text-lg tracking-[0.08em] text-dot-primary md:text-xl">
-                      {section.label}
-                    </h3>
-                    <p
-                      className={cn(
-                        'mt-6 whitespace-pre-line text-base font-light leading-relaxed md:text-lg',
-                        hasGuideText(section.body)
-                          ? 'text-dot-primary'
-                          : 'text-dot-secondary',
-                      )}
+              {activeGuideGroup.key === 'shippingReturns' ? (
+                <div className="divide-y divide-[#eee] border-y border-[#eee]">
+                  {activeGuideGroup.sections.map((section) => (
+                    <details key={section.key} className="group">
+                      <summary className="mono flex cursor-pointer list-none items-center justify-between py-7 text-lg tracking-[0.08em] text-dot-primary [&::-webkit-details-marker]:hidden md:text-xl">
+                        <span>{section.label}</span>
+                        <ChevronDown
+                          size={20}
+                          className="shrink-0 text-dot-secondary transition-transform duration-200 group-open:rotate-180"
+                        />
+                      </summary>
+                      <p
+                        className={cn(
+                          'whitespace-pre-line pb-8 text-base font-light leading-relaxed md:text-lg',
+                          hasGuideText(section.body)
+                            ? 'text-dot-primary'
+                            : 'text-dot-secondary',
+                        )}
+                      >
+                        {hasGuideText(section.body)
+                          ? section.body
+                          : '안내 문구가 준비 중입니다.'}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              ) : (
+                <div className="divide-y divide-[#eee]">
+                  {activeGuideGroup.sections.map((section) => (
+                    <section
+                      key={section.key}
+                      className="py-10 first:pt-0 last:pb-0"
                     >
-                      {hasGuideText(section.body)
-                        ? section.body
-                        : '안내 문구가 준비 중입니다.'}
-                    </p>
-                  </section>
-                ))}
-              </div>
+                      <h3 className="mono text-lg tracking-[0.08em] text-dot-primary md:text-xl">
+                        {section.label}
+                      </h3>
+                      <p
+                        className={cn(
+                          'mt-6 whitespace-pre-line text-base font-light leading-relaxed md:text-lg',
+                          hasGuideText(section.body)
+                            ? 'text-dot-primary'
+                            : 'text-dot-secondary',
+                        )}
+                      >
+                        {hasGuideText(section.body)
+                          ? section.body
+                          : '안내 문구가 준비 중입니다.'}
+                      </p>
+                    </section>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

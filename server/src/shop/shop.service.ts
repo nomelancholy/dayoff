@@ -30,6 +30,8 @@ import { isOutOfDeliveryPostalCode } from './out-of-delivery-areas';
 import { EmailService } from '../common/email/email.service';
 import { NaverPayClient } from './naver-pay.client';
 
+const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 @Injectable()
 export class ShopService {
   private readonly logger = new Logger(ShopService.name);
@@ -522,6 +524,11 @@ export class ShopService {
     if (!name || !slug) {
       throw new BadRequestException('상품명과 slug는 필수입니다.');
     }
+    if (!PRODUCT_SLUG_PATTERN.test(slug)) {
+      throw new BadRequestException(
+        'slug는 영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.',
+      );
+    }
     if (!Number.isFinite(price) || price < 0) {
       throw new BadRequestException('가격은 0 이상이어야 합니다.');
     }
@@ -609,6 +616,11 @@ export class ShopService {
       const slug = String(normalizedData.slug ?? '').trim();
       if (!slug) {
         throw new BadRequestException('slug는 비워둘 수 없습니다.');
+      }
+      if (!PRODUCT_SLUG_PATTERN.test(slug)) {
+        throw new BadRequestException(
+          'slug는 영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.',
+        );
       }
       normalizedData.slug = slug;
     }

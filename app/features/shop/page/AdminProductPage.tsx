@@ -7,6 +7,48 @@ import { cn } from '@/common/lib/utils'
 import { ArrowLeft, Plus, Trash2, Camera, Loader2 } from 'lucide-react'
 
 const DEFAULT_STOCK_QUANTITY = 999
+const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const DEFAULT_PRODUCT_GUIDE = [
+  '디오티에서 생산되는 모든 제품들은 수공예품으로 사람의 손을 거쳐 오랜시간 여러과정으로 만들어집니다. 따라서 이과정에서 나타나는 자연스러운 현상들은 소지(흙)과 유약(산화물)들의 결합에서 나타나는 반응, 가마 내부위치의 불의 방향과 온도에따라 미세한 차이가 나타날 수 있습니다.',
+  '',
+  '색 유약을 사용하므로 나타나는 시유시 나타나는 유약의 흐름, 소성반응으로 흙과 유약에 있는 성분이 날아와 나타나는 미세한 철 점, 작은 크랙과 핀홀들은 불량이 아닙니다.',
+  '가마에 소성하기 위해서 바닥아 맞닿은 부분은 닦아내므로 색상이 다르며 유약이 약간 남아있거나 내화판의 알갱이 자국이 남아있을 수 있습니다.',
+  '최대한 손으로 마감처리를 깔끔하게 하기위해 노력하고 있으나 수작업의 특성으로 공장형 제품보다 디테일이 다른 매력으로 봐주시면 감사하겠습니다.',
+].join('\n')
+
+const DEFAULT_SHIPPING_NOTICE = [
+  '배송비',
+  '-기본 배송비 : 3,500원',
+  '-제주도 및 도서·산간 지역 : 5,000원',
+  '-100,000원 이상 구매시 무료 배송',
+  '-단순 변심(색상 및 제품 변경 포함)으로 인한 교환·반품 시 왕복 배송비 6,000원은 고객 부담입니다.',
+  '',
+  '*택배사 배송 일정에 따라 출고일 기준 1~2일 소요될 수 있습니다.',
+  '*재고가 없을 경우 10~14일 정도 소요될 수 있습니다.',
+].join('\n')
+
+const DEFAULT_EXCHANGE_RETURN_NOTICE = [
+  '- 제품 반송 방법',
+  '',
+  '  교환 및 반품 [마이페이지 > 1:1 문의]를 통해 접수해 주세요.',
+  '  교환/환불시 수령 받은 본품을 포함한 모든 구성품이 동봉되어 있어야 하며, 구성품을 분실하거나 재포장의 부주의로 훼손된 경우 교환/환불처리가 어려울 수 있습니다.',
+  '(동봉하지 않을 경우 추가비용이 발생할 수 있습니다. )',
+  '반품 입고 후 이상 없을 시 최초 결제 해주신 방법에 따라 환불이 진행됩니다.',
+  '',
+  '- 교환 및 반품 불가',
+  '',
+  '  전자상거래법에 의거하여 교환/반품은 상품 수령일로 부터 7일이내 가능합니다. 기한이 경과된 경우 교환·반품이 불가합니다.',
+  '  공정거래 표준약관 제 15조 2항에 의한 이용자의 사용 또는 일부 소비에 의하여 재화 등의 가치가 현저히 감소한 경우 (고객 부주의로 인한 파손, 사용흔적 오염 및 생활기스)',
+  '  제품 특성에 대한 안내사항에 기재된 내용에 해당하는 경우 (미세한 철점, 색감 차이, 유약의 흐름 등)',
+  '  사이즈 측정 방법에 따른 표기 된 사이즈의 오차 (0.5~1cm)',
+  '  모니터 해상도의 차이 및 조명(삼파장, LED, 자연광 등)에 따른 색상 차이',
+].join('\n')
+
+const DEFAULT_CARE_GUIDE = [
+  '- 내열에 강한 제품이 아니므로 오븐, 에어프라이어 같은 강한 열에 주의하십시오.',
+  '- 전자레인지와 식기세척기에 사용 가능합니다.',
+  '- 매트한 유약 특성으로 오염과 스크래치를 주의해주세요.',
+].join('\n')
 
 export const AdminProductPage = () => {
   const { id: productId } = useParams<{ id?: string }>()
@@ -20,10 +62,14 @@ export const AdminProductPage = () => {
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [stockQuantity, setStockQuantity] = useState(String(DEFAULT_STOCK_QUANTITY))
-  const [purchaseNotice, setPurchaseNotice] = useState('')
-  const [shippingNotice, setShippingNotice] = useState('')
-  const [exchangeReturnNotice, setExchangeReturnNotice] = useState('')
-  const [careGuide, setCareGuide] = useState('')
+  const [purchaseNotice, setPurchaseNotice] = useState(DEFAULT_PRODUCT_GUIDE)
+  const [shippingNotice, setShippingNotice] = useState(
+    DEFAULT_SHIPPING_NOTICE
+  )
+  const [exchangeReturnNotice, setExchangeReturnNotice] = useState(
+    DEFAULT_EXCHANGE_RETURN_NOTICE
+  )
+  const [careGuide, setCareGuide] = useState(DEFAULT_CARE_GUIDE)
   const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [options, setOptions] = useState<
     { id?: string; name: string; value: string; sortOrder: number }[]
@@ -109,9 +155,15 @@ export const AdminProductPage = () => {
       return
     }
 
+    const normalizedSlug = slug.trim()
+    if (!PRODUCT_SLUG_PATTERN.test(normalizedSlug)) {
+      setError('Slug는 영문 소문자, 숫자, 하이픈(-)만 입력해 주세요.')
+      return
+    }
+
     const payload = {
       name,
-      slug,
+      slug: normalizedSlug,
       price: parseInt(price, 10),
       description,
       categoryId,
@@ -227,9 +279,12 @@ export const AdminProductPage = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                placeholder="e.g. MOONLIGHT VASE"
+                placeholder="예: 폼폰 컵 (Blue) / Pompon Cup"
                 required
               />
+              <span className="text-xs leading-relaxed text-[#888]">
+                한글·영문·숫자와 일반 기호를 사용할 수 있습니다.
+              </span>
             </label>
 
             {/* Slug */}
@@ -242,9 +297,17 @@ export const AdminProductPage = () => {
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
                 className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                placeholder="e.g. moonlight-vase"
+                placeholder="예: pompon-cup-blue"
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                title="영문 소문자, 숫자, 하이픈(-)만 입력해 주세요."
+                autoCapitalize="none"
+                spellCheck={false}
                 required
               />
+              <span className="text-xs leading-relaxed text-[#888]">
+                URL에 사용됩니다. 영문 소문자·숫자·하이픈(-)만 입력할 수
+                있습니다.
+              </span>
             </label>
 
             {/* Price */}
@@ -257,9 +320,14 @@ export const AdminProductPage = () => {
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                placeholder="e.g. 82000"
+                placeholder="예: 39000"
+                min={0}
+                step={1}
                 required
               />
+              <span className="text-xs leading-relaxed text-[#888]">
+                쉼표 없이 원 단위 숫자만 입력해 주세요.
+              </span>
             </label>
 
             {/* Stock */}
@@ -274,7 +342,7 @@ export const AdminProductPage = () => {
                 value={stockQuantity}
                 onChange={(e) => setStockQuantity(e.target.value)}
                 className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                placeholder="e.g. 999"
+                placeholder="예: 10"
                 required
               />
               <span className="text-xs text-[#888]">
@@ -466,7 +534,7 @@ export const AdminProductPage = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-widest text-[#666]">
-                Options (e.g. Finish: Matte White)
+                Options
               </span>
               <button
                 type="button"
@@ -476,6 +544,10 @@ export const AdminProductPage = () => {
                 <Plus size={12} /> Add Option
               </button>
             </div>
+            <p className="text-xs leading-relaxed text-[#888]">
+              옵션명과 옵션값은 한글·영문·숫자 입력이 가능합니다. 예:
+              사이즈: 대형 / Size: Large
+            </p>
             {options.map((opt, index) => (
               <div key={opt.id ?? index} className="flex gap-4">
                 <input
@@ -487,7 +559,7 @@ export const AdminProductPage = () => {
                     setOptions(newOptions)
                   }}
                   className="flex-1 rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                  placeholder="Option Name (e.g. Finish)"
+                  placeholder="옵션명 예: 사이즈 / Size"
                 />
                 <input
                   type="text"
@@ -498,7 +570,7 @@ export const AdminProductPage = () => {
                     setOptions(newOptions)
                   }}
                   className="flex-1 rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                  placeholder="Option Value (e.g. Matte White)"
+                  placeholder="옵션값 예: 대형 / Large"
                 />
                 {options.length > 1 && (
                   <button
