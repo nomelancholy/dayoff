@@ -6,68 +6,7 @@ import { getApiErrorMessage } from '@/features/auth/api/auth'
 import { cn } from '@/common/lib/utils'
 import { ArrowLeft, Plus, Trash2, Camera, Loader2 } from 'lucide-react'
 
-const DETAIL_IMAGE_MAX_WIDTH = 2200
-const DETAIL_IMAGE_QUALITY = 0.82
-const DETAIL_IMAGE_COMPRESS_THRESHOLD = 2 * 1024 * 1024 // 2MB
 const DEFAULT_STOCK_QUANTITY = 999
-
-const shouldCompressDetailImage = (file: File): boolean => {
-  if (file.size < DETAIL_IMAGE_COMPRESS_THRESHOLD) return false
-  return /^image\/(jpeg|jpg|png|webp)$/i.test(file.type)
-}
-
-const readImageSize = (file: File): Promise<{ width: number; height: number }> =>
-  new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      resolve({ width: img.naturalWidth, height: img.naturalHeight })
-      URL.revokeObjectURL(url)
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('이미지 크기 읽기에 실패했습니다.'))
-    }
-    img.src = url
-  })
-
-const compressDetailImage = async (file: File): Promise<File> => {
-  const { width, height } = await readImageSize(file)
-  if (!width || !height) return file
-
-  const targetWidth = Math.min(width, DETAIL_IMAGE_MAX_WIDTH)
-  const targetHeight = Math.round((height * targetWidth) / width)
-
-  const canvas = document.createElement('canvas')
-  canvas.width = targetWidth
-  canvas.height = targetHeight
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return file
-
-  const url = URL.createObjectURL(file)
-  const img = new Image()
-  await new Promise<void>((resolve, reject) => {
-    img.onload = () => resolve()
-    img.onerror = () => reject(new Error('이미지 로딩에 실패했습니다.'))
-    img.src = url
-  })
-  ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
-  URL.revokeObjectURL(url)
-
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob(resolve, 'image/jpeg', DETAIL_IMAGE_QUALITY)
-  })
-  if (!blob) return file
-
-  const compressed = new File(
-    [blob],
-    file.name.replace(/\.[^/.]+$/, '.jpg'),
-    { type: 'image/jpeg' },
-  )
-
-  // 압축 결과가 더 클 수 있는 예외 케이스 방지
-  return compressed.size < file.size ? compressed : file
-}
 
 export const AdminProductPage = () => {
   const { id: productId } = useParams<{ id?: string }>()
@@ -78,6 +17,7 @@ export const AdminProductPage = () => {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [price, setPrice] = useState('')
+  const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [stockQuantity, setStockQuantity] = useState(String(DEFAULT_STOCK_QUANTITY))
   const [purchaseNotice, setPurchaseNotice] = useState('')
@@ -85,13 +25,11 @@ export const AdminProductPage = () => {
   const [exchangeReturnNotice, setExchangeReturnNotice] = useState('')
   const [careGuide, setCareGuide] = useState('')
   const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
-  const [detailImages, setDetailImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [options, setOptions] = useState<
     { id?: string; name: string; value: string; sortOrder: number }[]
   >([{ name: '', value: '', sortOrder: 1 }])
   const [error, setError] = useState<string | null>(null)
   const [uploadingImages, setUploadingImages] = useState(false)
-  const [uploadingDetailImages, setUploadingDetailImages] = useState(false)
 
   const { data: categories } = useQuery({
     queryKey: ['shop', 'categories'],
@@ -109,6 +47,7 @@ export const AdminProductPage = () => {
     setName(product.name)
     setSlug(product.slug)
     setPrice(String(product.price))
+    setDescription(product.description ?? '')
     setCategoryId(product.categoryId)
     setStockQuantity(String(product.stockQuantity ?? DEFAULT_STOCK_QUANTITY))
     setPurchaseNotice(product.purchaseNotice ?? '')
@@ -118,15 +57,6 @@ export const AdminProductPage = () => {
     setImages(
       product.images?.length
         ? product.images.map((img) => ({
-            url: img.url,
-            alt: img.alt ?? '',
-            sortOrder: img.sortOrder,
-          }))
-        : []
-    )
-    setDetailImages(
-      product.detailImages?.length
-        ? product.detailImages.map((img) => ({
             url: img.url,
             alt: img.alt ?? '',
             sortOrder: img.sortOrder,
@@ -183,6 +113,7 @@ export const AdminProductPage = () => {
       name,
       slug,
       price: parseInt(price, 10),
+      description,
       categoryId,
       stockQuantity: (() => {
         const n = Number(stockQuantity)
@@ -196,7 +127,6 @@ export const AdminProductPage = () => {
       careGuide,
       handlingNotice: careGuide,
       images: images.map((img, i) => ({ ...img, sortOrder: i + 1 })),
-      detailImages: detailImages.map((img, i) => ({ ...img, sortOrder: i + 1 })),
       options: options.filter((opt) => opt.name.trim() !== '' && opt.value.trim() !== ''),
     }
 
@@ -237,34 +167,6 @@ export const AdminProductPage = () => {
     setOptions(options.filter((_, i) => i !== index))
   }
 
-  const handleDetailImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : []
-    if (!files.length) return
-    e.target.value = ''
-    setUploadingDetailImages(true)
-    try {
-      const preparedFiles = await Promise.all(
-        files.map(async (file) => {
-          if (!shouldCompressDetailImage(file)) return file
-          return compressDetailImage(file)
-        })
-      )
-      const { urls } = await uploadProductImages(preparedFiles)
-      setDetailImages((prev) => [
-        ...prev,
-        ...urls.map((url, i) => ({ url, alt: '', sortOrder: prev.length + i + 1 })),
-      ])
-    } catch (err: any) {
-      setError(err?.message || '이미지 업로드에 실패했습니다.')
-    } finally {
-      setUploadingDetailImages(false)
-    }
-  }
-
-  const removeDetailImageField = (index: number) => {
-    setDetailImages(detailImages.filter((_, i) => i !== index))
-  }
-
   if (isEditMode && productLoading) {
     return (
       <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
@@ -278,7 +180,7 @@ export const AdminProductPage = () => {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending
-  const isUploading = uploadingImages || uploadingDetailImages
+  const isUploading = uploadingImages
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
@@ -401,68 +303,108 @@ export const AdminProductPage = () => {
             </label>
           </div>
 
-          {/* Product guide accordion content */}
-          <div className="space-y-4 rounded border border-[#eee] bg-white p-5">
+          <label className="flex flex-col gap-2">
+            <span className="text-[10px] uppercase tracking-widest text-[#666]">
+              상품 상세 설명
+            </span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={8}
+              className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+              placeholder="상품의 소재, 특징, 제작 방식 등 상세 설명을 입력해 주세요. 줄바꿈도 그대로 표시됩니다."
+            />
+            <span className="text-xs leading-relaxed text-[#888]">
+              상품 상세 페이지에서 가격 아래, 옵션 위에 표시됩니다.
+            </span>
+          </label>
+
+          {/* Product guide tab content */}
+          <div className="space-y-4">
             <div>
               <h2 className="font-serif text-lg tracking-[0.08em] text-dot-primary">
                 상품별 안내 문구
               </h2>
               <p className="mt-1 text-xs leading-relaxed text-[#888]">
-                상품 상세에서 접고 펼치는 안내 영역으로 노출됩니다.
+                상품 상세의 두 안내 탭에 아래 항목들이 나뉘어 노출됩니다.
               </p>
             </div>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-[#666]">
-                주의사항
-              </span>
-              <textarea
-                value={purchaseNotice}
-                onChange={(e) => setPurchaseNotice(e.target.value)}
-                rows={6}
-                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
-                placeholder="상품별 주의사항을 입력해 주세요."
-              />
-            </label>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <fieldset className="space-y-5 rounded border border-[#eee] bg-white p-5">
+                <div>
+                  <h3 className="mono text-sm tracking-[0.1em] text-dot-primary">
+                    PRODUCT GUIDE
+                  </h3>
+                  <p className="mt-1 text-xs text-[#888]">
+                    PLEASE NOTE · CARE GUIDE
+                  </p>
+                </div>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-[#666]">
-                배송
-              </span>
-              <textarea
-                value={shippingNotice}
-                onChange={(e) => setShippingNotice(e.target.value)}
-                rows={6}
-                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
-                placeholder="상품별 배송 안내를 입력해 주세요."
-              />
-            </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                    PLEASE NOTE
+                  </span>
+                  <textarea
+                    value={purchaseNotice}
+                    onChange={(e) => setPurchaseNotice(e.target.value)}
+                    rows={6}
+                    className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                    placeholder="상품별 주의사항을 입력해 주세요."
+                  />
+                </label>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-[#666]">
-                교환 반품
-              </span>
-              <textarea
-                value={exchangeReturnNotice}
-                onChange={(e) => setExchangeReturnNotice(e.target.value)}
-                rows={6}
-                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
-                placeholder="상품별 교환/반품 안내를 입력해 주세요."
-              />
-            </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                    CARE GUIDE
+                  </span>
+                  <textarea
+                    value={careGuide}
+                    onChange={(e) => setCareGuide(e.target.value)}
+                    rows={6}
+                    className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                    placeholder="상품별 케어 가이드를 입력해 주세요."
+                  />
+                </label>
+              </fieldset>
 
-            <label className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-[#666]">
-                케어 가이드
-              </span>
-              <textarea
-                value={careGuide}
-                onChange={(e) => setCareGuide(e.target.value)}
-                rows={6}
-                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
-                placeholder="상품별 케어 가이드를 입력해 주세요."
-              />
-            </label>
+              <fieldset className="space-y-5 rounded border border-[#eee] bg-white p-5">
+                <div>
+                  <h3 className="mono text-sm tracking-[0.1em] text-dot-primary">
+                    SHIPPING &amp; RETURNS
+                  </h3>
+                  <p className="mt-1 text-xs text-[#888]">
+                    SHIPPING · RETURNS / EXCHANGES
+                  </p>
+                </div>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                    SHIPPING
+                  </span>
+                  <textarea
+                    value={shippingNotice}
+                    onChange={(e) => setShippingNotice(e.target.value)}
+                    rows={6}
+                    className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                    placeholder="상품별 배송 안내를 입력해 주세요."
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                    RETURNS / EXCHANGES
+                  </span>
+                  <textarea
+                    value={exchangeReturnNotice}
+                    onChange={(e) => setExchangeReturnNotice(e.target.value)}
+                    rows={6}
+                    className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm leading-relaxed focus:border-dot-primary focus:outline-none"
+                    placeholder="상품별 교환/반품 안내를 입력해 주세요."
+                  />
+                </label>
+              </fieldset>
+            </div>
           </div>
 
           {/* Images (파일 직접 첨부) */}
@@ -510,61 +452,6 @@ export const AdminProductPage = () => {
                     <button
                       type="button"
                       onClick={() => removeImageField(index)}
-                      className="text-[#999] hover:text-red-500 transition-colors shrink-0"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 상세 이미지 (상품 상세 하단, 파일 직접 첨부) */}
-          <div className="space-y-4">
-            <span className="block text-[10px] uppercase tracking-widest text-[#666]">
-              상세 이미지 (상품 상세 하단)
-            </span>
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#ddd] bg-[#fafafa] py-8 transition-colors hover:bg-[#f5f5f5]">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                multiple
-                className="sr-only"
-                onChange={handleDetailImagesUpload}
-                disabled={uploadingDetailImages}
-              />
-              <Camera className="mb-2 h-10 w-10 text-[#999]" strokeWidth={1.5} />
-              <span className="text-sm font-medium text-dot-primary">
-                {uploadingDetailImages ? '업로드 중…' : '사진 첨부하기'}
-              </span>
-              <span className="mt-1 text-xs text-[#888]">
-                클릭하여 상세 이미지를 선택하세요 (큰 파일은 자동 압축됩니다, 최대 30MB/파일)
-              </span>
-            </label>
-            {detailImages.length > 0 && (
-              <div className="mt-4 space-y-3">
-                {detailImages.map((img, index) => (
-                  <div key={index} className="flex gap-4 items-start">
-                    <img
-                      src={img.url}
-                      alt=""
-                      className="h-20 w-20 shrink-0 rounded border border-[#eee] object-cover"
-                    />
-                    <input
-                      type="text"
-                      value={img.alt}
-                      onChange={(e) => {
-                        const next = [...detailImages]
-                        next[index] = { ...next[index], alt: e.target.value }
-                        setDetailImages(next)
-                      }}
-                      className="flex-1 rounded border border-[#ddd] bg-white px-4 py-2.5 text-sm focus:border-dot-primary focus:outline-none"
-                      placeholder="Alt"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeDetailImageField(index)}
                       className="text-[#999] hover:text-red-500 transition-colors shrink-0"
                     >
                       <Trash2 size={18} />

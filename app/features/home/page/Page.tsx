@@ -36,9 +36,7 @@ export const HomePage = () => {
     staleTime: 60_000,
   })
 
-  const previewProducts = (shopProducts ?? [])
-    .filter((product) => product.stockQuantity > 0)
-    .slice(0, SHOP_PREVIEW_LIMIT)
+  const previewProducts = (shopProducts ?? []).slice(0, SHOP_PREVIEW_LIMIT)
   // 상품 목록/스켈레톤이 교체되는 시점에 맞춰 재관찰합니다.
   const revealRef = useReveal('reveal-element', 'reveal-active', [
     shopPreviewLoading,
@@ -177,22 +175,38 @@ export const HomePage = () => {
             ) : (
               previewProducts.map((product) => {
                 const cover = product.images?.[0]
+                const isSoldOut = product.stockQuantity <= 0
                 return (
                   <Link
                     key={product.id}
                     to={`/shop/${product.slug}`}
-                    className="reveal-element group block text-dot-primary no-underline"
+                    className={cn(
+                      'reveal-element group block text-dot-primary no-underline transition-opacity duration-400',
+                      isSoldOut
+                        ? 'opacity-70 hover:opacity-80'
+                        : 'hover:opacity-90'
+                    )}
                   >
                     <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2] transition-(--dot-transition)">
                       {cover?.url ? (
                         <img
                           src={cover.url}
                           alt={cover.alt ?? product.name}
-                          className="h-full w-full object-cover transition-transform duration-500 ease-dot group-hover:scale-105"
+                          className={cn(
+                            'h-full w-full object-cover transition-transform duration-500 ease-dot',
+                            isSoldOut
+                              ? 'grayscale-[0.6] contrast-[0.9]'
+                              : 'group-hover:scale-105'
+                          )}
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-[0.8rem] text-dot-secondary">
                           이미지 없음
+                        </div>
+                      )}
+                      {isSoldOut && (
+                        <div className="absolute left-3 top-3 rounded-sm bg-black/80 px-2.5 py-1 text-[0.62rem] font-medium tracking-[0.12em] text-white">
+                          SOLD OUT
                         </div>
                       )}
                       <div

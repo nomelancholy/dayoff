@@ -16,7 +16,13 @@ import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { useUiStore } from '@/common/store/ui'
 import { cn } from '@/common/lib/utils'
 import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
-import { ArrowLeft, ChevronDown, Pencil } from 'lucide-react'
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
+} from 'lucide-react'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 
 type ProductGuideKey =
@@ -24,6 +30,9 @@ type ProductGuideKey =
   | 'shippingNotice'
   | 'exchangeReturnNotice'
   | 'careGuide'
+
+type ProductGuideGroupKey = 'productGuide' | 'shippingReturns'
+type ProductTabKey = 'reviews' | ProductGuideGroupKey
 
 const hasGuideText = (value?: string | null) => !!value?.trim()
 
@@ -36,14 +45,14 @@ export const ShopProductPage = () => {
     string | undefined
   >()
   const [mainImageIndex, setMainImageIndex] = useState(0)
-  const [activeTab, setActiveTab] = useState<'detail' | 'reviews'>('detail')
-  const [openGuideKey, setOpenGuideKey] = useState<ProductGuideKey | null>(null)
+  const [activeTab, setActiveTab] = useState<ProductTabKey>('productGuide')
   const [isOptionMenuOpen, setIsOptionMenuOpen] = useState(false)
   const token = getStoredToken()
   const checkoutFlowRequestedRef = useRef(false)
   const cartToastRequestedRef = useRef(false)
   const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
   const optionMenuRef = useRef<HTMLDivElement | null>(null)
+  const galleryTouchStartXRef = useRef<number | null>(null)
 
   const [reviewLightbox, setReviewLightbox] = useState<{
     images: ProductReviewImage[]
@@ -63,6 +72,8 @@ export const ShopProductPage = () => {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    setMainImageIndex(0)
+    setActiveTab('productGuide')
   }, [slug])
 
   useEffect(() => {
@@ -146,29 +157,6 @@ export const ShopProductPage = () => {
     queryFn: () => fetchProduct(slug!),
     enabled: !!slug,
   })
-
-  useEffect(() => {
-    if (!product) return
-
-    const firstGuideKey = [
-      { key: 'purchaseNotice' as const, body: product.purchaseNotice },
-      { key: 'shippingNotice' as const, body: product.shippingNotice },
-      {
-        key: 'exchangeReturnNotice' as const,
-        body: product.exchangeReturnNotice,
-      },
-      { key: 'careGuide' as const, body: product.careGuide ?? product.handlingNotice },
-    ].find((section) => hasGuideText(section.body))?.key
-
-    setOpenGuideKey(firstGuideKey ?? null)
-  }, [
-    product?.id,
-    product?.purchaseNotice,
-    product?.shippingNotice,
-    product?.exchangeReturnNotice,
-    product?.careGuide,
-    product?.handlingNotice,
-  ])
 
   const showToast = useUiStore((s) => s.showToast)
   const hasOptions = !!(product?.options && product.options.length > 0)
@@ -323,6 +311,18 @@ export const ShopProductPage = () => {
 
   const images = product.images?.length ? product.images : []
   const mainImage = images[mainImageIndex]
+  const showPreviousImage = () => {
+    if (images.length <= 1) return
+    setMainImageIndex((current) =>
+      current === 0 ? images.length - 1 : current - 1,
+    )
+  }
+  const showNextImage = () => {
+    if (images.length <= 1) return
+    setMainImageIndex((current) =>
+      current === images.length - 1 ? 0 : current + 1,
+    )
+  }
   const selectedOption =
     product.options?.find((opt) => opt.id === selectedOptionId) ?? null
   const selectedOptionLabel = selectedOption
@@ -354,6 +354,32 @@ export const ShopProductPage = () => {
       body: product.careGuide ?? product.handlingNotice,
     },
   ]
+  const guideGroups: Array<{
+    key: ProductGuideGroupKey
+    label: string
+    sections: typeof guideSections
+  }> = [
+    {
+      key: 'productGuide',
+      label: 'PRODUCT GUIDE',
+      sections: [guideSections[0], guideSections[3]],
+    },
+    {
+      key: 'shippingReturns',
+      label: 'SHIPPING & RETURNS',
+      sections: [guideSections[1], guideSections[2]],
+    },
+  ]
+  const productTabs: Array<{ id: ProductTabKey; label: string }> = [
+    ...guideGroups.map(({ key, label }) => ({ id: key, label })),
+    {
+      id: 'reviews',
+      label: `REVIEWS ${product.reviews?.length ? `(${product.reviews.length})` : ''}`,
+    },
+  ]
+  const activeGuideGroup = guideGroups.find(
+    (group) => group.key === activeTab,
+  )
 
   return (
     <div className="min-h-screen bg-dot-bg">
@@ -378,30 +404,79 @@ export const ShopProductPage = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-16 lg:grid-cols-[1.2fr_1fr]">
-          {/* Gallery - reference: product-gallery, main-img aspect 1/1, thumbnail-list 4 cols */}
+          {/* Gallery - main carousel with arrows, swipe and thumbnail navigation */}
           <div className="flex flex-col gap-4">
-            <div className="aspect-square overflow-hidden rounded-sm bg-[#F2F2F2]">
-              {mainImage ? (
-                <img
-                  src={mainImage.url}
-                  alt={mainImage.alt || product.name}
-                  className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm uppercase tracking-widest text-[#999] md:text-base">
-                  No Image
-                </div>
+            <div
+              className="relative mx-8 lg:mx-0"
+            >
+              <div
+                className="aspect-square overflow-hidden rounded-sm bg-[#F2F2F2]"
+                onTouchStart={(event) => {
+                  galleryTouchStartXRef.current =
+                    event.touches[0]?.clientX ?? null
+                }}
+                onTouchEnd={(event) => {
+                  const startX = galleryTouchStartXRef.current
+                  const endX = event.changedTouches[0]?.clientX
+                  galleryTouchStartXRef.current = null
+                  if (startX == null || endX == null) return
+                  const distance = endX - startX
+                  if (Math.abs(distance) < 50) return
+                  if (distance > 0) showPreviousImage()
+                  else showNextImage()
+                }}
+              >
+                {mainImage ? (
+                  <img
+                    key={mainImage.id}
+                    src={mainImage.url}
+                    alt={mainImage.alt || product.name}
+                    className="h-full w-full animate-in fade-in object-cover duration-300"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm uppercase tracking-widest text-[#999] md:text-base">
+                    No Image
+                  </div>
+                )}
+                {images.length > 1 && (
+                  <span className="mono absolute bottom-4 right-4 rounded-full bg-black/55 px-3 py-1.5 text-xs tracking-[0.08em] text-white backdrop-blur-sm">
+                    {mainImageIndex + 1} / {images.length}
+                  </span>
+                )}
+              </div>
+
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={showPreviousImage}
+                    aria-label="이전 상품 이미지"
+                    className="absolute -left-14 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-dot-primary transition-opacity hover:opacity-55 md:h-12 md:w-12"
+                  >
+                    <ChevronLeft size={28} strokeWidth={1.25} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNextImage}
+                    aria-label="다음 상품 이미지"
+                    className="absolute -right-14 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center text-dot-primary transition-opacity hover:opacity-55 md:h-12 md:w-12"
+                  >
+                    <ChevronRight size={28} strokeWidth={1.25} />
+                  </button>
+                </>
               )}
             </div>
             {images.length > 1 && (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="flex gap-3 overflow-x-auto pb-1">
                 {images.map((img, idx) => (
                   <button
                     key={img.id}
                     type="button"
                     onClick={() => setMainImageIndex(idx)}
+                    aria-label={`${idx + 1}번째 상품 이미지 보기`}
+                    aria-current={mainImageIndex === idx}
                     className={cn(
-                      'aspect-square overflow-hidden rounded-sm bg-[#F2F2F2] transition-opacity',
+                      'aspect-square w-20 shrink-0 overflow-hidden rounded-sm bg-[#F2F2F2] transition-opacity md:w-24',
                       mainImageIndex === idx
                         ? 'border border-dot-primary opacity-100'
                         : 'opacity-60 hover:opacity-80'
@@ -617,20 +692,20 @@ export const ShopProductPage = () => {
 
         {/* Tabs - reference: product-tabs-container, tabs-header sticky, tab-content */}
         <section className="mt-32 border-t border-[#eee]">
-          <div className="mono sticky top-20 z-800 flex justify-center gap-12 border-b border-[#eee] bg-dot-bg md:gap-16">
-            {[
-              { id: 'detail' as const, label: 'DETAIL' },
-              {
-                id: 'reviews' as const,
-                label: `REVIEWS ${product.reviews?.length ? `(${product.reviews.length})` : ''}`,
-              },
-            ].map((tab) => (
+          <div
+            role="tablist"
+            aria-label="상품 상세 정보"
+            className="mono sticky top-20 z-800 flex justify-start gap-3 overflow-x-auto border-b border-[#eee] bg-dot-bg px-2 md:justify-center md:gap-6 md:px-0"
+          >
+            {productTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'relative border-none bg-transparent px-4 py-6 text-base transition-colors focus:outline-none focus-visible:outline-none md:text-lg',
+                  'relative shrink-0 whitespace-nowrap border-none bg-transparent px-3 py-6 text-sm transition-colors focus:outline-none focus-visible:outline-none md:px-4 md:text-base',
                   activeTab === tab.id
                     ? 'font-medium text-dot-primary'
                     : 'text-dot-secondary hover:text-dot-primary'
@@ -644,59 +719,31 @@ export const ShopProductPage = () => {
             ))}
           </div>
 
-          {activeTab === 'detail' && (
-            <div className="mx-auto max-w-[1000px] py-16">
-              {product.detailImages && product.detailImages.length > 0 && (
-                <div className="flex flex-col gap-0">
-                  {product.detailImages.map((img) => (
-                    <img
-                      key={img.id}
-                      src={img.url}
-                      alt={img.alt || product.name}
-                      className="w-full object-contain"
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="mt-12 border-t border-[#eee]">
-                {guideSections.map((section) => {
-                  const isOpen = openGuideKey === section.key
-                  const hasBody = hasGuideText(section.body)
-                  return (
-                    <div key={section.key} className="border-b border-[#eee]">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOpenGuideKey(isOpen ? null : section.key)
-                        }
-                        className="mono flex w-full items-center gap-5 py-5 text-left text-sm tracking-[0.08em] text-dot-primary transition-opacity hover:opacity-70 md:text-base"
-                        aria-expanded={isOpen}
-                      >
-                        <span
-                          className={cn(
-                            'inline-block w-3 text-dot-secondary transition-transform',
-                            isOpen && 'rotate-90',
-                          )}
-                        >
-                          &gt;
-                        </span>
-                        <span>{section.label}</span>
-                      </button>
-                      {isOpen && (
-                        <div className="pb-8 pl-8">
-                          <p
-                            className={cn(
-                              'whitespace-pre-line text-base font-light leading-relaxed md:text-lg',
-                              hasBody ? 'text-dot-primary' : 'text-dot-secondary',
-                            )}
-                          >
-                            {hasBody ? section.body : '안내 문구가 준비 중입니다.'}
-                          </p>
-                        </div>
+          {activeGuideGroup && (
+            <div
+              role="tabpanel"
+              className="mx-auto min-h-56 max-w-[1000px] py-16"
+            >
+              <div className="divide-y divide-[#eee]">
+                {activeGuideGroup.sections.map((section) => (
+                  <section key={section.key} className="py-10 first:pt-0 last:pb-0">
+                    <h3 className="mono text-lg tracking-[0.08em] text-dot-primary md:text-xl">
+                      {section.label}
+                    </h3>
+                    <p
+                      className={cn(
+                        'mt-6 whitespace-pre-line text-base font-light leading-relaxed md:text-lg',
+                        hasGuideText(section.body)
+                          ? 'text-dot-primary'
+                          : 'text-dot-secondary',
                       )}
-                    </div>
-                  )
-                })}
+                    >
+                      {hasGuideText(section.body)
+                        ? section.body
+                        : '안내 문구가 준비 중입니다.'}
+                    </p>
+                  </section>
+                ))}
               </div>
             </div>
           )}
