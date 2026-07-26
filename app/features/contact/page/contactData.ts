@@ -3,7 +3,6 @@
 export const CONTACT_INFO = {
   address: '서울 중구 마른내로4길 31-3 3층',
   email: 'eundi2c@naver.com',
-  openingHours: 'Tue - Sat | 11:00 - 18:00\nSunday, Monday Closed',
   /** 인스타그램 프로필 URL */
   instagramUrl: 'https://www.instagram.com/dot_sej/',
   /** 블로그 URL */

@@ -162,6 +162,45 @@ h3,
   animation: hero-float 20s ease-in-out infinite alternate;
 }
 
+.hero-image-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .hero-image-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1800px) {
+  .hero-image-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-image-primary {
+    order: 1;
+  }
+
+.hero-image-secondary {
+    order: 2;
+  }
+}
+
+/* About portfolio: the source deck's subtle editorial grid */
+.portfolio-grid {
+  background-color: #f9f8f6;
+  background-image:
+    linear-gradient(rgba(166, 154, 139, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(166, 154, 139, 0.1) 1px, transparent 1px);
+  background-size: 90px 90px;
+}
+
+@media (max-width: 767px) {
+  .portfolio-grid {
+    background-size: 56px 56px;
+  }
+}
+
 /* Home: hero title reveal */
 @keyframes hero-reveal {
   to {

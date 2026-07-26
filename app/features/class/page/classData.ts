@@ -17,9 +17,6 @@ export type ClassItemData = {
 /** 네이버 예약 링크 – .env (VITE_CLASS_BOOKING_*) 로 오버라이드 가능 */
 const NAVER_BASE = 'https://m.booking.naver.com/booking/6/bizes/1177496'
 const booking = {
-  wheel:
-    (import.meta.env.VITE_CLASS_BOOKING_WHEEL as string) ||
-    `${NAVER_BASE}/items/6731133?area=ple&lang=ko&tab=book&theme=place`,
   colorClay:
     (import.meta.env.VITE_CLASS_BOOKING_COLOR_CLAY as string) ||
     `${NAVER_BASE}/items/6581778?area=bmp&lang=ko&tab=book&theme=place`,
@@ -29,21 +26,6 @@ const booking = {
 } as const
 
 export const CLASS_ITEMS: ClassItemData[] = [
-  {
-    id: 'wheel',
-    slug: 'wheel',
-    monoLabel: 'WHEEL THROWING',
-    name: '물레 클래스',
-    image: '/class/pottery_wheel_thumbnail.jpg',
-    imageAlt: '물레 클래스',
-    infoRows: [
-      { label: 'TIME', value: '90분' },
-      { label: 'ITEMS', value: '1인 최대 2기물' },
-    ],
-    description:
-      '빙글빙글 돌아가는 물레 위에서 흙의 중심을 잡으며 오롯이 손끝의 감각에 집중합니다. 도자공예 전공 선생님의 지도 아래, 백자 흙으로 자신만의 기물을 빚어보세요. 유광 또는 무광 중 선택하여 마감할 수 있습니다.',
-    bookingUrl: booking.wheel,
-  },
   {
     id: 'color-clay',
     slug: 'color-clay',

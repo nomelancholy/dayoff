@@ -4,8 +4,10 @@ import { useReveal } from '@/common/hooks/useReveal'
 import { cn } from '@/common/lib/utils'
 import { fetchProducts } from '@/features/shop/api/shop'
 
-const HERO_IMAGE = '/assets/main_pic.JPG'
-const ABOUT_IMAGE = '/assets/about_pic.jpeg'
+const HERO_IMAGE = '/assets/main_pic.jpg'
+const HERO_IMAGE_SECONDARY = '/assets/main_pic_02.JPG'
+const HERO_IMAGE_TERTIARY = '/assets/main_pic_03.jpg'
+const ABOUT_IMAGE = '/assets/about_pic.jpg'
 
 /** 메인 하단 미리보기에 노출할 상품 개수 */
 const SHOP_PREVIEW_LIMIT = 3
@@ -48,12 +50,10 @@ export const HomePage = () => {
       {/* Hero: 하단 타이틀+SCROLL은 플로우로 묶어 뷰포트 높이가 낮아도 겹치지 않게 함 */}
       <section className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#E8E6E1]">
         <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center pt-24 pb-4 md:pt-8 md:pb-6">
-          <img
-            src={HERO_IMAGE}
-            alt="Masterpiece Ceramic"
+          <div
             className={cn(
-              'hero-img-float h-[52svh] max-h-[45dvh] w-[88%] object-cover object-center',
-              'md:h-[80%] md:max-h-[65dvh] md:w-[60%] max-lg:md:w-[90%]',
+              'hero-image-grid hero-img-float grid h-[52svh] max-h-[45dvh] w-[88%] overflow-hidden',
+              'md:h-[80%] md:max-h-[65dvh] md:w-full',
               'contrast-[0.9] brightness-105'
             )}
             style={{
@@ -62,7 +62,23 @@ export const HomePage = () => {
               WebkitMaskImage:
                 'linear-gradient(to bottom, black 80%, transparent 100%)',
             }}
-          />
+          >
+            <img
+              src={HERO_IMAGE}
+              alt="Masterpiece Ceramic"
+              className="hero-image-primary h-full min-h-0 w-full min-w-0 object-cover object-center"
+            />
+            <img
+              src={HERO_IMAGE_SECONDARY}
+              alt=""
+              className="hero-image-secondary hidden h-full min-h-0 w-full min-w-0 object-cover object-center lg:block"
+            />
+            <img
+              src={HERO_IMAGE_TERTIARY}
+              alt=""
+              className="hidden h-full min-h-0 w-full min-w-0 object-cover object-center min-[1800px]:block"
+            />
+          </div>
         </div>
         <div className="hero-text relative z-2 flex shrink-0 flex-col items-center gap-5 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 text-center md:gap-6 md:pb-10 md:pt-4">
           <h1 className="hero-reveal text-4xl font-light tracking-[0.12em] lg:text-6xl">
@@ -74,7 +90,7 @@ export const HomePage = () => {
 
       {/* About preview */}
       <section className="mx-auto grid max-w-[1400px] grid-cols-1 items-center gap-16 px-6 py-24 md:grid-cols-2 md:gap-24 md:px-8 md:py-32 lg:gap-32 lg:px-16">
-        <div className="reveal-element overflow-hidden rounded-sm bg-[#DCD9D4] aspect-4/5">
+        <div className="reveal-element aspect-3/2 overflow-hidden rounded-sm bg-[#DCD9D4]">
           <img
             src={ABOUT_IMAGE}
             alt="Pottery Workshop"
@@ -83,19 +99,18 @@ export const HomePage = () => {
         </div>
         <div className="reveal-element md:pr-8">
           <p className="mt-8 text-[1.3rem] font-medium leading-relaxed text-dot-secondary">
-            휴식을 빚는
+            유약이 빚어낸 온전한 휴식(休)
           </p>
           <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            좋은 도자기는 놓여있는 것만으로도 공간의 온도를 바꿉니다.
+            도자기 브랜드 ‘Day Off Today’는 일상 속 온전한 쉼을 전합니다.
+            브랜드 이름인 ‘휴일’의 의미를 상형문자 ‘휴(休)’로 시각화하여,
+            언제든 기대어 쉴 수 있는 나무 같은 기물을 빚습니다.
           </p>
           <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            <b>DOT(Day Off Today)</b>는 당신이 맞이하는 매순간이 더욱 특별해질
-            수 있도록, 쓰임새와 아름다움의 균형을 고민합니다.
-          </p>
-          <p className="mt-6 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            차 한 잔의 여유, 정성스런 식사 시간 속에 <b>DOT</b>의 감각을 더해
-            보세요. 정성을 다해 구워낸 작품들이 당신의 일상에 기분 좋은 쉼표가
-            되어줄 것입니다.
+            자연을 닮은 화려하지 않은 색채들을 연구해 오래 곁에 둘수록 평온함을
+            주는 독창적인 발색을 찾아냅니다. 디오티를 만나는 분들에게 도자기를
+            빚는 과정에서 필요한 흙과 불, 유약의 조화로 빚어낸 따듯한 위로를
+            식탁 위에 올려드립니다.
           </p>
           {/* <Link
             to="/about"

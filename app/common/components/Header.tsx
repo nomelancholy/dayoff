@@ -73,9 +73,14 @@ export const Header = () => {
         {/* Logo */}
         <Link
           to="/"
-          className="logo col-start-2 justify-self-center md:col-start-1 md:justify-self-start"
+          className="col-start-2 inline-flex justify-self-center md:col-start-1 md:justify-self-start"
+          aria-label="DOT 홈"
         >
-          DOT.
+          <img
+            src="/favicon.png"
+            alt=""
+            className="h-9 w-9 object-contain md:h-11 md:w-11 lg:h-12 lg:w-12"
+          />
         </Link>
 
         {/* Desktop: middle menu */}

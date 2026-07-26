@@ -43,11 +43,8 @@ services:
       NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:-}
       NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:-}
       NAVER_CALLBACK_URL: ${NAVER_CALLBACK_URL:-}
-      # 네이버페이 (단건결제) — .env.deploy 에 NAVER_PAY_* 설정
-      NAVER_PAY_CLIENT_ID: ${NAVER_PAY_CLIENT_ID:-}
-      NAVER_PAY_CLIENT_SECRET: ${NAVER_PAY_CLIENT_SECRET:-}
-      NAVER_PAY_CHAIN_ID: ${NAVER_PAY_CHAIN_ID:-}
-      NAVER_PAY_MODE: ${NAVER_PAY_MODE:?NAVER_PAY_MODE required (production for live payments)}
+      # 네이버페이는 현재 비활성화되어 있습니다.
+      # 다시 사용할 때 NAVER_PAY_* 환경 변수를 복원하세요.
       # resend 이메일 (미설정 시 메일 전송만 skip)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}

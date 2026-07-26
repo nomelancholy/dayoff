@@ -15,6 +15,7 @@ import {
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { useUiStore } from '@/common/store/ui'
 import { cn } from '@/common/lib/utils'
+import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
 import { ArrowLeft, ChevronDown, Pencil } from 'lucide-react'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 
@@ -602,10 +603,12 @@ export const ShopProductPage = () => {
                     }
                     cartMutation.mutate()
                   }}
-                  disabled={cartMutation.isPending || isSoldOut}
+                  disabled={
+                    !CHECKOUT_ENABLED || cartMutation.isPending || isSoldOut
+                  }
                   className="mono bg-dot-primary py-3 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50 md:py-4 md:text-base"
                 >
-                  구매하기
+                  {CHECKOUT_ENABLED ? '구매하기' : '구매 준비 중'}
                 </button>
               </div>
             </div>

@@ -13,6 +13,7 @@ import {
 } from '@/features/auth/api/auth'
 import { fetchCartItems } from '@/features/shop/api/shop'
 import { isOutOfDeliveryPostalCode } from '@/common/lib/outOfDeliveryAreas'
+import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
 
 type NaverPay = {
   open: (params: {
@@ -206,6 +207,7 @@ export const CheckoutPage = () => {
   })
 
   useEffect(() => {
+    if (!CHECKOUT_ENABLED) return
     if (!token) return
     if (cartItemIds.length === 0) {
       setPageError('선택한 상품이 없습니다.')
@@ -255,6 +257,7 @@ export const CheckoutPage = () => {
 
   // 주소가 없을 때 주소록으로 자동 이동 (신규 가입 유저 결제 플로우 보정)
   useEffect(() => {
+    if (!CHECKOUT_ENABLED) return
     if (!token) return
     if (cartItemIds.length === 0) return
     if (addressesLoading || addressesFetching) return
@@ -284,6 +287,7 @@ export const CheckoutPage = () => {
   }, [addresses])
 
   useEffect(() => {
+    if (!CHECKOUT_ENABLED) return
     if (!initData) return
 
     let cancelled = false
@@ -326,6 +330,7 @@ export const CheckoutPage = () => {
   }, [initData, initRetryNonce])
 
   const handleRequestPayment = async () => {
+    if (!CHECKOUT_ENABLED) return
     if (!initData) return
     if (!naverPayRef.current) return
     if (!widgetsReady) return
@@ -354,6 +359,26 @@ export const CheckoutPage = () => {
       )
       setRequesting(false)
     }
+  }
+
+  if (!CHECKOUT_ENABLED) {
+    return (
+      <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
+        <span className="mono text-dot-primary">결제</span>
+        <h1 className="mt-2 font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
+          구매 기능 준비 중입니다
+        </h1>
+        <p className="mt-6 text-sm leading-7 text-dot-muted">
+          현재 온라인 구매 기능을 준비하고 있습니다.
+        </p>
+        <Link
+          to="/shop"
+          className="mono mt-8 inline-block border border-dot-primary px-6 py-3 text-xs tracking-[0.18em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+        >
+          상품 둘러보기
+        </Link>
+      </div>
+    )
   }
 
   if (!token) {

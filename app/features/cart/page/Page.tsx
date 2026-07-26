@@ -10,6 +10,7 @@ import { getApiErrorMessage, getStoredToken } from '@/features/auth/api/auth'
 import { Minus, Plus } from 'lucide-react'
 import { validateCoupon } from '@/features/coupon/api/coupon'
 import type { ValidateCouponResult } from '@/features/coupon/types/coupon'
+import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
 
 export const CartPage = () => {
   const queryClient = useQueryClient()
@@ -374,10 +375,12 @@ export const CartPage = () => {
                     },
                   })
                 }
-                disabled={selectedCartItemIds.length === 0}
+                disabled={
+                  !CHECKOUT_ENABLED || selectedCartItemIds.length === 0
+                }
                 className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                결제 진행
+                {CHECKOUT_ENABLED ? '결제 진행' : '구매 준비 중'}
               </button>
             </aside>
           </>
