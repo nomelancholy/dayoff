@@ -13,7 +13,7 @@ const SHOP_PREVIEW_LIMIT = 3
 function ScrollIndicator() {
   return (
     <div
-      className="absolute bottom-4 left-1/2 z-0 flex -translate-x-1/2 flex-col items-center gap-4 opacity-60 pointer-events-none"
+      className="flex flex-col items-center gap-4 opacity-60 pointer-events-none"
       aria-hidden
     >
       <span className="mono text-dot-primary">SCROLL</span>
@@ -45,14 +45,15 @@ export const HomePage = () => {
 
   return (
     <div ref={revealRef}>
-      {/* Hero */}
-      <section className="relative flex min-h-screen w-full items-start justify-center overflow-hidden bg-[#E8E6E1] pt-24 md:items-center md:pt-0">
-        <div className="relative flex h-full w-full items-center justify-center">
+      {/* Hero: 하단 타이틀+SCROLL은 플로우로 묶어 뷰포트 높이가 낮아도 겹치지 않게 함 */}
+      <section className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#E8E6E1]">
+        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center pt-24 pb-4 md:pt-8 md:pb-6">
           <img
             src={HERO_IMAGE}
             alt="Masterpiece Ceramic"
             className={cn(
-              'hero-img-float h-[52svh] w-[88%] object-cover object-center md:h-[80%] md:w-[60%] max-lg:md:w-[90%]',
+              'hero-img-float h-[52svh] max-h-[45dvh] w-[88%] object-cover object-center',
+              'md:h-[80%] md:max-h-[65dvh] md:w-[60%] max-lg:md:w-[90%]',
               'contrast-[0.9] brightness-105'
             )}
             style={{
@@ -63,12 +64,12 @@ export const HomePage = () => {
             }}
           />
         </div>
-        <div className="hero-text absolute bottom-[16%] left-1/2 z-2 -translate-x-1/2 text-center md:bottom-[10%]">
-          <h1 className="hero-reveal mt-4 text-4xl font-light tracking-[0.12em] lg:text-6xl">
+        <div className="hero-text relative z-2 flex shrink-0 flex-col items-center gap-5 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 text-center md:gap-6 md:pb-10 md:pt-4">
+          <h1 className="hero-reveal text-4xl font-light tracking-[0.12em] lg:text-6xl">
             Day Off Today
           </h1>
+          <ScrollIndicator />
         </div>
-        <ScrollIndicator />
       </section>
 
       {/* About preview */}

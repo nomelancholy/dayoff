@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { isAxiosError } from 'axios'
-import { createNaverCheckout, type CreateNaverCheckoutResponse } from '../api/checkout'
+import {
+  createNaverCheckout,
+  type CreateNaverCheckoutResponse,
+} from '../api/checkout'
 import {
   fetchAddresses,
   getStoredToken,
@@ -51,8 +54,7 @@ declare global {
 }
 
 function toCheckoutPageErrorMessage(err: unknown): string {
-  const fallback =
-    '결제 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+  const fallback = '결제 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.'
 
   let rawMessage: string | null = null
   if (isAxiosError(err)) {
@@ -77,23 +79,27 @@ function toCheckoutPageErrorMessage(err: unknown): string {
   return candidate
 }
 
-function loadNaverPayScript() {
-  const existing = document.getElementById('naverpay-sdk')
-  if (existing) {
-    if (window.Naver?.Pay) return Promise.resolve()
-    // 스크립트 태그는 남아있지만 객체가 안 올라온 케이스(부분 로드)를 대비
-    existing.remove()
-  }
+let naverPayScriptPromise: Promise<void> | null = null
 
-  return new Promise<void>((resolve, reject) => {
+function loadNaverPayScript(): Promise<void> {
+  if (window.Naver?.Pay) return Promise.resolve()
+  if (naverPayScriptPromise) return naverPayScriptPromise
+
+  document.getElementById('naverpay-sdk')?.remove()
+  naverPayScriptPromise = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
     script.id = 'naverpay-sdk'
     script.src = 'https://nsp.pay.naver.com/sdk/js/naverpay.min.js'
     script.async = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('NaverPay SDK 로드 실패'))
+    script.onerror = () => {
+      script.remove()
+      naverPayScriptPromise = null
+      reject(new Error('NaverPay SDK 로드 실패'))
+    }
     document.body.appendChild(script)
   })
+  return naverPayScriptPromise
 }
 
 export const CheckoutPage = () => {
@@ -124,21 +130,22 @@ export const CheckoutPage = () => {
     refetchOnMount: true,
   })
 
-  const [initData, setInitData] = useState<CreateNaverCheckoutResponse | null>(null)
+  const [initData, setInitData] = useState<CreateNaverCheckoutResponse | null>(
+    null
+  )
   const [widgetsReady, setWidgetsReady] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
   const [initRetryNonce, setInitRetryNonce] = useState(0)
 
   const naverPayRef = useRef<NaverPay | null>(null)
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null
+  )
   const didAutoRedirectToAddressRef = useRef(false)
   const lastCreateKeyRef = useRef<string | null>(null)
 
-  const {
-    data: cartItems,
-    isLoading: cartItemsLoading,
-  } = useQuery({
+  const { data: cartItems, isLoading: cartItemsLoading } = useQuery({
     queryKey: ['shop', 'cart', 'checkout', cartItemIds],
     queryFn: fetchCartItems,
     enabled: !!token && cartItemIds.length > 0,
@@ -147,7 +154,7 @@ export const CheckoutPage = () => {
 
   const selectedAddress = useMemo(
     () => addresses?.find((a) => a.id === selectedAddressId) ?? null,
-    [addresses, selectedAddressId],
+    [addresses, selectedAddressId]
   )
 
   const selectedCartItemsSubtotal = useMemo(() => {
@@ -179,7 +186,7 @@ export const CheckoutPage = () => {
       // 모바일 뒤로가기 등으로 선택 상태가 유실되면 서버 DTO 에러 대신 UX 메시지를 먼저 보여줍니다.
       if (!selectedAddressId || !selectedAddressId.trim()) {
         throw new Error(
-          '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.',
+          '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.'
         )
       }
       return createNaverCheckout({
@@ -219,12 +226,11 @@ export const CheckoutPage = () => {
     // 주소 선택이 확정되기 전에는 결제 생성도, 에러 표시도 하지 않습니다.
     if (!selectedAddressId) return
 
-    const quantitiesKey =
-      cartItemQuantities?.length
-        ? cartItemQuantities.join(',')
-        : ''
+    const quantitiesKey = cartItemQuantities?.length
+      ? cartItemQuantities.join(',')
+      : ''
     const createKey = `${selectedAddressId}|${couponCode ?? ''}|${cartItemIds.join(
-      ',',
+      ','
     )}|${quantitiesKey}`
     if (lastCreateKeyRef.current === createKey && initData) return
     if (createMutation.isPending) return
@@ -273,11 +279,7 @@ export const CheckoutPage = () => {
     if (!addresses || addresses.length === 0) return
     setSelectedAddressId((prev) => {
       if (prev) return prev
-      return (
-        addresses.find((a) => a.isDefault)?.id ??
-        addresses[0]?.id ??
-        null
-      )
+      return addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? null
     })
   }, [addresses])
 
@@ -312,8 +314,8 @@ export const CheckoutPage = () => {
         setPageError(
           getApiErrorMessage(
             err,
-            '결제 위젯을 초기화하지 못했습니다. 인터넷 연결을 확인해 주세요.',
-          ) + extra,
+            '결제 위젯을 초기화하지 못했습니다. 인터넷 연결을 확인해 주세요.'
+          ) + extra
         )
       }
     })()
@@ -345,7 +347,10 @@ export const CheckoutPage = () => {
       })
     } catch (err) {
       setPageError(
-        getApiErrorMessage(err, '결제 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+        getApiErrorMessage(
+          err,
+          '결제 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+        )
       )
       setRequesting(false)
     }
@@ -394,7 +399,7 @@ export const CheckoutPage = () => {
                   lastCreateKeyRef.current = null
                   if (!selectedAddressId) {
                     setPageError(
-                      '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.',
+                      '배송지 선택 정보가 만료되었습니다. 배송지를 다시 선택한 뒤 결제를 다시 시도해 주세요.'
                     )
                     return
                   }
@@ -425,7 +430,10 @@ export const CheckoutPage = () => {
               {addressesLoading ? (
                 <div className="space-y-3">
                   {[1, 2].map((i) => (
-                    <div key={i} className="h-14 w-full animate-pulse rounded border border-[#eee] bg-[#fafafa]" />
+                    <div
+                      key={i}
+                      className="h-14 w-full animate-pulse rounded border border-[#eee] bg-[#fafafa]"
+                    />
                   ))}
                 </div>
               ) : addressesIsError ? (
@@ -519,7 +527,9 @@ export const CheckoutPage = () => {
               <div className="space-y-3 text-[0.95rem] text-dot-secondary">
                 <div className="flex justify-between">
                   <span>상품</span>
-                  <span className="text-dot-primary">{initData.productName}</span>
+                  <span className="text-dot-primary">
+                    {initData.productName}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>상품 소계</span>
@@ -557,4 +567,3 @@ export const CheckoutPage = () => {
     </div>
   )
 }
-

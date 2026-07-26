@@ -7,6 +7,7 @@ import { ShopService } from './shop.service';
 import { ShopController } from './shop.controller';
 import { CouponModule } from '../coupon/coupon.module';
 import { EmailModule } from '../common/email/email.module';
+import { NaverPayClient } from './naver-pay.client';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { EmailModule } from '../common/email/email.module';
     }),
   ],
   controllers: [ShopController],
-  providers: [ShopService],
+  providers: [ShopService, NaverPayClient],
   exports: [ShopService],
 })
 export class ShopModule {}

@@ -54,15 +54,17 @@ export async function createNaverCheckout(params: {
           shippingAddressId: params.shippingAddressId,
         }
 
-  return apiClient.post<CreateNaverCheckoutResponse>('/shop/checkout/naver', payload)
-}
-
-export async function confirmNaverPayment(
-  payload: ConfirmNaverPaymentRequest,
-): Promise<ConfirmNaverPaymentResponse> {
-  return apiClient.post<ConfirmNaverPaymentResponse>(
-    '/shop/checkout/naver/confirm',
-    payload,
+  return apiClient.post<CreateNaverCheckoutResponse>(
+    '/shop/checkout/naver',
+    payload
   )
 }
 
+export async function confirmNaverPayment(
+  payload: ConfirmNaverPaymentRequest
+): Promise<ConfirmNaverPaymentResponse> {
+  return apiClient.post<ConfirmNaverPaymentResponse>(
+    '/shop/checkout/naver/confirm',
+    payload
+  )
+}

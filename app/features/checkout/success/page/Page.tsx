@@ -10,6 +10,7 @@ export const CheckoutSuccessPage = () => {
   const navigate = useNavigate()
 
   const resultCode = params.get('resultCode') ?? ''
+  const resultMessage = params.get('resultMessage') ?? ''
   const paymentId = params.get('paymentId') ?? ''
   const merchantPayKey = params.get('merchantPayKey') ?? ''
 
@@ -17,13 +18,10 @@ export const CheckoutSuccessPage = () => {
     token && resultCode === 'Success' && paymentId && merchantPayKey
 
   const didConfirmRef = useRef(false)
-  const [confirmedResult, setConfirmedResult] = useState<
-    | {
-        orderNumber: string
-        status: string
-      }
-    | null
-  >(null)
+  const [confirmedResult, setConfirmedResult] = useState<{
+    orderNumber: string
+    status: string
+  } | null>(null)
 
   const confirmMutation = useMutation({
     mutationFn: () =>
@@ -51,7 +49,7 @@ export const CheckoutSuccessPage = () => {
     if (!confirmMutation.isError) return null
     return getApiErrorMessage(
       confirmMutation.error,
-      '결제 승인 처리를 실패했습니다.',
+      '결제 승인 처리를 실패했습니다.'
     )
   }, [confirmMutation.error, confirmMutation.isError])
 
@@ -82,23 +80,33 @@ export const CheckoutSuccessPage = () => {
   }
 
   if (!canConfirm) {
+    const userCancelled = resultCode === 'UserCancel'
     return (
       <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
         <h1 className="font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
-          결제 정보를 불러오지 못했습니다
+          {userCancelled
+            ? '결제가 취소되었습니다'
+            : '결제 정보를 불러오지 못했습니다'}
         </h1>
         <p className="mt-6 text-[0.95rem] text-dot-secondary">
-          결제 결과가 정상이 아니거나 필수 정보가 누락되었습니다.
+          {userCancelled
+            ? '결제는 승인되지 않았습니다. 장바구니에서 다시 시도할 수 있습니다.'
+            : resultMessage ||
+              '결제 결과가 정상이 아니거나 필수 정보가 누락되었습니다.'}
         </p>
         <Link
-          to="/account"
-          onClick={(e) => {
-            e.preventDefault()
-            navigate('/account', { state: { activeSection: 'orders' } })
-          }}
+          to={userCancelled ? '/cart' : '/account'}
+          onClick={
+            userCancelled
+              ? undefined
+              : (e) => {
+                  e.preventDefault()
+                  navigate('/account', { state: { activeSection: 'orders' } })
+                }
+          }
           className="mono mt-10 inline-block border border-dot-primary px-8 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
         >
-          주문 내역 보기
+          {userCancelled ? '장바구니로 돌아가기' : '주문 내역 보기'}
         </Link>
       </div>
     )
@@ -119,9 +127,19 @@ export const CheckoutSuccessPage = () => {
             <p className="mt-6 text-[0.95rem] text-dot-secondary">
               {errorMessage}
             </p>
-            <div className="mt-10">
-              <Link to="/cart" className="mono inline-block border border-dot-primary px-8 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white">
-                장바구니로 돌아가기
+            <div className="mt-10 flex justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => confirmMutation.mutate()}
+                className="mono inline-block border border-dot-primary px-8 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+              >
+                승인 다시 확인
+              </button>
+              <Link
+                to="/cart"
+                className="mono inline-block border border-[#ddd] bg-[#fafafa] px-8 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-[#f0f0f0]"
+              >
+                장바구니
               </Link>
             </div>
           </>
@@ -174,4 +192,3 @@ export const CheckoutSuccessPage = () => {
     </div>
   )
 }
-

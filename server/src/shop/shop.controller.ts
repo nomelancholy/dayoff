@@ -61,9 +61,13 @@ class CreateNaverCheckoutDto {
 
 class ConfirmNaverPaymentDto {
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
   paymentId!: string;
 
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
   merchantPayKey!: string;
 }
 

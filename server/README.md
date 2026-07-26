@@ -10,7 +10,7 @@ NestJS + Drizzle ORM + PostgreSQL 기반으로 인증, 주문/결제, 관리자 
 - PostgreSQL
 - Drizzle ORM / Drizzle Kit
 - Passport (JWT, Google, Kakao, Naver)
-- Toss Payments
+- Naver Pay
 - Resend (React Email 템플릿)
 
 ## 요구 사항
@@ -73,9 +73,14 @@ npm run db:studio
 
 ## 결제/주문 관련 참고
 
-- Toss 결제 승인: `POST /shop/checkout/toss/confirm`
+- 네이버페이 결제 생성: `POST /shop/checkout/naver`
+- 네이버페이 결제 승인: `POST /shop/checkout/naver/confirm`
 - 내 주문 취소(발송 전 paid 주문): `POST /shop/orders/:id/cancel`
-- 주문 취소는 토스 결제 취소 + 재고 원복 + 쿠폰 사용 롤백까지 처리합니다.
+- 주문 취소는 네이버페이 결제 취소 + 재고 원복 + 쿠폰 사용 롤백까지 처리합니다.
+- 승인된 `paymentId`와 결제 이력 번호는 주문에 저장되며 취소·대사에 사용합니다.
+- 운영에서는 `NAVER_PAY_MODE=production`과 운영용 `NAVER_PAY_CLIENT_ID`,
+  `NAVER_PAY_CLIENT_SECRET`, `NAVER_PAY_CHAIN_ID`가 모두 필요합니다.
+- 네이버페이센터에 실제 서비스 HTTPS 도메인과 결제 완료 URL을 등록해야 합니다.
 
 ## 테스트
 

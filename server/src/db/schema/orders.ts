@@ -75,6 +75,12 @@ export const orders = pgTable('orders', {
   discountAmount: integer('discount_amount').notNull().default(0),
   total: integer('total').notNull(),
   couponId: uuid('coupon_id').references(() => coupons.id),
+  /** 네이버페이 결제번호. 승인 이후 취소·대사에 사용합니다. */
+  naverPaymentId: text('naver_payment_id').unique(),
+  /** 네이버페이 원결제 승인 이력 번호. 운영 대사용입니다. */
+  naverPayHistId: text('naver_pay_hist_id'),
+  paidAt: timestamp('paid_at', { withTimezone: true }),
+  cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
   trackingNumber: text('tracking_number'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()

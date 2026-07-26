@@ -583,7 +583,6 @@ export const ShopProductPage = () => {
                     }
 
                     if (hasOptions && !selectedOptionId) {
-                      // 구매하기에서도 옵션 미선택 시 토스트로 경고를 띄웁니다.
                       checkoutFlowRequestedRef.current = false
                       const anchor = toastAnchorRef.current
                       toastAnchorRef.current = null

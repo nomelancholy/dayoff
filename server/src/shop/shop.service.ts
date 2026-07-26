@@ -1,9 +1,11 @@
 import {
   Injectable,
   Inject,
+  Logger,
   NotFoundException,
   ConflictException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -14,60 +16,31 @@ import {
   desc,
   isNull,
   sql,
-  ne,
   inArray,
   or,
   gt,
   gte,
   lte,
+  lt,
 } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { CouponService } from '../coupon/coupon.service';
 import * as schema from '../db/schema';
 import { isOutOfDeliveryPostalCode } from './out-of-delivery-areas';
 import { EmailService } from '../common/email/email.service';
+import { NaverPayClient } from './naver-pay.client';
 
 @Injectable()
 export class ShopService {
+  private readonly logger = new Logger(ShopService.name);
+
   constructor(
     @Inject(DRIZZLE) private readonly db: NodePgDatabase<typeof schema>,
     private readonly couponService: CouponService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly naverPayClient: NaverPayClient,
   ) {}
-
-  private getNaverApiBaseUrl() {
-    const mode =
-      this.configService.get<string>('NAVER_PAY_MODE') ?? 'development';
-    return mode === 'production'
-      ? 'https://pay.paygate.naver.com'
-      : 'https://dev-pay.paygate.naver.com';
-  }
-
-  private getNaverSdkMode(): 'development' | 'production' {
-    const mode =
-      this.configService.get<string>('NAVER_PAY_MODE') ?? 'development';
-    return mode === 'production' ? 'production' : 'development';
-  }
-
-  private getNaverHeaders(extra?: Record<string, string>) {
-    const clientId = this.configService.get<string>('NAVER_PAY_CLIENT_ID');
-    const clientSecret = this.configService.get<string>(
-      'NAVER_PAY_CLIENT_SECRET',
-    );
-    const chainId = this.configService.get<string>('NAVER_PAY_CHAIN_ID');
-    if (!clientId || !clientSecret || !chainId) {
-      throw new BadRequestException(
-        '서버 환경설정에 NAVER_PAY_CLIENT_ID/NAVER_PAY_CLIENT_SECRET/NAVER_PAY_CHAIN_ID가 필요합니다.',
-      );
-    }
-    return {
-      'X-Naver-Client-Id': clientId,
-      'X-Naver-Client-Secret': clientSecret,
-      'X-NaverPay-Chain-Id': chainId,
-      ...extra,
-    };
-  }
 
   /** [Admin] 주문 목록 조회 (관리자용) */
   async getAdminOrders(params?: { status?: string }) {
@@ -1017,6 +990,8 @@ export class ShopService {
         status: true,
         couponId: true,
         total: true,
+        naverPaymentId: true,
+        createdAt: true,
       },
       with: {
         orderItems: {
@@ -1040,89 +1015,35 @@ export class ShopService {
       );
     }
 
-    const apiBase = this.getNaverApiBaseUrl();
-    const now = new Date();
-    const start = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30);
-    const formatYmdHms = (d: Date) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const hh = String(d.getHours()).padStart(2, '0');
-      const mm = String(d.getMinutes()).padStart(2, '0');
-      const ss = String(d.getSeconds()).padStart(2, '0');
-      return `${y}${m}${day}${hh}${mm}${ss}`;
-    };
-
-    const historyRes = await fetch(
-      `${apiBase}/naverpay-partner/naverpay/payments/v2.2/list/history`,
-      {
-        method: 'POST',
-        headers: this.getNaverHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({
-          startTime: formatYmdHms(start),
-          endTime: formatYmdHms(now),
-          rowsPerPage: 100,
-        }),
-      },
-    );
-    if (!historyRes.ok) {
-      throw new BadRequestException('네이버페이 결제 조회에 실패했습니다.');
-    }
-    const historyData = (await historyRes.json()) as {
-      code?: string;
-      message?: string;
-      body?: { list?: Array<{ merchantPayKey?: string; paymentId?: string }> };
-    };
-    if (historyData.code !== 'Success') {
-      throw new BadRequestException(
-        `네이버페이 결제 조회에 실패했습니다.${historyData.message ? ` ${historyData.message}` : ''}`,
-      );
-    }
     const paymentId =
-      historyData.body?.list?.find(
-        (item) => item.merchantPayKey === order.orderNumber,
-      )?.paymentId ?? null;
+      order.naverPaymentId ??
+      (await this.naverPayClient.findPaymentIdByMerchantPayKey(
+        order.orderNumber,
+        order.createdAt,
+      ));
     if (!paymentId) {
       throw new BadRequestException(
-        '결제 정보를 찾을 수 없습니다. 잠시 후 다시 시도해 주세요.',
+        '네이버페이 결제번호를 찾을 수 없습니다. 관리자에게 문의해 주세요.',
       );
     }
 
-    const cancelForm = new URLSearchParams({
+    await this.naverPayClient.cancelPayment({
       paymentId,
-      cancelAmount: String(order.total),
-      cancelReason: '고객 요청으로 결제를 취소했습니다.',
-      cancelRequester: '1',
-      taxScopeAmount: String(order.total),
-      taxExScopeAmount: '0',
+      amount: order.total,
+      reason: '고객 요청으로 결제를 취소했습니다.',
+      requester: '1',
+      idempotencyKey: `cancel-${order.id}`,
     });
-    const cancelRes = await fetch(
-      `${apiBase}/naverpay-partner/naverpay/payments/v1/cancel`,
-      {
-        method: 'POST',
-        headers: this.getNaverHeaders({
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-        body: cancelForm.toString(),
-      },
-    );
-    if (!cancelRes.ok) {
-      throw new BadRequestException('네이버페이 결제 취소에 실패했습니다.');
-    }
-    const cancelData = (await cancelRes.json()) as {
-      code?: string;
-      message?: string;
-    };
-    if (cancelData.code !== 'Success') {
-      throw new BadRequestException(
-        `결제 취소에 실패했습니다.${cancelData.message ? ` ${cancelData.message}` : ''}`,
-      );
-    }
 
     await this.db.transaction(async (tx) => {
       const [updatedOrder] = await tx
         .update(schema.orders)
-        .set({ status: 'cancelled', updatedAt: new Date() })
+        .set({
+          status: 'cancelled',
+          naverPaymentId: paymentId,
+          cancelledAt: new Date(),
+          updatedAt: new Date(),
+        })
         .where(
           and(eq(schema.orders.id, order.id), eq(schema.orders.status, 'paid')),
         )
@@ -1373,22 +1294,32 @@ export class ShopService {
 
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const primaryName = cartItems[0]?.product?.name ?? '도자기 상품';
-    const orderName =
-      cartItems.length > 1
-        ? `${primaryName} 외 ${cartItems.length - 1}건`
-        : primaryName;
+    // 네이버페이 공식 규격은 대표 상품명에 "외 N건"을 붙이지 않도록 안내한다.
+    const orderName = cartItems[0]?.product?.name ?? '도자기 상품';
 
-    const frontUrl =
-      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    const frontUrl = (
+      this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173'
+    ).replace(/\/+$/, '');
+    const checkoutConfig = this.naverPayClient.getCheckoutConfig();
+    if (
+      checkoutConfig.mode === 'production' &&
+      !frontUrl.startsWith('https://')
+    ) {
+      throw new BadRequestException(
+        '네이버페이 운영 결제의 FRONTEND_URL은 https:// 주소여야 합니다.',
+      );
+    }
 
     await this.db.transaction(async (tx) => {
-      // checkout 주문(결제 직전) 생성은 pending draft로 쌓일 수 있습니다.
-      // 동일 유저가 다시 checkout 진입하면 중복 draft를 제거해 주문번호/대기 주문이 왕창 쌓이지 않게 합니다.
+      // 결제창이 열려 있는 주문을 삭제하면 승인 콜백을 복구할 수 없으므로,
+      // paymentId가 없고 24시간이 지난 미완료 초안만 정리한다.
+      const staleBefore = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const pendingOrders = await tx.query.orders.findMany({
         where: and(
           eq(schema.orders.userId, userId),
           eq(schema.orders.status, 'pending'),
+          isNull(schema.orders.naverPaymentId),
+          lt(schema.orders.createdAt, staleBefore),
         ),
         columns: { id: true },
       });
@@ -1404,6 +1335,8 @@ export class ShopService {
             and(
               eq(schema.orders.userId, userId),
               eq(schema.orders.status, 'pending'),
+              isNull(schema.orders.naverPaymentId),
+              lt(schema.orders.createdAt, staleBefore),
             ),
           );
       }
@@ -1442,18 +1375,8 @@ export class ShopService {
       );
     });
 
-    const clientId = this.configService.get<string>('NAVER_PAY_CLIENT_ID');
-    const chainId = this.configService.get<string>('NAVER_PAY_CHAIN_ID');
-    if (!clientId || !chainId) {
-      throw new BadRequestException(
-        '서버 환경설정에 NAVER_PAY_CLIENT_ID/NAVER_PAY_CHAIN_ID가 필요합니다.',
-      );
-    }
-
     return {
-      mode: this.getNaverSdkMode(),
-      clientId,
-      chainId,
+      ...checkoutConfig,
       merchantUserKey: userId,
       merchantPayKey: orderNumber,
       productName: orderName,
@@ -1504,129 +1427,234 @@ export class ShopService {
     if (order.status === 'paid') {
       return { orderNumber: order.orderNumber, status: order.status };
     }
-
-    const apiBase = this.getNaverApiBaseUrl();
-    const applyPayload = new URLSearchParams({
-      paymentId,
-    });
-    const paymentRes = await fetch(
-      `${apiBase}/naverpay-partner/naverpay/payments/v2.2/apply/payment`,
-      {
-        method: 'POST',
-        headers: this.getNaverHeaders({
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-NaverPay-Idempotency-Key': `apply-${paymentId}`,
-        }),
-        body: applyPayload.toString(),
-      },
-    );
-    if (!paymentRes.ok) {
-      throw new BadRequestException('네이버페이 결제 승인에 실패했습니다.');
+    if (order.status !== 'pending') {
+      throw new BadRequestException('승인할 수 없는 주문 상태입니다.');
     }
-    const paymentData = (await paymentRes.json()) as {
-      code?: string;
-      message?: string;
-      body?: {
-        detail?: {
-          merchantPayKey?: string;
-          totalPayAmount?: number;
-        };
-      };
-    };
-    if (paymentData.code !== 'Success') {
+    if (order.naverPaymentId && order.naverPaymentId !== paymentId) {
       throw new BadRequestException(
-        `네이버페이 결제 승인에 실패했습니다.${paymentData.message ? ` ${paymentData.message}` : ''}`,
+        '주문에 이미 다른 네이버페이 결제번호가 연결되어 있습니다.',
       );
     }
-    const approvedOrderNumber = paymentData.body?.detail?.merchantPayKey;
-    if (!approvedOrderNumber || approvedOrderNumber !== order.orderNumber) {
-      throw new BadRequestException(
+
+    const approval = await this.naverPayClient.approvePayment(paymentId);
+    let validationError: BadRequestException | null = null;
+    if (
+      !approval.paymentId ||
+      approval.paymentId !== paymentId ||
+      !approval.merchantPayKey ||
+      approval.merchantPayKey !== order.orderNumber ||
+      (approval.merchantUserKey && approval.merchantUserKey !== userId)
+    ) {
+      validationError = new BadRequestException(
         '승인된 결제 정보가 주문 정보와 일치하지 않습니다.',
       );
     }
-    const approvedAmount = paymentData.body?.detail?.totalPayAmount;
+    const approvedAmount = approval.totalPayAmount;
     if (typeof approvedAmount !== 'number' || approvedAmount !== order.total) {
-      throw new BadRequestException(
+      validationError = new BadRequestException(
         '결제 금액이 주문 금액과 일치하지 않습니다.',
       );
     }
+    if (validationError) {
+      try {
+        await this.naverPayClient.cancelPayment({
+          paymentId,
+          amount:
+            typeof approvedAmount === 'number' && approvedAmount > 0
+              ? approvedAmount
+              : order.total,
+          reason: '가맹점 결제 검증 실패로 자동 취소합니다.',
+          requester: '2',
+          idempotencyKey: `validation-${order.id}`,
+        });
+      } catch (cancelError) {
+        this.logger.error(
+          `결제 검증 실패 후 자동취소 실패: order=${order.orderNumber}, paymentId=${paymentId}`,
+          cancelError instanceof Error ? cancelError.stack : undefined,
+        );
+        throw new InternalServerErrorException(
+          `결제 정보 확인이 필요합니다. 주문번호 ${order.orderNumber}로 고객센터에 문의해 주세요.`,
+        );
+      }
+      throw validationError;
+    }
 
     let finalized = false;
-    await this.db.transaction(async (tx) => {
-      const [updatedOrder] = await tx
+    try {
+      // 원격 승인은 성공했지만 로컬 확정이 실패할 경우에도 결제번호를 남겨
+      // 자동 취소 실패 시 운영자가 즉시 대사할 수 있게 한다.
+      await this.db
         .update(schema.orders)
-        .set({ status: 'paid', updatedAt: new Date() })
+        .set({
+          naverPaymentId: paymentId,
+          naverPayHistId: approval.payHistId ?? null,
+          updatedAt: new Date(),
+        })
         .where(
-          and(eq(schema.orders.id, order.id), ne(schema.orders.status, 'paid')),
-        )
-        .returning();
-
-      if (!updatedOrder) return;
-      finalized = true;
-
-      if (order.couponId) {
-        await tx
-          .update(schema.coupons)
-          .set({ usedCount: sql`${schema.coupons.usedCount} + 1` })
-          .where(eq(schema.coupons.id, order.couponId));
-
-        // 지급 쿠폰(user_coupons) 이력이 있는 경우만 사용처리
-        await tx
-          .update(schema.userCoupons)
-          .set({ usedAt: new Date(), orderId: updatedOrder.id })
-          .where(
-            and(
-              eq(schema.userCoupons.userId, userId),
-              eq(schema.userCoupons.couponId, order.couponId),
-              isNull(schema.userCoupons.usedAt),
-            ),
-          );
-      }
-
-      // 장바구니에 이미 같은 상품이 merge 되어 있을 수 있으므로,
-      // 결제 확정 시엔 cartItems 를 "삭제"가 아니라 주문 수량(oi.quantity)만큼 차감합니다.
-      for (const oi of order.orderItems) {
-        const baseCond = and(
-          eq(schema.cartItems.userId, userId),
-          eq(schema.cartItems.productId, oi.productId),
-          oi.productOptionId == null
-            ? isNull(schema.cartItems.optionId)
-            : eq(schema.cartItems.optionId, oi.productOptionId),
+          and(
+            eq(schema.orders.id, order.id),
+            eq(schema.orders.status, 'pending'),
+          ),
         );
 
-        // 재고 차감: stock_quantity 가 0 이하이면 결제를 확정하지 못하게 막는다.
-        const [updatedProduct] = await tx
-          .update(schema.products)
+      await this.db.transaction(async (tx) => {
+        const [updatedOrder] = await tx
+          .update(schema.orders)
           .set({
-            stockQuantity: sql`${schema.products.stockQuantity} - ${oi.quantity}`,
+            status: 'paid',
+            naverPaymentId: paymentId,
+            naverPayHistId: approval.payHistId ?? null,
+            paidAt: new Date(),
             updatedAt: new Date(),
           })
           .where(
             and(
-              eq(schema.products.id, oi.productId),
-              gte(schema.products.stockQuantity, oi.quantity),
+              eq(schema.orders.id, order.id),
+              eq(schema.orders.status, 'pending'),
             ),
           )
-          .returning({ id: schema.products.id });
+          .returning();
 
-        if (!updatedProduct) {
-          throw new BadRequestException('재고가 부족합니다.');
+        if (!updatedOrder) {
+          const current = await tx.query.orders.findFirst({
+            where: eq(schema.orders.id, order.id),
+            columns: { status: true },
+          });
+          if (current?.status === 'paid') return;
+          throw new BadRequestException(
+            '주문 상태가 변경되어 확정할 수 없습니다.',
+          );
+        }
+        finalized = true;
+
+        if (order.couponId) {
+          const couponClaimedAt = new Date();
+          const [claimedCoupon] = await tx
+            .update(schema.coupons)
+            .set({ usedCount: sql`${schema.coupons.usedCount} + 1` })
+            .where(
+              and(
+                eq(schema.coupons.id, order.couponId),
+                eq(schema.coupons.isActive, true),
+                lte(schema.coupons.validFrom, couponClaimedAt),
+                gte(schema.coupons.validUntil, couponClaimedAt),
+                or(
+                  isNull(schema.coupons.usageLimit),
+                  lt(schema.coupons.usedCount, schema.coupons.usageLimit),
+                ),
+              ),
+            )
+            .returning({ id: schema.coupons.id });
+          if (!claimedCoupon) {
+            throw new BadRequestException('쿠폰 사용 한도가 초과되었습니다.');
+          }
+
+          // 지급형 쿠폰이면 1회 사용을 원자적으로 점유한다. 지급 이력이 없는
+          // 공용 코드 쿠폰은 기존 정책대로 전역 usageLimit만 적용한다.
+          const issuedCoupon = await tx.query.userCoupons.findFirst({
+            where: and(
+              eq(schema.userCoupons.userId, userId),
+              eq(schema.userCoupons.couponId, order.couponId),
+            ),
+            columns: { id: true },
+          });
+          if (issuedCoupon) {
+            const [claimedUserCoupon] = await tx
+              .update(schema.userCoupons)
+              .set({ usedAt: couponClaimedAt, orderId: updatedOrder.id })
+              .where(
+                and(
+                  eq(schema.userCoupons.id, issuedCoupon.id),
+                  isNull(schema.userCoupons.usedAt),
+                ),
+              )
+              .returning({ id: schema.userCoupons.id });
+            if (!claimedUserCoupon) {
+              throw new BadRequestException('이미 사용한 쿠폰입니다.');
+            }
+          }
         }
 
-        // cart 수량이 주문 수량보다 작거나 같으면 행 자체를 삭제
-        await tx
-          .delete(schema.cartItems)
-          .where(and(baseCond, lte(schema.cartItems.quantity, oi.quantity)));
+        // 결제 승인 직후 조건부 UPDATE로 재고를 차감해 동시 초과판매를 막는다.
+        for (const oi of order.orderItems) {
+          const baseCond = and(
+            eq(schema.cartItems.userId, userId),
+            eq(schema.cartItems.productId, oi.productId),
+            oi.productOptionId == null
+              ? isNull(schema.cartItems.optionId)
+              : eq(schema.cartItems.optionId, oi.productOptionId),
+          );
+          const [updatedProduct] = await tx
+            .update(schema.products)
+            .set({
+              stockQuantity: sql`${schema.products.stockQuantity} - ${oi.quantity}`,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(schema.products.id, oi.productId),
+                gte(schema.products.stockQuantity, oi.quantity),
+              ),
+            )
+            .returning({ id: schema.products.id });
 
-        // cart 수량이 더 많으면 주문 수량만큼만 차감
-        await tx
-          .update(schema.cartItems)
+          if (!updatedProduct) {
+            throw new BadRequestException('재고가 부족합니다.');
+          }
+
+          await tx
+            .delete(schema.cartItems)
+            .where(and(baseCond, lte(schema.cartItems.quantity, oi.quantity)));
+          await tx
+            .update(schema.cartItems)
+            .set({
+              quantity: sql`${schema.cartItems.quantity} - ${oi.quantity}`,
+            })
+            .where(and(baseCond, gt(schema.cartItems.quantity, oi.quantity)));
+        }
+      });
+    } catch (finalizeError) {
+      try {
+        await this.naverPayClient.cancelPayment({
+          paymentId,
+          amount: order.total,
+          reason: '가맹점 주문 확정 실패로 자동 취소합니다.',
+          requester: '2',
+          idempotencyKey: `rollback-${order.id}`,
+        });
+        await this.db
+          .update(schema.orders)
           .set({
-            quantity: sql`${schema.cartItems.quantity} - ${oi.quantity}`,
+            status: 'cancelled',
+            naverPaymentId: paymentId,
+            naverPayHistId: approval.payHistId ?? null,
+            cancelledAt: new Date(),
+            updatedAt: new Date(),
           })
-          .where(and(baseCond, gt(schema.cartItems.quantity, oi.quantity)));
+          .where(
+            and(
+              eq(schema.orders.id, order.id),
+              eq(schema.orders.status, 'pending'),
+            ),
+          );
+      } catch (cancelError) {
+        this.logger.error(
+          `결제 승인 후 주문 확정/자동취소 모두 실패: order=${order.orderNumber}, paymentId=${paymentId}`,
+          cancelError instanceof Error ? cancelError.stack : undefined,
+        );
+        throw new InternalServerErrorException(
+          `결제 처리 확인이 필요합니다. 주문번호 ${order.orderNumber}로 고객센터에 문의해 주세요.`,
+        );
       }
-    });
+
+      const reason =
+        finalizeError instanceof Error
+          ? finalizeError.message
+          : '주문 확정 실패';
+      throw new BadRequestException(
+        `주문을 확정하지 못해 결제를 자동 취소했습니다. ${reason}`,
+      );
+    }
 
     if (finalized) {
       const paidOrder = await this.db.query.orders.findFirst({
