@@ -662,16 +662,108 @@ export class ShopService {
       }
 
       if (options) {
-        await tx
-          .delete(schema.productOptions)
-          .where(eq(schema.productOptions.productId, id));
-        if (options.length > 0) {
-          await tx.insert(schema.productOptions).values(
-            options.map((opt: any) => ({
-              ...opt,
-              productId: id,
-            })),
-          );
+        const existingOptions = await tx.query.productOptions.findMany({
+          where: eq(schema.productOptions.productId, id),
+          orderBy: [asc(schema.productOptions.sortOrder)],
+        });
+        const existingById = new Map(
+          existingOptions.map((option) => [option.id, option]),
+        );
+        const retainedOptionIds = new Set<string>();
+
+        for (const [index, option] of options.entries()) {
+          const name = String(option.name ?? '').trim();
+          const value = String(option.value ?? '').trim();
+          const sortOrder = Number.isFinite(Number(option.sortOrder))
+            ? Math.floor(Number(option.sortOrder))
+            : index + 1;
+
+          if (!name || !value) {
+            throw new BadRequestException(
+              '상품 옵션의 이름과 값은 비워둘 수 없습니다.',
+            );
+          }
+
+          let existingOption: (typeof existingOptions)[number] | undefined;
+
+          if (option.id) {
+            existingOption = existingById.get(String(option.id));
+            if (!existingOption) {
+              throw new BadRequestException(
+                '다른 상품에 속하거나 존재하지 않는 옵션입니다.',
+              );
+            }
+          } else {
+            // 이전 프론트엔드가 ID 없이 요청해도 동일 옵션 또는 같은 위치의 옵션을
+            // 재사용해 기존 장바구니/주문 참조를 끊지 않습니다.
+            existingOption =
+              existingOptions.find(
+                (candidate) =>
+                  !retainedOptionIds.has(candidate.id) &&
+                  candidate.name === name &&
+                  candidate.value === value,
+              ) ??
+              existingOptions.find(
+                (candidate) =>
+                  !retainedOptionIds.has(candidate.id) &&
+                  candidate.sortOrder === sortOrder,
+              ) ??
+              existingOptions.find(
+                (candidate) => !retainedOptionIds.has(candidate.id),
+              );
+          }
+
+          if (
+            existingOption &&
+            option.id &&
+            retainedOptionIds.has(existingOption.id)
+          ) {
+            throw new BadRequestException(
+              '동일한 상품 옵션이 요청에 중복되어 있습니다.',
+            );
+          }
+
+          if (existingOption) {
+            retainedOptionIds.add(existingOption.id);
+            await tx
+              .update(schema.productOptions)
+              .set({ name, value, sortOrder })
+              .where(
+                and(
+                  eq(schema.productOptions.id, existingOption.id),
+                  eq(schema.productOptions.productId, id),
+                ),
+              );
+          } else {
+            const [createdOption] = await tx
+              .insert(schema.productOptions)
+              .values({ productId: id, name, value, sortOrder })
+              .returning({ id: schema.productOptions.id });
+            retainedOptionIds.add(createdOption.id);
+          }
+        }
+
+        const removedOptionIds = existingOptions
+          .filter((option) => !retainedOptionIds.has(option.id))
+          .map((option) => option.id);
+
+        if (removedOptionIds.length > 0) {
+          // 삭제된 옵션이 담긴 장바구니 항목은 더 이상 구매할 수 없으므로 제거합니다.
+          await tx
+            .delete(schema.cartItems)
+            .where(inArray(schema.cartItems.optionId, removedOptionIds));
+
+          // 주문 내역에는 optionLabel 스냅샷이 남아 있으므로 FK만 해제합니다.
+          await tx
+            .update(schema.orderItems)
+            .set({ productOptionId: null })
+            .where(
+              inArray(schema.orderItems.productOptionId, removedOptionIds),
+            );
+
+          await tx
+            .delete(schema.productOptions)
+            .where(inArray(schema.productOptions.id, removedOptionIds));
         }
       }
 

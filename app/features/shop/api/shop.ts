@@ -279,7 +279,7 @@ export async function createProduct(data: {
   exchangeReturnNotice?: string
   careGuide?: string
   images?: { url: string; alt?: string; sortOrder?: number }[]
-  options?: { name: string; value: string; sortOrder?: number }[]
+  options?: { id?: string; name: string; value: string; sortOrder?: number }[]
   detailImages?: { url: string; alt?: string; sortOrder?: number }[]
 }): Promise<Product> {
   return apiClient.post('/shop/admin/products', data)
@@ -302,7 +302,12 @@ export async function updateProduct(
     exchangeReturnNotice?: string
     careGuide?: string
     images?: { url: string; alt?: string; sortOrder?: number }[]
-    options?: { name: string; value: string; sortOrder?: number }[]
+    options?: {
+      id?: string
+      name: string
+      value: string
+      sortOrder?: number
+    }[]
     detailImages?: { url: string; alt?: string; sortOrder?: number }[]
   }
 ): Promise<Product> {

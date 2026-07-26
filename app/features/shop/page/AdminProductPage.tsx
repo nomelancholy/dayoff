@@ -86,7 +86,9 @@ export const AdminProductPage = () => {
   const [careGuide, setCareGuide] = useState('')
   const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
   const [detailImages, setDetailImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
-  const [options, setOptions] = useState([{ name: '', value: '', sortOrder: 1 }])
+  const [options, setOptions] = useState<
+    { id?: string; name: string; value: string; sortOrder: number }[]
+  >([{ name: '', value: '', sortOrder: 1 }])
   const [error, setError] = useState<string | null>(null)
   const [uploadingImages, setUploadingImages] = useState(false)
   const [uploadingDetailImages, setUploadingDetailImages] = useState(false)
@@ -134,6 +136,7 @@ export const AdminProductPage = () => {
     setOptions(
       product.options?.length
         ? product.options.map((opt) => ({
+            id: opt.id,
             name: opt.name,
             value: opt.value,
             sortOrder: opt.sortOrder,
@@ -587,7 +590,7 @@ export const AdminProductPage = () => {
               </button>
             </div>
             {options.map((opt, index) => (
-              <div key={index} className="flex gap-4">
+              <div key={opt.id ?? index} className="flex gap-4">
                 <input
                   type="text"
                   value={opt.name}
