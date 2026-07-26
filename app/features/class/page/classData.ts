@@ -31,7 +31,7 @@ export const CLASS_ITEMS: ClassItemData[] = [
     slug: 'color-clay',
     monoLabel: 'COLOR CLAY',
     name: '컬러 클레이 클래스',
-    image: '/class/color_thumbnail.jpg',
+    image: '/assets/class/color_thumbnail.jpg',
     imageAlt: '컬러 클레이 클래스',
     infoRows: [
       { label: 'TIME', value: '90 - 120분' },
@@ -46,7 +46,7 @@ export const CLASS_ITEMS: ClassItemData[] = [
     slug: 'free',
     monoLabel: 'FREE FORMING',
     name: '자유 원데이 클래스',
-    image: '/class/free_thumbnail.jpg',
+    image: '/assets/class/free_thumbnail.jpg',
     imageAlt: '자유 원데이 클래스',
     infoRows: [
       { label: 'TIME', value: '120분' },

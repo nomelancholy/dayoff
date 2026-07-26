@@ -51,6 +51,11 @@ services:
       RESEND_REPLY_TO: ${RESEND_REPLY_TO:-}
     volumes:
       - dayoff_uploads:/app/uploads
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     networks: [dayoff]
 
   web:

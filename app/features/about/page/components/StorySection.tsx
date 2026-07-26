@@ -1,7 +1,7 @@
 import { SectionImage } from './SectionImage'
 import { SectionText } from './SectionText'
 
-const STORY_IMAGE = '/class/pottery_wheel_thumbnail.jpg'
+const STORY_IMAGE = '/assets/class/pottery_wheel_thumbnail.jpg'
 
 const STORY_CONTENT = {
   title: '당신의 공간에 머무는 고요한 쉼표 하나',
