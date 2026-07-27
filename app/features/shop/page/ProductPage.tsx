@@ -53,6 +53,11 @@ export const ShopProductPage = () => {
   const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
   const optionMenuRef = useRef<HTMLDivElement | null>(null)
   const galleryTouchStartXRef = useRef<number | null>(null)
+  const galleryDidSwipeRef = useRef(false)
+  const productLightboxTouchStartXRef = useRef<number | null>(null)
+  const [productLightboxIndex, setProductLightboxIndex] = useState<
+    number | null
+  >(null)
 
   const [reviewLightbox, setReviewLightbox] = useState<{
     images: ProductReviewImage[]
@@ -74,6 +79,7 @@ export const ShopProductPage = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
     setMainImageIndex(0)
     setActiveTab('productGuide')
+    setProductLightboxIndex(null)
   }, [slug])
 
   useEffect(() => {
@@ -157,6 +163,37 @@ export const ShopProductPage = () => {
     queryFn: () => fetchProduct(slug!),
     enabled: !!slug,
   })
+
+  useEffect(() => {
+    if (productLightboxIndex === null) return
+
+    const imageCount = product?.images?.length ?? 0
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setProductLightboxIndex(null)
+        return
+      }
+      if (imageCount <= 1) return
+      if (event.key === 'ArrowLeft') {
+        setProductLightboxIndex((current) =>
+          current === null ? current : (current - 1 + imageCount) % imageCount
+        )
+      }
+      if (event.key === 'ArrowRight') {
+        setProductLightboxIndex((current) =>
+          current === null ? current : (current + 1) % imageCount
+        )
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [productLightboxIndex, product?.images?.length])
 
   const showToast = useUiStore((s) => s.showToast)
   const hasOptions = !!(product?.options && product.options.length > 0)
@@ -419,20 +456,35 @@ export const ShopProductPage = () => {
                   const startX = galleryTouchStartXRef.current
                   const endX = event.changedTouches[0]?.clientX
                   galleryTouchStartXRef.current = null
+                  galleryDidSwipeRef.current = false
                   if (startX == null || endX == null) return
                   const distance = endX - startX
                   if (Math.abs(distance) < 50) return
+                  galleryDidSwipeRef.current = true
                   if (distance > 0) showPreviousImage()
                   else showNextImage()
                 }}
               >
                 {mainImage ? (
-                  <img
-                    key={mainImage.id}
-                    src={mainImage.url}
-                    alt={mainImage.alt || product.name}
-                    className="h-full w-full animate-in fade-in object-cover duration-300"
-                  />
+                  <button
+                    type="button"
+                    className="block h-full w-full cursor-zoom-in"
+                    aria-label={`${product.name} 이미지 크게 보기`}
+                    onClick={() => {
+                      if (galleryDidSwipeRef.current) {
+                        galleryDidSwipeRef.current = false
+                        return
+                      }
+                      setProductLightboxIndex(mainImageIndex)
+                    }}
+                  >
+                    <img
+                      key={mainImage.id}
+                      src={mainImage.url}
+                      alt={mainImage.alt || product.name}
+                      className="h-full w-full animate-in fade-in object-cover duration-300"
+                    />
+                  </button>
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm uppercase tracking-widest text-[#999] md:text-base">
                     No Image
@@ -876,6 +928,89 @@ export const ShopProductPage = () => {
           )}
         </section>
       </div>
+
+      {productLightboxIndex !== null && images.length > 0 && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${product.name} 상품 이미지 크게 보기`}
+          className="fixed inset-0 z-100000 flex items-center justify-center bg-black/85 p-4 md:p-8"
+          onClick={() => setProductLightboxIndex(null)}
+        >
+          <div
+            className="relative flex h-full w-full max-w-6xl items-center justify-center"
+            onClick={(event) => event.stopPropagation()}
+            onTouchStart={(event) => {
+              productLightboxTouchStartXRef.current =
+                event.touches[0]?.clientX ?? null
+            }}
+            onTouchEnd={(event) => {
+              const startX = productLightboxTouchStartXRef.current
+              const endX = event.changedTouches[0]?.clientX
+              productLightboxTouchStartXRef.current = null
+              if (startX == null || endX == null || images.length <= 1) return
+              const distance = endX - startX
+              if (Math.abs(distance) < 50) return
+              setProductLightboxIndex((current) => {
+                if (current === null) return current
+                return distance > 0
+                  ? (current - 1 + images.length) % images.length
+                  : (current + 1) % images.length
+              })
+            }}
+          >
+            <button
+              type="button"
+              aria-label="상품 이미지 팝업 닫기"
+              className="absolute right-0 top-0 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/50 text-2xl text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/75 focus:outline-none focus:ring-2 focus:ring-white/50"
+              onClick={() => setProductLightboxIndex(null)}
+            >
+              ×
+            </button>
+
+            <img
+              src={images[productLightboxIndex]?.url}
+              alt={
+                images[productLightboxIndex]?.alt ||
+                `${product.name} ${productLightboxIndex + 1}`
+              }
+              className="max-h-[88vh] max-w-full select-none object-contain"
+            />
+
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label="이전 상품 이미지"
+                  className="absolute left-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/75 md:left-2 md:h-12 md:w-12"
+                  onClick={() =>
+                    setProductLightboxIndex(
+                      (productLightboxIndex - 1 + images.length) % images.length
+                    )
+                  }
+                >
+                  <ChevronLeft size={28} strokeWidth={1.4} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="다음 상품 이미지"
+                  className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/50 text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-black/75 md:right-2 md:h-12 md:w-12"
+                  onClick={() =>
+                    setProductLightboxIndex(
+                      (productLightboxIndex + 1) % images.length
+                    )
+                  }
+                >
+                  <ChevronRight size={28} strokeWidth={1.4} />
+                </button>
+                <span className="mono absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1.5 text-xs tracking-[0.08em] text-white">
+                  {productLightboxIndex + 1} / {images.length}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {reviewLightbox && (
         <div
