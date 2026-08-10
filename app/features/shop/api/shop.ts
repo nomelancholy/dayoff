@@ -58,6 +58,8 @@ export interface Product {
   name: string
   description: string | null
   price: number
+  originalPrice?: number | null
+  discountRate?: number
   stockQuantity: number
   isActive: boolean
   purchaseNotice?: string | null
@@ -170,12 +172,14 @@ export interface AdminReviewItem {
 
 export async function updateMyReview(
   reviewId: string,
-  data: { body: string; rating?: number | null; imageUrls?: string[] },
+  data: { body: string; rating?: number | null; imageUrls?: string[] }
 ): Promise<MyReviewItem> {
   return apiClient.patch(`/shop/my-reviews/${reviewId}`, data)
 }
 
-export async function deleteMyReview(reviewId: string): Promise<{ id: string }> {
+export async function deleteMyReview(
+  reviewId: string
+): Promise<{ id: string }> {
   return apiClient.delete(`/shop/my-reviews/${reviewId}`)
 }
 
@@ -185,7 +189,7 @@ export async function fetchAdminReviews(): Promise<AdminReviewItem[]> {
 
 export async function updateAdminReview(
   reviewId: string,
-  data: { body: string; rating?: number | null; imageUrls?: string[] },
+  data: { body: string; rating?: number | null; imageUrls?: string[] }
 ): Promise<AdminReviewItem> {
   return apiClient.patch(`/shop/admin/reviews/${reviewId}`, data)
 }
@@ -233,7 +237,9 @@ export function fetchMyOrders(): Promise<OrderRow[]> {
   return apiClient.get('/shop/orders')
 }
 
-export function cancelMyOrder(orderId: string): Promise<{ orderNumber: string; status: string }> {
+export function cancelMyOrder(
+  orderId: string
+): Promise<{ orderNumber: string; status: string }> {
   return apiClient.post(`/shop/orders/${orderId}/cancel`)
 }
 
@@ -271,6 +277,8 @@ export async function createProduct(data: {
   name: string
   description?: string
   price: number
+  originalPrice?: number | null
+  discountRate?: number
   stockQuantity?: number
   isActive?: boolean
   purchaseNotice?: string
@@ -294,6 +302,8 @@ export async function updateProduct(
     name?: string
     description?: string
     price?: number
+    originalPrice?: number | null
+    discountRate?: number
     stockQuantity?: number
     isActive?: boolean
     purchaseNotice?: string
@@ -320,7 +330,9 @@ export async function deleteProduct(id: string): Promise<Product> {
 }
 
 /** 구매평용 이미지 업로드 (파일 직접 첨부) */
-export async function uploadReviewImages(files: File[]): Promise<{ urls: string[] }> {
+export async function uploadReviewImages(
+  files: File[]
+): Promise<{ urls: string[] }> {
   if (!files.length) return { urls: [] }
   const form = new FormData()
   files.forEach((f) => form.append('files', f))
@@ -339,7 +351,9 @@ export async function uploadReviewImages(files: File[]): Promise<{ urls: string[
 }
 
 /** [Admin] 상품 이미지 업로드 (파일 직접 첨부) */
-export async function uploadProductImages(files: File[]): Promise<{ urls: string[] }> {
+export async function uploadProductImages(
+  files: File[]
+): Promise<{ urls: string[] }> {
   if (!files.length) return { urls: [] }
   const form = new FormData()
   files.forEach((f) => form.append('files', f))
@@ -360,7 +374,12 @@ export async function uploadProductImages(files: File[]): Promise<{ urls: string
 /** 구매평 작성 */
 export async function createProductReview(
   productId: string,
-  data: { body: string; rating?: number; imageUrls?: string[]; orderItemId: string }
+  data: {
+    body: string
+    rating?: number
+    imageUrls?: string[]
+    orderItemId: string
+  }
 ) {
   return apiClient.post(`/shop/products/${productId}/reviews`, data)
 }

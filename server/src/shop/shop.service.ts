@@ -32,6 +32,10 @@ import { NaverPayClient } from './naver-pay.client';
 
 const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+function discountedPrice(originalPrice: number, discountRate: number) {
+  return Math.floor((originalPrice * (100 - discountRate)) / 100);
+}
+
 @Injectable()
 export class ShopService {
   private readonly logger = new Logger(ShopService.name);
@@ -518,7 +522,11 @@ export class ShopService {
     const { images, options, detailImages, ...productData } = data;
     const name = String(productData.name ?? '').trim();
     const slug = String(productData.slug ?? '').trim();
-    const price = Number(productData.price);
+    const submittedPrice = Number(productData.price);
+    const discountRate = Number(productData.discountRate ?? 0);
+    const originalPrice = Number(
+      productData.originalPrice ?? productData.price,
+    );
     const stockQuantity = Number(productData.stockQuantity ?? 999);
 
     if (!name || !slug) {
@@ -529,8 +537,18 @@ export class ShopService {
         'slug는 영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.',
       );
     }
-    if (!Number.isFinite(price) || price < 0) {
+    if (!Number.isFinite(submittedPrice) || submittedPrice < 0) {
       throw new BadRequestException('가격은 0 이상이어야 합니다.');
+    }
+    if (
+      !Number.isFinite(discountRate) ||
+      discountRate < 0 ||
+      discountRate > 100
+    ) {
+      throw new BadRequestException('할인율은 0~100 사이여야 합니다.');
+    }
+    if (!Number.isFinite(originalPrice) || originalPrice < 0) {
+      throw new BadRequestException('정상가는 0 이상이어야 합니다.');
     }
     if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
       throw new BadRequestException('재고 수량은 0 이상이어야 합니다.');
@@ -543,7 +561,15 @@ export class ShopService {
           ...productData,
           name,
           slug,
-          price: Math.floor(price),
+          price:
+            discountRate > 0
+              ? discountedPrice(
+                  Math.floor(originalPrice),
+                  Math.floor(discountRate),
+                )
+              : Math.floor(submittedPrice),
+          originalPrice: discountRate > 0 ? Math.floor(originalPrice) : null,
+          discountRate: Math.floor(discountRate),
           stockQuantity: Math.floor(stockQuantity),
         })
         .returning();
@@ -633,6 +659,29 @@ export class ShopService {
       normalizedData.price = Math.floor(price);
     }
 
+    if (
+      'originalPrice' in normalizedData &&
+      normalizedData.originalPrice != null
+    ) {
+      const originalPrice = Number(normalizedData.originalPrice);
+      if (!Number.isFinite(originalPrice) || originalPrice < 0) {
+        throw new BadRequestException('정상가는 0 이상이어야 합니다.');
+      }
+      normalizedData.originalPrice = Math.floor(originalPrice);
+    }
+
+    if ('discountRate' in normalizedData) {
+      const discountRate = Number(normalizedData.discountRate);
+      if (
+        !Number.isFinite(discountRate) ||
+        discountRate < 0 ||
+        discountRate > 100
+      ) {
+        throw new BadRequestException('할인율은 0~100 사이여야 합니다.');
+      }
+      normalizedData.discountRate = Math.floor(discountRate);
+    }
+
     if ('stockQuantity' in normalizedData) {
       const stockQuantity = Number(normalizedData.stockQuantity);
       if (!Number.isFinite(stockQuantity) || stockQuantity < 0) {
@@ -646,10 +695,43 @@ export class ShopService {
         where: eq(schema.products.id, id),
         columns: {
           stockQuantity: true,
+          price: true,
+          originalPrice: true,
+          discountRate: true,
         },
       });
       if (!before) {
         throw new NotFoundException('상품을 찾을 수 없습니다.');
+      }
+
+      const pricingTouched =
+        'price' in normalizedData ||
+        'originalPrice' in normalizedData ||
+        'discountRate' in normalizedData;
+      if (pricingTouched) {
+        const nextDiscountRate = Number(
+          normalizedData.discountRate ?? before.discountRate,
+        );
+        if (nextDiscountRate > 0) {
+          const nextOriginalPrice = Number(
+            normalizedData.originalPrice ??
+              before.originalPrice ??
+              normalizedData.price ??
+              before.price,
+          );
+          normalizedData.originalPrice = Math.floor(nextOriginalPrice);
+          normalizedData.discountRate = Math.floor(nextDiscountRate);
+          normalizedData.price = discountedPrice(
+            normalizedData.originalPrice,
+            normalizedData.discountRate,
+          );
+        } else {
+          normalizedData.discountRate = 0;
+          normalizedData.originalPrice = null;
+          if (!('price' in normalizedData)) {
+            normalizedData.price = before.price;
+          }
+        }
       }
 
       if (Object.keys(normalizedData).length > 0) {

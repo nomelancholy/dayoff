@@ -11,6 +11,7 @@ import { Minus, Plus } from 'lucide-react'
 import { validateCoupon } from '@/features/coupon/api/coupon'
 import type { ValidateCouponResult } from '@/features/coupon/types/coupon'
 import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
+import { ProductPrice } from '@/features/shop/components/ProductPrice'
 
 export const CartPage = () => {
   const queryClient = useQueryClient()
@@ -23,8 +24,7 @@ export const CartPage = () => {
   const [appliedOrderAmount, setAppliedOrderAmount] = useState<number | null>(
     null
   )
-  const [hasUserTouchedSelection, setHasUserTouchedSelection] =
-    useState(false)
+  const [hasUserTouchedSelection, setHasUserTouchedSelection] = useState(false)
   const [userSelectedCartItemIds, setUserSelectedCartItemIds] = useState<
     string[]
   >([])
@@ -43,17 +43,20 @@ export const CartPage = () => {
     return userSelectedCartItemIds.filter((id) => availableIds.has(id))
   }, [items, hasUserTouchedSelection, userSelectedCartItemIds])
 
-  const selectedIdSet = useMemo(() => new Set(selectedCartItemIds), [selectedCartItemIds])
+  const selectedIdSet = useMemo(
+    () => new Set(selectedCartItemIds),
+    [selectedCartItemIds]
+  )
   const selectedItems = useMemo(
     () => (items ?? []).filter((item) => selectedIdSet.has(item.id)),
-    [items, selectedIdSet],
+    [items, selectedIdSet]
   )
 
   const selectedSubtotal = useMemo(() => {
     return (
       selectedItems.reduce(
         (sum, item) => sum + item.product.price * item.quantity,
-        0,
+        0
       ) || 0
     )
   }, [selectedItems])
@@ -145,8 +148,7 @@ export const CartPage = () => {
       ? '장바구니 금액이 변경되어 쿠폰이 해제되었습니다. 다시 적용해 주세요.'
       : null)
 
-  const shipping =
-    subtotal === 0 ? 0 : subtotal >= 100000 ? 0 : 4000
+  const shipping = subtotal === 0 ? 0 : subtotal >= 100000 ? 0 : 4000
   const discount = activeCoupon?.discountAmount ?? 0
   const total = Math.max(0, subtotal + shipping - discount)
 
@@ -193,7 +195,9 @@ export const CartPage = () => {
                           setHasUserTouchedSelection(true)
                           setUserSelectedCartItemIds((prev) => {
                             // prev가 비어있으면(첫 터치) 전부 선택 상태에서 토글 시작
-                            const base = prev.length ? prev : items.map((i) => i.id)
+                            const base = prev.length
+                              ? prev
+                              : items.map((i) => i.id)
                             const set = new Set(base)
                             if (set.has(item.id)) set.delete(item.id)
                             else set.add(item.id)
@@ -259,9 +263,13 @@ export const CartPage = () => {
                     </div>
                   </div>
                   <div className="col-span-3 mt-4 flex flex-row items-center justify-between gap-4 md:col-span-1 md:mt-0 md:flex-col md:items-end">
-                    <span className="text-[1.1rem] font-medium text-dot-primary">
-                      ₩{(item.product.price * item.quantity).toLocaleString()}
-                    </span>
+                    <ProductPrice
+                      product={item.product}
+                      quantity={item.quantity}
+                      className="justify-end text-[1.1rem] font-medium text-dot-primary"
+                      originalClassName="text-[0.85rem] font-normal"
+                      rateClassName="text-[0.85rem]"
+                    />
                     <button
                       type="button"
                       onClick={() => removeMutation.mutate(item.id)}
@@ -355,7 +363,9 @@ export const CartPage = () => {
                     <button
                       type="submit"
                       disabled={
-                        validateMutation.isPending || subtotal <= 0 || selectedItems.length === 0
+                        validateMutation.isPending ||
+                        subtotal <= 0 ||
+                        selectedItems.length === 0
                       }
                       className="mono shrink-0 border border-dot-primary bg-dot-primary px-4 py-3 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
@@ -375,9 +385,7 @@ export const CartPage = () => {
                     },
                   })
                 }
-                disabled={
-                  !CHECKOUT_ENABLED || selectedCartItemIds.length === 0
-                }
+                disabled={!CHECKOUT_ENABLED || selectedCartItemIds.length === 0}
                 className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {CHECKOUT_ENABLED ? '결제 진행' : '구매 준비 중'}

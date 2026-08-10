@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useReveal } from '@/common/hooks/useReveal'
 import { cn } from '@/common/lib/utils'
 import { fetchProducts } from '@/features/shop/api/shop'
+import { ProductPrice } from '@/features/shop/components/ProductPrice'
 
 const HERO_IMAGE = '/assets/main_pic_01.jpg'
 const HERO_IMAGE_SECONDARY = '/assets/main_pic_02.JPG'
@@ -100,9 +101,9 @@ export const HomePage = () => {
             유약이 빚어낸 온전한 휴식(休)
           </p>
           <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
-            도자기 브랜드 ‘Day Off Today’는 일상 속 온전한 쉼을 전합니다.
-            브랜드 이름인 ‘휴일’의 의미를 상형문자 ‘휴(休)’로 시각화하여,
-            언제든 기대어 쉴 수 있는 나무 같은 기물을 빚습니다.
+            도자기 브랜드 ‘Day Off Today’는 일상 속 온전한 쉼을 전합니다. 브랜드
+            이름인 ‘휴일’의 의미를 상형문자 ‘휴(休)’로 시각화하여, 언제든 기대어
+            쉴 수 있는 나무 같은 기물을 빚습니다.
           </p>
           <p className="mt-8 text-[1.1rem] font-light leading-relaxed text-dot-secondary">
             자연을 닮은 화려하지 않은 색채들을 연구해 오래 곁에 둘수록 평온함을
@@ -218,9 +219,12 @@ export const HomePage = () => {
                       <h3 className="text-[0.9rem] font-normal tracking-[0.05em]">
                         {product.name}
                       </h3>
-                      <span className="shrink-0 text-[0.9rem] text-dot-secondary">
-                        ₩{product.price.toLocaleString()}
-                      </span>
+                      <ProductPrice
+                        product={product}
+                        className="shrink-0 justify-end text-[0.9rem] text-dot-secondary"
+                        originalClassName="text-[0.78rem]"
+                        rateClassName="text-[0.78rem]"
+                      />
                     </div>
                   </Link>
                 )

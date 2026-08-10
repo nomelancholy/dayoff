@@ -71,6 +71,13 @@
       "when": 1784761200000,
       "tag": "0009_add_naver_payment_audit_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786291200000,
+      "tag": "0010_add_product_discount_fields",
+      "breakpoints": true
     }
   ]
 }

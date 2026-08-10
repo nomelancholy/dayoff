@@ -10,13 +10,16 @@ import {
 } from '@/features/shop/api/shop'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { ProductPrice } from '@/features/shop/components/ProductPrice'
 
 export const AdminProductsSection = () => {
   const queryClient = useQueryClient()
   const [categoryName, setCategoryName] = useState('')
   const [categorySlug, setCategorySlug] = useState('')
   const [categorySortOrder, setCategorySortOrder] = useState('')
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null
+  )
   const [editingCategoryName, setEditingCategoryName] = useState('')
   const [editingCategorySlug, setEditingCategorySlug] = useState('')
   const [editingCategorySortOrder, setEditingCategorySortOrder] = useState('0')
@@ -51,7 +54,9 @@ export const AdminProductsSection = () => {
       alert('카테고리가 생성되었습니다.')
     },
     onError: (err: unknown) => {
-      alert(err instanceof Error ? err.message : '카테고리 생성에 실패했습니다.')
+      alert(
+        err instanceof Error ? err.message : '카테고리 생성에 실패했습니다.'
+      )
     },
   })
 
@@ -67,9 +72,13 @@ export const AdminProductsSection = () => {
     },
   })
 
-
   const updateCategoryMutation = useMutation({
-    mutationFn: (data: { id: string; name: string; slug: string; sortOrder: number }) =>
+    mutationFn: (data: {
+      id: string
+      name: string
+      slug: string
+      sortOrder: number
+    }) =>
       updateCategory(data.id, {
         name: data.name,
         slug: data.slug,
@@ -84,7 +93,9 @@ export const AdminProductsSection = () => {
       alert('카테고리가 수정되었습니다.')
     },
     onError: (err: unknown) => {
-      alert(err instanceof Error ? err.message : '카테고리 수정에 실패했습니다.')
+      alert(
+        err instanceof Error ? err.message : '카테고리 수정에 실패했습니다.'
+      )
     },
   })
 
@@ -95,7 +106,9 @@ export const AdminProductsSection = () => {
       alert('카테고리가 삭제되었습니다.')
     },
     onError: (err: unknown) => {
-      alert(err instanceof Error ? err.message : '카테고리 삭제에 실패했습니다.')
+      alert(
+        err instanceof Error ? err.message : '카테고리 삭제에 실패했습니다.'
+      )
     },
   })
 
@@ -219,7 +232,10 @@ export const AdminProductsSection = () => {
             <tbody>
               {categories.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-dot-secondary">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-dot-secondary"
+                  >
                     No categories
                   </td>
                 </tr>
@@ -232,7 +248,9 @@ export const AdminProductsSection = () => {
                         {isEditing ? (
                           <input
                             value={editingCategoryName}
-                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            onChange={(e) =>
+                              setEditingCategoryName(e.target.value)
+                            }
                             className="w-full rounded border border-[#ddd] px-2 py-1 text-sm focus:border-dot-primary focus:outline-none"
                           />
                         ) : (
@@ -243,7 +261,9 @@ export const AdminProductsSection = () => {
                         {isEditing ? (
                           <input
                             value={editingCategorySlug}
-                            onChange={(e) => setEditingCategorySlug(e.target.value)}
+                            onChange={(e) =>
+                              setEditingCategorySlug(e.target.value)
+                            }
                             className="w-full rounded border border-[#ddd] px-2 py-1 text-sm focus:border-dot-primary focus:outline-none"
                           />
                         ) : (
@@ -255,7 +275,9 @@ export const AdminProductsSection = () => {
                           <input
                             type="number"
                             value={editingCategorySortOrder}
-                            onChange={(e) => setEditingCategorySortOrder(e.target.value)}
+                            onChange={(e) =>
+                              setEditingCategorySortOrder(e.target.value)
+                            }
                             className="w-24 rounded border border-[#ddd] px-2 py-1 text-sm focus:border-dot-primary focus:outline-none"
                           />
                         ) : (
@@ -264,7 +286,10 @@ export const AdminProductsSection = () => {
                       </td>
                       <td className="px-4 py-3">
                         {isEditing ? (
-                          <form onSubmit={submitEditCategory} className="flex gap-2">
+                          <form
+                            onSubmit={submitEditCategory}
+                            className="flex gap-2"
+                          >
                             <button
                               type="submit"
                               disabled={updateCategoryMutation.isPending}
@@ -292,7 +317,12 @@ export const AdminProductsSection = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                if (!window.confirm(`"${category.name}" 카테고리를 삭제할까요?`)) return
+                                if (
+                                  !window.confirm(
+                                    `"${category.name}" 카테고리를 삭제할까요?`
+                                  )
+                                )
+                                  return
                                 deleteCategoryMutation.mutate(category.id)
                               }}
                               className="rounded border border-[#ddd] bg-white px-3 py-2 text-[0.82rem] font-medium text-dot-primary transition-colors hover:bg-[#f7f7f7]"
@@ -312,7 +342,9 @@ export const AdminProductsSection = () => {
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-serif text-2xl tracking-[0.08em] text-dot-primary">PRODUCTS</h2>
+        <h2 className="font-serif text-2xl tracking-[0.08em] text-dot-primary">
+          PRODUCTS
+        </h2>
         <Link
           to="/shop/admin/new"
           className="rounded border border-dot-primary bg-white px-4 py-2 text-[0.85rem] font-medium text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
@@ -336,7 +368,10 @@ export const AdminProductsSection = () => {
           <tbody>
             {list.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-dot-secondary">
+                <td
+                  colSpan={6}
+                  className="px-4 py-10 text-center text-dot-secondary"
+                >
                   No products
                 </td>
               </tr>
@@ -347,7 +382,14 @@ export const AdminProductsSection = () => {
                   <td className="px-4 py-3 text-dot-secondary">
                     {categoryNameById.get(p.categoryId) ?? '-'}
                   </td>
-                  <td className="px-4 py-3 text-dot-primary">₩{p.price.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-dot-primary">
+                    <ProductPrice
+                      product={p}
+                      className="text-sm"
+                      originalClassName="text-xs"
+                      rateClassName="text-xs"
+                    />
+                  </td>
                   <td className="px-4 py-3 text-dot-primary">
                     <span className="mono text-sm">{p.stockQuantity ?? 0}</span>
                   </td>
@@ -363,7 +405,8 @@ export const AdminProductsSection = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          if (!window.confirm(`"${p.name}" 상품을 삭제할까요?`)) return
+                          if (!window.confirm(`"${p.name}" 상품을 삭제할까요?`))
+                            return
                           deleteProductMutation.mutate(p.id)
                         }}
                         className="rounded border border-[#ddd] bg-white px-4 py-2 text-sm font-medium text-dot-primary transition-colors hover:bg-[#f7f7f7]"
@@ -381,4 +424,3 @@ export const AdminProductsSection = () => {
     </section>
   )
 }
-

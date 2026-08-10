@@ -32,7 +32,12 @@ export const products = pgTable('products', {
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   description: text('description'),
+  /** 실제 주문/결제에 사용하는 판매가(할인 적용 후 금액) */
   price: integer('price').notNull(),
+  /** 할인이 있을 때 노출할 정상가. 할인이 없으면 null */
+  originalPrice: integer('original_price'),
+  /** 정상가에 적용한 할인율(0~100) */
+  discountRate: integer('discount_rate').notNull().default(0),
   // 관리자 설정 재고 수량. 0 이하이면 판매/결제 진행을 막는다.
   stockQuantity: integer('stock_quantity').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),

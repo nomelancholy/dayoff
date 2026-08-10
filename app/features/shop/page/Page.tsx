@@ -5,6 +5,7 @@ import { fetchCategories, fetchProducts } from '../api/shop'
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { cn } from '@/common/lib/utils'
 import { Plus } from 'lucide-react'
+import { ProductPrice } from '../components/ProductPrice'
 
 export const ShopPage = () => {
   const [selectedCategoryId, setSelectedCategoryId] = useState<
@@ -62,7 +63,9 @@ export const ShopPage = () => {
               onClick={() => setSelectedCategoryId(undefined)}
               className={cn(
                 'mono relative shrink-0 appearance-none border-0 bg-transparent px-3 py-2 text-sm text-dot-secondary transition-colors outline-none! ring-0! focus:outline-none! focus-visible:outline-none! focus:ring-0! focus-visible:ring-0! md:px-4 md:text-base',
-                !selectedCategoryId ? 'text-dot-primary' : 'hover:text-dot-primary'
+                !selectedCategoryId
+                  ? 'text-dot-primary'
+                  : 'hover:text-dot-primary'
               )}
             >
               All
@@ -120,51 +123,56 @@ export const ShopPage = () => {
             {productList.map((product) => {
               const isSoldOut = product.stockQuantity <= 0
               return (
-              <Link
-                key={product.id}
-                to={`/shop/${product.slug}`}
-                className={cn(
-                  'group block text-inherit no-underline transition-opacity duration-400',
-                  isSoldOut ? 'opacity-70 hover:opacity-80' : 'hover:opacity-90'
-                )}
-              >
-                <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2]">
-                  {product.images && product.images[0] ? (
-                    <img
-                      src={product.images[0].url}
-                      alt={product.images[0].alt || product.name}
-                      className={cn(
-                        'h-full w-full object-cover transition-transform duration-[0.6s] ease-dot',
-                        isSoldOut
-                          ? 'grayscale-[0.6] contrast-[0.9]'
-                          : 'group-hover:scale-105'
-                      )}
+                <Link
+                  key={product.id}
+                  to={`/shop/${product.slug}`}
+                  className={cn(
+                    'group block text-inherit no-underline transition-opacity duration-400',
+                    isSoldOut
+                      ? 'opacity-70 hover:opacity-80'
+                      : 'hover:opacity-90'
+                  )}
+                >
+                  <div className="relative mb-6 aspect-square overflow-hidden bg-[#F2F2F2]">
+                    {product.images && product.images[0] ? (
+                      <img
+                        src={product.images[0].url}
+                        alt={product.images[0].alt || product.name}
+                        className={cn(
+                          'h-full w-full object-cover transition-transform duration-[0.6s] ease-dot',
+                          isSoldOut
+                            ? 'grayscale-[0.6] contrast-[0.9]'
+                            : 'group-hover:scale-105'
+                        )}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[9px] uppercase tracking-widest text-[#ccc]">
+                        No Image
+                      </div>
+                    )}
+                    {isSoldOut && (
+                      <div className="absolute left-3 top-3 rounded-sm bg-black/80 px-2.5 py-1 text-[0.62rem] font-medium tracking-[0.12em] text-white">
+                        SOLD OUT
+                      </div>
+                    )}
+                  </div>
+                  {product.category && (
+                    <span className="mono mb-2 block text-[0.6rem] text-dot-accent">
+                      {product.category.name}
+                    </span>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-sans text-[0.95rem] font-medium tracking-[0.01em] text-dot-primary">
+                      {product.name}
+                    </h3>
+                    <ProductPrice
+                      product={product}
+                      className="shrink-0 justify-end text-[0.9rem] font-light text-dot-secondary"
+                      originalClassName="text-[0.78rem]"
+                      rateClassName="text-[0.78rem]"
                     />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-[9px] uppercase tracking-widest text-[#ccc]">
-                      No Image
-                    </div>
-                  )}
-                  {isSoldOut && (
-                    <div className="absolute left-3 top-3 rounded-sm bg-black/80 px-2.5 py-1 text-[0.62rem] font-medium tracking-[0.12em] text-white">
-                      SOLD OUT
-                    </div>
-                  )}
-                </div>
-                {product.category && (
-                  <span className="mono mb-2 block text-[0.6rem] text-dot-accent">
-                    {product.category.name}
-                  </span>
-                )}
-                <div className="flex items-center justify-between">
-                  <h3 className="font-sans text-[0.95rem] font-medium tracking-[0.01em] text-dot-primary">
-                    {product.name}
-                  </h3>
-                  <span className="text-[0.9rem] font-light text-dot-secondary">
-                    ₩{product.price.toLocaleString()}
-                  </span>
-                </div>
-              </Link>
+                  </div>
+                </Link>
               )
             })}
           </div>

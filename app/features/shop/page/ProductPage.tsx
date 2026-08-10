@@ -24,6 +24,7 @@ import {
   Pencil,
 } from 'lucide-react'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
+import { ProductPrice } from '@/features/shop/components/ProductPrice'
 
 type ProductGuideKey =
   | 'purchaseNotice'
@@ -64,9 +65,7 @@ export const ShopProductPage = () => {
     index: number
   } | null>(null)
 
-  const [editingReview, setEditingReview] = useState<ProductReview | null>(
-    null,
-  )
+  const [editingReview, setEditingReview] = useState<ProductReview | null>(null)
 
   const { data: user } = useQuery({
     queryKey: ['auth', 'me'],
@@ -351,13 +350,13 @@ export const ShopProductPage = () => {
   const showPreviousImage = () => {
     if (images.length <= 1) return
     setMainImageIndex((current) =>
-      current === 0 ? images.length - 1 : current - 1,
+      current === 0 ? images.length - 1 : current - 1
     )
   }
   const showNextImage = () => {
     if (images.length <= 1) return
     setMainImageIndex((current) =>
-      current === images.length - 1 ? 0 : current + 1,
+      current === images.length - 1 ? 0 : current + 1
     )
   }
   const selectedOption =
@@ -414,9 +413,7 @@ export const ShopProductPage = () => {
       label: `REVIEWS ${product.reviews?.length ? `(${product.reviews.length})` : ''}`,
     },
   ]
-  const activeGuideGroup = guideGroups.find(
-    (group) => group.key === activeTab,
-  )
+  const activeGuideGroup = guideGroups.find((group) => group.key === activeTab)
 
   return (
     <div className="min-h-screen bg-dot-bg">
@@ -443,9 +440,7 @@ export const ShopProductPage = () => {
         <div className="grid grid-cols-1 gap-16 lg:grid-cols-[1.2fr_1fr]">
           {/* Gallery - main carousel with arrows, swipe and thumbnail navigation */}
           <div className="flex flex-col gap-4">
-            <div
-              className="relative mx-8 lg:mx-0"
-            >
+            <div className="relative mx-8 lg:mx-0">
               <div
                 className="aspect-square overflow-hidden rounded-sm bg-[#F2F2F2]"
                 onTouchStart={(event) => {
@@ -563,9 +558,14 @@ export const ShopProductPage = () => {
             <h1 className="mono text-xl font-normal leading-tight tracking-[0.08em] text-dot-primary md:text-2xl">
               {product.name}
             </h1>
-            <div className="mono mt-4 text-base font-normal tracking-[0.04em] text-dot-primary md:text-lg">
-              {product.price.toLocaleString()} 원
-            </div>
+            <ProductPrice
+              product={product}
+              format="won"
+              className="mono mt-4 text-base font-normal tracking-[0.04em] text-dot-primary md:text-lg"
+              originalClassName="text-sm md:text-base"
+              rateClassName="text-sm md:text-base"
+              saleClassName="font-medium"
+            />
             {isSoldOut && (
               <p className="mt-3 text-sm font-medium tracking-[0.08em] text-[#8A5A44] md:text-base">
                 품절된 상품입니다.
@@ -592,7 +592,11 @@ export const ShopProductPage = () => {
                       onClick={() => setIsOptionMenuOpen((prev) => !prev)}
                       className="flex w-full items-center justify-between rounded-sm border border-[#E9E5DC] bg-transparent px-4 py-4 text-left text-base text-dot-primary transition-colors hover:border-dot-primary/60 focus:border-dot-primary focus:outline-none focus:ring-2 focus:ring-dot-primary/15 md:text-lg"
                     >
-                      <span className={cn(!selectedOptionId && 'text-dot-secondary')}>
+                      <span
+                        className={cn(
+                          !selectedOptionId && 'text-dot-secondary'
+                        )}
+                      >
                         {selectedOptionLabel}
                       </span>
                       <ChevronDown
@@ -663,7 +667,8 @@ export const ShopProductPage = () => {
                       if (!getStoredToken()) {
                         showToast({
                           variant: 'warning',
-                          message: '로그인 후 재입고 알림을 신청할 수 있습니다.',
+                          message:
+                            '로그인 후 재입고 알림을 신청할 수 있습니다.',
                         })
                         navigate('/login')
                         return
@@ -671,7 +676,9 @@ export const ShopProductPage = () => {
                       if (restockStatus?.subscribed) return
                       restockMutation.mutate()
                     }}
-                    disabled={restockMutation.isPending || !!restockStatus?.subscribed}
+                    disabled={
+                      restockMutation.isPending || !!restockStatus?.subscribed
+                    }
                     className="mono w-full border border-[#1f1f1f] bg-[#1f1f1f] px-5 py-3 text-sm tracking-[0.08em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-70 md:py-4 md:text-base"
                   >
                     {restockStatus?.subscribed
@@ -792,7 +799,7 @@ export const ShopProductPage = () => {
                           'whitespace-pre-line pb-8 text-base font-light leading-relaxed md:text-lg',
                           hasGuideText(section.body)
                             ? 'text-dot-primary'
-                            : 'text-dot-secondary',
+                            : 'text-dot-secondary'
                         )}
                       >
                         {hasGuideText(section.body)
@@ -817,7 +824,7 @@ export const ShopProductPage = () => {
                           'mt-6 whitespace-pre-line text-base font-light leading-relaxed md:text-lg',
                           hasGuideText(section.body)
                             ? 'text-dot-primary'
-                            : 'text-dot-secondary',
+                            : 'text-dot-secondary'
                         )}
                       >
                         {hasGuideText(section.body)
@@ -867,7 +874,9 @@ export const ShopProductPage = () => {
                             <button
                               key={img.id}
                               type="button"
-                              onClick={() => openReviewLightbox(review.images!, idx)}
+                              onClick={() =>
+                                openReviewLightbox(review.images!, idx)
+                              }
                               className="block h-28 w-28 overflow-hidden rounded border border-[#eee] bg-[#f9f9f9]"
                               aria-label="리뷰 사진 보기"
                             >
@@ -886,14 +895,19 @@ export const ShopProductPage = () => {
                             review.user?.email ||
                             '회원'}{' '}
                           |{' '}
-                          {new Date(review.createdAt).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                          })}
+                          {new Date(review.createdAt).toLocaleDateString(
+                            'ko-KR',
+                            {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                            }
+                          )}
                         </span>
 
-                        {user?.id && review.user?.id && user.id === review.user.id ? (
+                        {user?.id &&
+                        review.user?.id &&
+                        user.id === review.user.id ? (
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -905,7 +919,8 @@ export const ShopProductPage = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                if (!window.confirm('이 리뷰를 삭제할까요?')) return
+                                if (!window.confirm('이 리뷰를 삭제할까요?'))
+                                  return
                                 deleteReviewMutation.mutate(review.id)
                               }}
                               disabled={deleteReviewMutation.isPending}
@@ -1114,7 +1129,6 @@ export const ShopProductPage = () => {
           </div>
         </div>
       )}
-
     </div>
   )
 }

@@ -1,10 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchCategories, fetchProduct, createProduct, updateProduct, uploadProductImages } from '../api/shop'
+import {
+  fetchCategories,
+  fetchProduct,
+  createProduct,
+  updateProduct,
+  uploadProductImages,
+} from '../api/shop'
 import { getApiErrorMessage } from '@/features/auth/api/auth'
 import { cn } from '@/common/lib/utils'
-import { ArrowLeft, Plus, Trash2, Camera, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Camera,
+  Loader2,
+  GripVertical,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react'
+import { calculateDiscountedPrice } from '../lib/pricing'
 
 const DEFAULT_STOCK_QUANTITY = 999
 const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -59,23 +75,30 @@ export const AdminProductPage = () => {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [price, setPrice] = useState('')
+  const [discountRate, setDiscountRate] = useState('0')
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [stockQuantity, setStockQuantity] = useState(String(DEFAULT_STOCK_QUANTITY))
-  const [purchaseNotice, setPurchaseNotice] = useState(DEFAULT_PRODUCT_GUIDE)
-  const [shippingNotice, setShippingNotice] = useState(
-    DEFAULT_SHIPPING_NOTICE
+  const [stockQuantity, setStockQuantity] = useState(
+    String(DEFAULT_STOCK_QUANTITY)
   )
+  const [purchaseNotice, setPurchaseNotice] = useState(DEFAULT_PRODUCT_GUIDE)
+  const [shippingNotice, setShippingNotice] = useState(DEFAULT_SHIPPING_NOTICE)
   const [exchangeReturnNotice, setExchangeReturnNotice] = useState(
     DEFAULT_EXCHANGE_RETURN_NOTICE
   )
   const [careGuide, setCareGuide] = useState(DEFAULT_CARE_GUIDE)
-  const [images, setImages] = useState<{ url: string; alt: string; sortOrder: number }[]>([])
+  const [images, setImages] = useState<
+    { url: string; alt: string; sortOrder: number }[]
+  >([])
   const [options, setOptions] = useState<
     { id?: string; name: string; value: string; sortOrder: number }[]
   >([{ name: '', value: '', sortOrder: 1 }])
   const [error, setError] = useState<string | null>(null)
   const [uploadingImages, setUploadingImages] = useState(false)
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false)
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(
+    null
+  )
 
   const { data: categories } = useQuery({
     queryKey: ['shop', 'categories'],
@@ -92,7 +115,8 @@ export const AdminProductPage = () => {
     if (!product) return
     setName(product.name)
     setSlug(product.slug)
-    setPrice(String(product.price))
+    setPrice(String(product.originalPrice ?? product.price))
+    setDiscountRate(String(product.discountRate ?? 0))
     setDescription(product.description ?? '')
     setCategoryId(product.categoryId)
     setStockQuantity(String(product.stockQuantity ?? DEFAULT_STOCK_QUANTITY))
@@ -127,21 +151,26 @@ export const AdminProductPage = () => {
       alert('상품이 등록되었습니다.')
       navigate('/shop')
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setError(getApiErrorMessage(err, '상품 등록에 실패했습니다.'))
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateProduct>[1] }) =>
-      updateProduct(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string
+      data: Parameters<typeof updateProduct>[1]
+    }) => updateProduct(id, data),
     onSuccess: (updatedProduct, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['shop', 'product', id] })
       queryClient.invalidateQueries({ queryKey: ['shop', 'products'] })
       alert('상품이 수정되었습니다.')
       navigate(`/shop/${updatedProduct.slug ?? productId}`)
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       setError(getApiErrorMessage(err, '상품 수정에 실패했습니다.'))
     },
   })
@@ -161,10 +190,34 @@ export const AdminProductPage = () => {
       return
     }
 
+    const normalizedPrice = Number(price)
+    const normalizedDiscountRate = Number(discountRate || 0)
+    if (!Number.isFinite(normalizedPrice) || normalizedPrice < 0) {
+      setError('정상가는 0 이상의 숫자로 입력해 주세요.')
+      return
+    }
+    if (
+      !Number.isFinite(normalizedDiscountRate) ||
+      normalizedDiscountRate < 0 ||
+      normalizedDiscountRate > 100
+    ) {
+      setError('할인율은 0~100 사이로 입력해 주세요.')
+      return
+    }
+
+    const roundedPrice = Math.floor(normalizedPrice)
+    const roundedDiscountRate = Math.floor(normalizedDiscountRate)
+    const salePrice = calculateDiscountedPrice(
+      roundedPrice,
+      roundedDiscountRate
+    )
+
     const payload = {
       name,
       slug: normalizedSlug,
-      price: parseInt(price, 10),
+      price: roundedDiscountRate > 0 ? salePrice : roundedPrice,
+      originalPrice: roundedDiscountRate > 0 ? roundedPrice : null,
+      discountRate: roundedDiscountRate,
       description,
       categoryId,
       stockQuantity: (() => {
@@ -179,7 +232,9 @@ export const AdminProductPage = () => {
       careGuide,
       handlingNotice: careGuide,
       images: images.map((img, i) => ({ ...img, sortOrder: i + 1 })),
-      options: options.filter((opt) => opt.name.trim() !== '' && opt.value.trim() !== ''),
+      options: options.filter(
+        (opt) => opt.name.trim() !== '' && opt.value.trim() !== ''
+      ),
     }
 
     if (isEditMode && productId) {
@@ -189,22 +244,71 @@ export const AdminProductPage = () => {
     }
   }
 
-  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : []
+  const uploadImages = async (files: File[]) => {
     if (!files.length) return
-    e.target.value = ''
     setUploadingImages(true)
+    setError(null)
     try {
       const { urls } = await uploadProductImages(files)
       setImages((prev) => [
         ...prev,
-        ...urls.map((url, i) => ({ url, alt: '', sortOrder: prev.length + i + 1 })),
+        ...urls.map((url, i) => ({
+          url,
+          alt: '',
+          sortOrder: prev.length + i + 1,
+        })),
       ])
-    } catch (err: any) {
-      setError(err?.message || '이미지 업로드에 실패했습니다.')
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.'
+      )
     } finally {
       setUploadingImages(false)
     }
+  }
+
+  const handleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : []
+    e.target.value = ''
+    void uploadImages(files)
+  }
+
+  const handleImagesDrop = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault()
+    setIsDraggingFiles(false)
+    if (uploadingImages) return
+    const files = Array.from(e.dataTransfer.files).filter((file) =>
+      file.type.startsWith('image/')
+    )
+    if (!files.length) {
+      setError('이미지 파일만 드래그해서 넣을 수 있습니다.')
+      return
+    }
+    void uploadImages(files)
+  }
+
+  const moveImage = (from: number, to: number) => {
+    if (from === to || to < 0 || to >= images.length) return
+    setImages((prev) => {
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next.map((image, index) => ({
+        ...image,
+        sortOrder: index + 1,
+      }))
+    })
+  }
+
+  const handleImageDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetIndex: number
+  ) => {
+    e.preventDefault()
+    if (draggedImageIndex !== null) {
+      moveImage(draggedImageIndex, targetIndex)
+    }
+    setDraggedImageIndex(null)
   }
 
   const removeImageField = (index: number) => {
@@ -212,7 +316,10 @@ export const AdminProductPage = () => {
   }
 
   const addOptionField = () => {
-    setOptions([...options, { name: '', value: '', sortOrder: options.length + 1 }])
+    setOptions([
+      ...options,
+      { name: '', value: '', sortOrder: options.length + 1 },
+    ])
   }
 
   const removeOptionField = (index: number) => {
@@ -233,6 +340,15 @@ export const AdminProductPage = () => {
 
   const isPending = createMutation.isPending || updateMutation.isPending
   const isUploading = uploadingImages
+  const pricePreviewOriginal = Math.max(0, Math.floor(Number(price) || 0))
+  const pricePreviewRate = Math.min(
+    100,
+    Math.max(0, Math.floor(Number(discountRate) || 0))
+  )
+  const pricePreviewSale = calculateDiscountedPrice(
+    pricePreviewOriginal,
+    pricePreviewRate
+  )
 
   return (
     <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
@@ -240,7 +356,9 @@ export const AdminProductPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-[1px]">
           <div className="flex items-center gap-3 rounded bg-white px-5 py-3 text-dot-primary shadow-md">
             <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm font-medium">이미지 업로드 중입니다...</span>
+            <span className="text-sm font-medium">
+              이미지 업로드 중입니다...
+            </span>
           </div>
         </div>
       )}
@@ -310,25 +428,70 @@ export const AdminProductPage = () => {
               </span>
             </label>
 
-            {/* Price */}
+            {/* Regular price */}
             <label className="flex flex-col gap-2">
               <span className="text-[10px] uppercase tracking-widest text-[#666]">
-                Price (KRW) <span className="text-red-500">*</span>
+                Original Price (KRW) <span className="text-red-500">*</span>
               </span>
               <input
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
-                placeholder="예: 39000"
+                placeholder="정상가 예: 39000"
                 min={0}
                 step={1}
                 required
               />
               <span className="text-xs leading-relaxed text-[#888]">
-                쉼표 없이 원 단위 숫자만 입력해 주세요.
+                할인 전 정상가를 쉼표 없이 입력해 주세요.
               </span>
             </label>
+
+            {/* Discount rate */}
+            <label className="flex flex-col gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                Discount Rate (%)
+              </span>
+              <input
+                type="number"
+                value={discountRate}
+                onChange={(e) => setDiscountRate(e.target.value)}
+                className="rounded border border-[#ddd] bg-white px-4 py-3 text-sm focus:border-dot-primary focus:outline-none"
+                placeholder="할인 없음: 0 / 예: 20"
+                min={0}
+                max={100}
+                step={1}
+              />
+              <span className="text-xs leading-relaxed text-[#888]">
+                할인이 없으면 0, 있으면 1~100 사이 숫자를 입력해 주세요.
+              </span>
+            </label>
+
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <span className="text-[10px] uppercase tracking-widest text-[#666]">
+                Price Preview
+              </span>
+              <div className="flex min-h-12 flex-wrap items-center gap-3 rounded border border-[#e4e0da] bg-[#f4f1ec] px-4 py-3 text-sm">
+                {pricePreviewRate > 0 && pricePreviewOriginal > 0 ? (
+                  <>
+                    <span className="text-[#888] line-through">
+                      {pricePreviewOriginal.toLocaleString('ko-KR')} 원
+                    </span>
+                    <span className="font-medium text-[#A45B3F]">
+                      {pricePreviewRate}%
+                    </span>
+                  </>
+                ) : null}
+                <strong className="font-medium text-dot-primary">
+                  {(pricePreviewRate > 0
+                    ? pricePreviewSale
+                    : pricePreviewOriginal
+                  ).toLocaleString('ko-KR')}{' '}
+                  원
+                </strong>
+              </div>
+            </div>
 
             {/* Stock */}
             <label className="flex flex-col gap-2">
@@ -480,7 +643,29 @@ export const AdminProductPage = () => {
             <span className="block text-[10px] uppercase tracking-widest text-[#666]">
               Images
             </span>
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#ddd] bg-[#fafafa] py-8 transition-colors hover:bg-[#f5f5f5]">
+            <label
+              onDragEnter={(e) => {
+                e.preventDefault()
+                setIsDraggingFiles(true)
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'copy'
+                setIsDraggingFiles(true)
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                  setIsDraggingFiles(false)
+                }
+              }}
+              onDrop={handleImagesDrop}
+              className={cn(
+                'flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-8 transition-colors',
+                isDraggingFiles
+                  ? 'border-dot-primary bg-[#efebe4]'
+                  : 'border-[#ddd] bg-[#fafafa] hover:bg-[#f5f5f5]'
+              )}
+            >
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
@@ -489,18 +674,61 @@ export const AdminProductPage = () => {
                 onChange={handleImagesUpload}
                 disabled={uploadingImages}
               />
-              <Camera className="mb-2 h-10 w-10 text-[#999]" strokeWidth={1.5} />
+              <Camera
+                className="mb-2 h-10 w-10 text-[#999]"
+                strokeWidth={1.5}
+              />
               <span className="text-sm font-medium text-dot-primary">
-                {uploadingImages ? '업로드 중…' : '사진 첨부하기'}
+                {uploadingImages
+                  ? '업로드 중…'
+                  : isDraggingFiles
+                    ? '여기에 놓아주세요'
+                    : '사진을 드래그하거나 클릭해서 첨부'}
               </span>
               <span className="mt-1 text-xs text-[#888]">
-                클릭하여 이미지를 선택하세요 (jpg, png, gif, webp, 최대 30MB/파일)
+                jpg, png, gif, webp · 최대 30MB/파일 · 여러 장 가능
               </span>
             </label>
             {images.length > 0 && (
               <div className="mt-4 space-y-3">
+                <p className="text-xs leading-relaxed text-[#888]">
+                  왼쪽 손잡이를 드래그해 순서를 바꿀 수 있습니다. 첫 번째 사진이
+                  대표 이미지로 노출됩니다.
+                </p>
                 {images.map((img, index) => (
-                  <div key={index} className="flex gap-4 items-start">
+                  <div
+                    key={`${img.url}-${index}`}
+                    onDragOver={(e) => {
+                      if (draggedImageIndex === null) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                    }}
+                    onDrop={(e) => handleImageDrop(e, index)}
+                    className={cn(
+                      'flex items-center gap-3 rounded border bg-white p-3 transition-colors',
+                      draggedImageIndex === index
+                        ? 'border-dot-primary opacity-60'
+                        : 'border-[#eee]'
+                    )}
+                  >
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggedImageIndex(index)
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', String(index))
+                      }}
+                      onDragEnd={() => setDraggedImageIndex(null)}
+                      className="cursor-grab touch-none text-[#aaa] active:cursor-grabbing"
+                      aria-label={`${index + 1}번 이미지 순서 이동`}
+                      title="드래그해서 순서 변경"
+                    >
+                      <GripVertical size={20} />
+                    </button>
+                    <span className="mono w-5 shrink-0 text-center text-xs text-[#999]">
+                      {index + 1}
+                    </span>
                     <img
                       src={img.url}
                       alt=""
@@ -517,6 +745,26 @@ export const AdminProductPage = () => {
                       className="flex-1 rounded border border-[#ddd] bg-white px-4 py-2.5 text-sm focus:border-dot-primary focus:outline-none"
                       placeholder="Alt Text"
                     />
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        onClick={() => moveImage(index, index - 1)}
+                        disabled={index === 0}
+                        className="text-[#999] transition-colors hover:text-dot-primary disabled:cursor-not-allowed disabled:opacity-25"
+                        aria-label="이미지를 한 칸 위로 이동"
+                      >
+                        <ChevronUp size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveImage(index, index + 1)}
+                        disabled={index === images.length - 1}
+                        className="text-[#999] transition-colors hover:text-dot-primary disabled:cursor-not-allowed disabled:opacity-25"
+                        aria-label="이미지를 한 칸 아래로 이동"
+                      >
+                        <ChevronDown size={18} />
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeImageField(index)}
@@ -545,8 +793,8 @@ export const AdminProductPage = () => {
               </button>
             </div>
             <p className="text-xs leading-relaxed text-[#888]">
-              옵션명과 옵션값은 한글·영문·숫자 입력이 가능합니다. 예:
-              사이즈: 대형 / Size: Large
+              옵션명과 옵션값은 한글·영문·숫자 입력이 가능합니다. 예: 사이즈:
+              대형 / Size: Large
             </p>
             {options.map((opt, index) => (
               <div key={opt.id ?? index} className="flex gap-4">
@@ -585,24 +833,24 @@ export const AdminProductPage = () => {
             ))}
           </div>
 
-            <button
-              type="submit"
-              disabled={isPending || isUploading}
-              className={cn(
-                'w-full bg-[#1A1A1A] py-4 text-xs font-medium uppercase tracking-widest text-white! transition-opacity hover:opacity-90',
-                (isPending || isUploading) && 'opacity-50'
-              )}
-            >
-              {isUploading
-                ? 'Uploading Images...'
-                : isPending
+          <button
+            type="submit"
+            disabled={isPending || isUploading}
+            className={cn(
+              'w-full bg-[#1A1A1A] py-4 text-xs font-medium uppercase tracking-widest text-white! transition-opacity hover:opacity-90',
+              (isPending || isUploading) && 'opacity-50'
+            )}
+          >
+            {isUploading
+              ? 'Uploading Images...'
+              : isPending
                 ? isEditMode
                   ? 'Updating...'
                   : 'Registering...'
                 : isEditMode
                   ? 'Update Product'
                   : 'Register Product'}
-            </button>
+          </button>
         </form>
       </div>
     </div>
