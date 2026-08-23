@@ -75,6 +75,8 @@ services:
     volumes:
       # 호스트에 cert.pem / key.pem (Full strict: Cloudflare Origin CA 또는 Let’s Encrypt 등)
       - ${CERTS_HOST_PATH:-./certs}:/etc/nginx/certs:ro
+      # 업로드 파일은 Nginx가 직접 전송하고 장기 캐시합니다.
+      - dayoff_uploads:/var/www/uploads:ro
     networks: [dayoff]
 
 volumes:

@@ -8,6 +8,8 @@ import { AllExceptionsFilter } from './common/http/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Nginx 뒤에서도 req.protocol이 실제 HTTPS 요청을 반영하도록 합니다.
+  app.set('trust proxy', 1);
   app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));
   app.enableCors({
     origin: true,

@@ -138,6 +138,8 @@ export const ShopPage = () => {
                       <img
                         src={product.images[0].url}
                         alt={product.images[0].alt || product.name}
+                        loading="lazy"
+                        decoding="async"
                         className={cn(
                           'h-full w-full object-cover transition-transform duration-[0.6s] ease-dot',
                           isSoldOut

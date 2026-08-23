@@ -170,6 +170,8 @@ export const AboutPage = () => {
             <img
               src={`${ABOUT_IMAGES}/image11.jpg`}
               alt="Day Off Today 도자기와 손"
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
             />
           </figure>
@@ -184,9 +186,9 @@ export const AboutPage = () => {
             </h2>
             <div className="mt-10 space-y-6 text-base font-light leading-[1.9] text-dot-secondary md:text-[1.05rem]">
               <p>
-                도자기 브랜드 ‘Day Off Today’는 일상 속 온전한 쉼을
-                전합니다. 브랜드 이름인 ‘휴일’의 의미를 상형문자 ‘휴(休)’로
-                시각화하여, 언제든 기대어 쉴 수 있는 나무 같은 기물을 빚습니다.
+                도자기 브랜드 ‘Day Off Today’는 일상 속 온전한 쉼을 전합니다.
+                브랜드 이름인 ‘휴일’의 의미를 상형문자 ‘휴(休)’로 시각화하여,
+                언제든 기대어 쉴 수 있는 나무 같은 기물을 빚습니다.
               </p>
               <p>
                 전통적인 모양을 모티브로 슬립캐스팅과 물레 성형으로 형태를
@@ -246,8 +248,8 @@ export const AboutPage = () => {
             식탁 위 휴식을 전하며
           </h2>
           <p className="mx-auto mt-7 max-w-[760px] text-base font-light leading-relaxed text-dot-secondary md:text-lg">
-            사물의 쓰임과 내면을 깊이 들여다보는 도예의 여정에
-            함께해주셔서 감사합니다.
+            사물의 쓰임과 내면을 깊이 들여다보는 도예의 여정에 함께해주셔서
+            감사합니다.
           </p>
         </div>
       </section>

@@ -95,7 +95,7 @@ export const AccountPage = () => {
       <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-md">
           <h1 className="mt-2 font-sans text-4xl font-semibold tracking-normal text-dot-primary md:text-5xl">
-         내 정보
+            내 정보
           </h1>
           <p className="mt-4 text-[0.9rem] text-dot-secondary">
             계정 정보를 확인하려면 로그인해 주세요.
@@ -124,7 +124,7 @@ export const AccountPage = () => {
       <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
         <div className="mx-auto max-w-md text-center">
           <h1 className="font-sans text-3xl font-semibold tracking-normal text-dot-primary">
-       내 정보
+            내 정보
           </h1>
           <p className="mt-6 text-[0.9rem] text-dot-secondary">
             로그인 상태를 확인하지 못했습니다. (세션 만료 또는 API 연결 문제)
@@ -138,11 +138,11 @@ export const AccountPage = () => {
             </p>
           ) : null}
           <p className="mt-4 text-[0.75rem] leading-relaxed text-dot-secondary">
-            HTTPS로 보는데 빌드 시 <code className="mono">PUBLIC_ORIGIN</code> 이{' '}
-            <code className="mono">http://</code> 이면 API가 막힙니다.{' '}
-            <code className="mono">FRONTEND_URL</code>·콜백 URL은 주소창 호스트와
-            같게(www 포함) 맞추고, Cloudflare에서 <code className="mono">/auth</code>{' '}
-            캐시는 끄는 것을 권장합니다.
+            HTTPS로 보는데 빌드 시 <code className="mono">PUBLIC_ORIGIN</code>{' '}
+            이 <code className="mono">http://</code> 이면 API가 막힙니다.{' '}
+            <code className="mono">FRONTEND_URL</code>·콜백 URL은 주소창
+            호스트와 같게(www 포함) 맞추고, Cloudflare에서{' '}
+            <code className="mono">/auth</code> 캐시는 끄는 것을 권장합니다.
           </p>
           <button
             type="button"
@@ -330,8 +330,8 @@ function ProfileSection({ user }: { user: AuthUser }) {
             className="w-full border border-[#eee] bg-white px-4 py-3 text-[0.95rem] text-dot-primary placeholder:text-dot-secondary focus:border-dot-primary focus:outline-none"
           />
           <p className="mt-1 text-[0.7rem] text-dot-secondary">
-            010·011 등 국내 휴대폰 번호만 입력 가능합니다. 비워 두면 저장 시 번호가
-            삭제됩니다.
+            010·011 등 국내 휴대폰 번호만 입력 가능합니다. 비워 두면 저장 시
+            번호가 삭제됩니다.
           </p>
         </div>
         <button
@@ -438,7 +438,10 @@ function AddressBookSection() {
     },
     onError: (err: unknown) => {
       alert(
-        getApiErrorMessage(err, '주소 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+        getApiErrorMessage(
+          err,
+          '주소 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+        )
       )
     },
   })
@@ -511,7 +514,7 @@ function AddressBookSection() {
                 <button
                   type="button"
                   onClick={() => {
-                      setDeleteConfirmId(addr.id)
+                    setDeleteConfirmId(addr.id)
                   }}
                   className="mono mt-3 text-[0.8rem] text-red-600 underline hover:no-underline cursor-pointer"
                 >
@@ -848,19 +851,23 @@ function AddressForm({
 /** 주문 이력: 주문 목록 + 상품별 구매평 보기/작성 */
 function OrderHistorySection() {
   const queryClient = useQueryClient()
-  const [writingReviewOrderItemId, setWritingReviewOrderItemId] = useState<string | null>(null)
+  const [writingReviewOrderItemId, setWritingReviewOrderItemId] = useState<
+    string | null
+  >(null)
   const [reviewLightbox, setReviewLightbox] = useState<{
     images: ProductReviewImage[]
     index: number
   } | null>(null)
   const [editingReview, setEditingReview] = useState<MyReviewItem | null>(null)
-  const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderRow | null>(null)
+  const [cancelConfirmOrder, setCancelConfirmOrder] = useState<OrderRow | null>(
+    null
+  )
 
   const { data: orders = [] as OrderRow[], isLoading: ordersLoading } =
     useQuery({
-    queryKey: ['shop', 'my-orders'],
-    queryFn: fetchMyOrders,
-  })
+      queryKey: ['shop', 'my-orders'],
+      queryFn: fetchMyOrders,
+    })
   const { data: myReviews = [], isLoading: reviewsLoading } = useQuery({
     queryKey: ['shop', 'my-reviews'],
     queryFn: fetchMyReviews,
@@ -870,7 +877,7 @@ function OrderHistorySection() {
   const paidOrders = useMemo<OrderRow[]>(
     () =>
       orders.filter((o) => ['paid', 'shipped', 'delivered'].includes(o.status)),
-    [orders],
+    [orders]
   )
 
   const paidOrderItems = useMemo(
@@ -879,9 +886,9 @@ function OrderHistorySection() {
         order.orderItems.map((item) => ({
           item,
           orderCreatedAtMs: new Date(order.createdAt).getTime(),
-        })),
+        }))
       ),
-    [paidOrders],
+    [paidOrders]
   )
 
   const reviewByOrderItemId = useMemo<Record<string, MyReviewItem>>(() => {
@@ -903,7 +910,7 @@ function OrderHistorySection() {
       .slice()
       .sort(
         (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
 
     for (const review of fallbackReviews) {
@@ -912,14 +919,16 @@ function OrderHistorySection() {
       const candidates = paidOrderItems.filter(
         (pi) =>
           pi.item.productId === review.productId &&
-          !usedOrderItemIds.has(pi.item.id),
+          !usedOrderItemIds.has(pi.item.id)
       )
 
       if (!candidates.length) continue
 
-      const eligible = candidates.filter((pi) => pi.orderCreatedAtMs <= reviewTime)
+      const eligible = candidates.filter(
+        (pi) => pi.orderCreatedAtMs <= reviewTime
+      )
       const chosen = (eligible.length ? eligible : candidates).sort(
-        (a, b) => b.orderCreatedAtMs - a.orderCreatedAtMs,
+        (a, b) => b.orderCreatedAtMs - a.orderCreatedAtMs
       )[0]
 
       map[chosen.item.id] = review
@@ -1133,7 +1142,8 @@ function OrderHistorySection() {
               결제 취소
             </h3>
             <p className="mt-4 text-[0.92rem] leading-relaxed text-dot-secondary">
-              아직 발송되지 않은 주문입니다. 결제를 취소하면 상태가 취소됨으로 변경됩니다.
+              아직 발송되지 않은 주문입니다. 결제를 취소하면 상태가 취소됨으로
+              변경됩니다.
             </p>
             <p className="mt-2 text-[0.82rem] text-dot-secondary">
               주문번호 #{cancelConfirmOrder.orderNumber}
@@ -1238,9 +1248,7 @@ function OrderCard({
     <div className="border border-[#eee] bg-white">
       <div className="flex flex-col items-start gap-3 border-b border-[#eee] px-5 py-4 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6 md:py-5">
         <div className="flex flex-col gap-1">
-          <span className="text-[0.7rem] text-dot-secondary">
-            주문 번호
-          </span>
+          <span className="text-[0.7rem] text-dot-secondary">주문 번호</span>
           <p className="text-[0.9rem] font-medium tracking-wider text-dot-primary">
             #{order.orderNumber}
           </p>
@@ -1331,6 +1339,8 @@ function OrderItemRow({
               <img
                 src={item.product.images[0].url}
                 alt={item.productName}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -1416,6 +1426,8 @@ function OrderItemRow({
                       <img
                         src={img.url}
                         alt=""
+                        loading="lazy"
+                        decoding="async"
                         className="h-full w-full object-cover"
                       />
                     </button>
@@ -1433,17 +1445,15 @@ function OrderItemRow({
                 onCancel={onCancelWriteReview}
               />
             </div>
-          ) : (
-            canWriteReview ? (
-              <button
-                type="button"
-                onClick={onStartWriteReview}
-                className="mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
-              >
-                구매평 작성
-              </button>
-            ) : null
-          )}
+          ) : canWriteReview ? (
+            <button
+              type="button"
+              onClick={onStartWriteReview}
+              className="mt-6 border border-dot-primary bg-transparent px-5 py-2 text-[0.75rem] font-medium tracking-[0.15em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+            >
+              구매평 작성
+            </button>
+          ) : null}
         </div>
       </div>
     </li>

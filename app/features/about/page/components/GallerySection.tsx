@@ -9,6 +9,8 @@ function GalleryItem({ src, alt }: GalleryItemProps) {
       <img
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className="block h-auto w-full transition-transform duration-[1.2s] ease-out hover:scale-[1.02]"
       />
     </div>

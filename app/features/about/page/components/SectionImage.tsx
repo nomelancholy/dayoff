@@ -10,6 +10,8 @@ export function SectionImage({ src, alt, className = '' }: SectionImageProps) {
       <img
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out hover:scale-105"
       />
     </div>

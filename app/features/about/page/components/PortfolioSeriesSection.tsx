@@ -96,6 +96,7 @@ export function PortfolioSeriesSection({
                 src={series.cover.src}
                 alt={series.cover.alt}
                 loading="lazy"
+                decoding="async"
                 className={cn(
                   'h-full w-full object-cover transition-transform duration-[1.2s] ease-out hover:scale-[1.02]',
                   index === 0 && 'object-[center_68%]'
@@ -115,6 +116,7 @@ export function PortfolioSeriesSection({
                 src={image.src}
                 alt={image.alt}
                 loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out hover:scale-[1.025]"
               />
             </figure>

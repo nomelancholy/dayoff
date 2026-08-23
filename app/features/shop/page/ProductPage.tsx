@@ -477,6 +477,7 @@ export const ShopProductPage = () => {
                       key={mainImage.id}
                       src={mainImage.url}
                       alt={mainImage.alt || product.name}
+                      fetchPriority="high"
                       className="h-full w-full animate-in fade-in object-cover duration-300"
                     />
                   </button>
@@ -532,6 +533,8 @@ export const ShopProductPage = () => {
                     <img
                       src={img.url}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   </button>
@@ -883,6 +886,8 @@ export const ShopProductPage = () => {
                               <img
                                 src={img.url}
                                 alt=""
+                                loading="lazy"
+                                decoding="async"
                                 className="h-full w-full object-cover"
                               />
                             </button>

@@ -19,23 +19,33 @@ export function ClassItem({ data, reverse = false }: ClassItemProps) {
         <img
           src={data.image}
           alt={data.imageAlt}
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
         />
       </div>
       <div className="flex flex-col justify-center">
-        <span className="mono text-[11px] uppercase tracking-[0.25em] text-[#888]">{data.monoLabel}</span>
+        <span className="mono text-[11px] uppercase tracking-[0.25em] text-[#888]">
+          {data.monoLabel}
+        </span>
         <h2 className="mt-4 font-sans text-3xl font-semibold tracking-normal text-dot-primary md:text-[2.5rem] md:leading-tight">
           {data.name}
         </h2>
         <div className="my-8 border-y border-[#eee] py-6">
           {data.infoRows.map((row) => (
             <div key={row.label} className="mb-2 flex gap-8">
-              <span className="mono w-20 shrink-0 text-[11px] uppercase tracking-[0.2em] text-[#A8A095]">{row.label}</span>
-              <span className="text-[13px] tracking-wide text-dot-primary">{row.value}</span>
+              <span className="mono w-20 shrink-0 text-[11px] uppercase tracking-[0.2em] text-[#A8A095]">
+                {row.label}
+              </span>
+              <span className="text-[13px] tracking-wide text-dot-primary">
+                {row.value}
+              </span>
             </div>
           ))}
         </div>
-        <p className="mb-10 text-[0.95rem] font-light leading-relaxed tracking-wide text-dot-secondary">{data.description}</p>
+        <p className="mb-10 text-[0.95rem] font-light leading-relaxed tracking-wide text-dot-secondary">
+          {data.description}
+        </p>
         <a
           href={data.bookingUrl}
           target="_blank"

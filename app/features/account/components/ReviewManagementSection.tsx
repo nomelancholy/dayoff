@@ -19,7 +19,7 @@ export const ReviewManagementSection = () => {
 
   const editingReview = useMemo(
     () => reviews.find((r) => r.id === editingReviewId) ?? null,
-    [reviews, editingReviewId],
+    [reviews, editingReviewId]
   )
 
   const deleteMutation = useMutation({
@@ -48,9 +48,7 @@ export const ReviewManagementSection = () => {
       {isLoading ? (
         <div className="text-dot-secondary">Loading…</div>
       ) : reviews.length === 0 ? (
-        <div className="text-dot-secondary">
-          작성한 리뷰가 없습니다.
-        </div>
+        <div className="text-dot-secondary">작성한 리뷰가 없습니다.</div>
       ) : (
         <div className="space-y-4">
           {reviews.map((r: MyReviewItem) => (
@@ -119,6 +117,8 @@ export const ReviewManagementSection = () => {
                       key={img.id}
                       src={img.url}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       className="h-20 w-20 rounded-sm border border-[#eee] object-cover"
                     />
                   ))}
@@ -155,4 +155,3 @@ export const ReviewManagementSection = () => {
     </section>
   )
 }
-

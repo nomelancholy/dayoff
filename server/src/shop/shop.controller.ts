@@ -24,6 +24,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserRow } from '../auth/auth.service';
+import { optimizeUploadedImage } from './image-optimizer';
 import {
   ArrayNotEmpty,
   IsArray,
@@ -177,9 +178,18 @@ export class ShopController {
     @UploadedFiles() files: Multer.File[],
   ) {
     if (!files?.length) return { urls: [] };
-    const base = getBaseUrl(req);
-    const urls = files.map((f) => `${base}/uploads/review/${f.filename}`);
-    return { urls };
+    const urls: string[] = [];
+    // 고해상도 파일을 동시에 디코딩하면 서버 메모리가 급증하므로 순차 처리합니다.
+    for (const file of files) {
+      urls.push(
+        await optimizeUploadedImage(file, {
+          publicDirectory: 'review',
+          maxWidth: 1600,
+        }),
+      );
+    }
+    const baseUrl = getBaseUrl(req);
+    return { urls: urls.map((url) => `${baseUrl}${url}`) };
   }
 
   @Post('products/:id/reviews')
@@ -360,9 +370,18 @@ export class ShopController {
     @UploadedFiles() files: Multer.File[],
   ) {
     if (!files?.length) return { urls: [] };
-    const base = getBaseUrl(req);
-    const urls = files.map((f) => `${base}/uploads/product/${f.filename}`);
-    return { urls };
+    const urls: string[] = [];
+    // 한 번에 최대 20개 원본이 들어와도 메모리가 급증하지 않도록 순차 처리합니다.
+    for (const file of files) {
+      urls.push(
+        await optimizeUploadedImage(file, {
+          publicDirectory: 'product',
+          maxWidth: 1800,
+        }),
+      );
+    }
+    const baseUrl = getBaseUrl(req);
+    return { urls: urls.map((url) => `${baseUrl}${url}`) };
   }
 
   /** [Admin] 상품 생성 */

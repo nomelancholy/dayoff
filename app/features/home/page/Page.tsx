@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useReveal } from '@/common/hooks/useReveal'
+import { useMediaQuery } from '@/common/hooks/useMediaQuery'
 import { cn } from '@/common/lib/utils'
 import { fetchProducts } from '@/features/shop/api/shop'
 import { ProductPrice } from '@/features/shop/components/ProductPrice'
@@ -26,6 +27,8 @@ function ScrollIndicator() {
 }
 
 export const HomePage = () => {
+  const showSecondaryHeroImage = useMediaQuery('(min-width: 1024px)')
+  const showTertiaryHeroImage = useMediaQuery('(min-width: 1800px)')
   const {
     data: shopProducts,
     isLoading: shopPreviewLoading,
@@ -65,18 +68,25 @@ export const HomePage = () => {
             <img
               src={HERO_IMAGE}
               alt="Masterpiece Ceramic"
+              fetchPriority="high"
               className="hero-image-primary h-full min-h-0 w-full min-w-0 object-cover object-center"
             />
-            <img
-              src={HERO_IMAGE_SECONDARY}
-              alt=""
-              className="hero-image-secondary hidden h-full min-h-0 w-full min-w-0 object-cover object-center lg:block"
-            />
-            <img
-              src={HERO_IMAGE_TERTIARY}
-              alt=""
-              className="hidden h-full min-h-0 w-full min-w-0 object-cover object-center min-[1800px]:block"
-            />
+            {showSecondaryHeroImage ? (
+              <img
+                src={HERO_IMAGE_SECONDARY}
+                alt=""
+                decoding="async"
+                className="hero-image-secondary h-full min-h-0 w-full min-w-0 object-cover object-center"
+              />
+            ) : null}
+            {showTertiaryHeroImage ? (
+              <img
+                src={HERO_IMAGE_TERTIARY}
+                alt=""
+                decoding="async"
+                className="h-full min-h-0 w-full min-w-0 object-cover object-center"
+              />
+            ) : null}
           </div>
         </div>
         <div className="hero-text relative z-2 flex shrink-0 flex-col items-center gap-5 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 text-center md:gap-6 md:pb-10 md:pt-4">
@@ -93,6 +103,8 @@ export const HomePage = () => {
           <img
             src={ABOUT_IMAGE}
             alt="Pottery Workshop"
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover transition-transform duration-[1.2s] ease-out hover:scale-105"
           />
         </div>
@@ -193,6 +205,8 @@ export const HomePage = () => {
                         <img
                           src={cover.url}
                           alt={cover.alt ?? product.name}
+                          loading="lazy"
+                          decoding="async"
                           className={cn(
                             'h-full w-full object-cover transition-transform duration-500 ease-dot',
                             isSoldOut

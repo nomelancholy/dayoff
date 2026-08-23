@@ -215,6 +215,8 @@ export const CartPage = () => {
                     <img
                       src={item.product.images?.[0]?.url}
                       alt={item.product.name}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   </Link>
