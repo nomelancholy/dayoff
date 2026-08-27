@@ -17,6 +17,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     networks: [dayoff]
 
   api:
@@ -48,6 +53,14 @@ services:
       NAVER_PAY_CLIENT_ID: ${NAVER_PAY_CLIENT_ID:-}
       NAVER_PAY_CLIENT_SECRET: ${NAVER_PAY_CLIENT_SECRET:-}
       NAVER_PAY_CHAIN_ID: ${NAVER_PAY_CHAIN_ID:-}
+      # DigitalOcean Spaces 이미지 저장소 (키가 있으면 자동 활성화, false면 로컬 폴백)
+      SPACES_ENABLED: ${SPACES_ENABLED:-}
+      SPACES_REGION: ${SPACES_REGION:-}
+      SPACES_BUCKET: ${SPACES_BUCKET:-}
+      SPACES_ENDPOINT: ${SPACES_ENDPOINT:-}
+      SPACES_CDN_URL: ${SPACES_CDN_URL:-}
+      SPACES_ACCESS_KEY_ID: ${SPACES_ACCESS_KEY_ID:-}
+      SPACES_SECRET_ACCESS_KEY: ${SPACES_SECRET_ACCESS_KEY:-}
       # resend 이메일 (미설정 시 메일 전송만 skip)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
@@ -81,6 +94,11 @@ services:
       - ${CERTS_HOST_PATH:-./certs}:/etc/nginx/certs:ro
       # 업로드 파일은 Nginx가 직접 전송하고 장기 캐시합니다.
       - dayoff_uploads:/var/www/uploads:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
     networks: [dayoff]
 
 volumes:

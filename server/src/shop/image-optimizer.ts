@@ -8,6 +8,13 @@ type OptimizeUploadedImageOptions = {
   maxWidth: number;
 };
 
+export type PreparedUploadedImage = {
+  filePath: string;
+  filename: string;
+  contentType: string;
+  localUrl: string;
+};
+
 /**
  * 업로드 원본을 브라우저 전송용 WebP로 변환합니다.
  * GIF는 애니메이션 손실을 피하기 위해 원본을 유지합니다.
@@ -16,9 +23,16 @@ type OptimizeUploadedImageOptions = {
 export const optimizeUploadedImage = async (
   file: Multer.File,
   { publicDirectory, maxWidth }: OptimizeUploadedImageOptions,
-): Promise<string> => {
+): Promise<PreparedUploadedImage> => {
   const originalUrl = `/uploads/${publicDirectory}/${file.filename}`;
-  if (extname(file.filename).toLowerCase() === '.gif') return originalUrl;
+  if (extname(file.filename).toLowerCase() === '.gif') {
+    return {
+      filePath: file.path,
+      filename: file.filename,
+      contentType: 'image/gif',
+      localUrl: originalUrl,
+    };
+  }
 
   const parsed = parse(file.path);
   const optimizedFilename = `${parsed.name}-optimized.webp`;
@@ -34,10 +48,21 @@ export const optimizeUploadedImage = async (
 
     await rename(temporaryPath, optimizedPath);
     await unlink(file.path);
-    return `/uploads/${publicDirectory}/${basename(optimizedPath)}`;
+    const filename = basename(optimizedPath);
+    return {
+      filePath: optimizedPath,
+      filename,
+      contentType: 'image/webp',
+      localUrl: `/uploads/${publicDirectory}/${filename}`,
+    };
   } catch (error) {
     await unlink(temporaryPath).catch(() => undefined);
     console.warn(`Image optimization failed for ${file.filename}`, error);
-    return originalUrl;
+    return {
+      filePath: file.path,
+      filename: file.filename,
+      contentType: file.mimetype || 'application/octet-stream',
+      localUrl: originalUrl,
+    };
   }
 };

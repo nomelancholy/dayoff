@@ -16,6 +16,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { randomBytes } from 'crypto';
+import { unlink } from 'fs/promises';
 import type { Request } from 'express';
 import type { Multer } from 'multer';
 import { ShopService } from './shop.service';
@@ -24,7 +25,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserRow } from '../auth/auth.service';
-import { optimizeUploadedImage } from './image-optimizer';
+import { SpacesStorageService } from './spaces-storage.service';
 import {
   ArrayNotEmpty,
   IsArray,
@@ -105,7 +106,10 @@ const getBaseUrl = (req: Request): string => {
 
 @Controller('shop')
 export class ShopController {
-  constructor(private readonly shopService: ShopService) {}
+  constructor(
+    private readonly shopService: ShopService,
+    private readonly spacesStorageService: SpacesStorageService,
+  ) {}
 
   @Get('categories')
   async getCategories() {
@@ -149,6 +153,14 @@ export class ShopController {
     return this.shopService.getNaverPayStatus();
   }
 
+  /** [Admin] 이미지 저장소 설정 점검 (인증값 자체는 반환하지 않음) */
+  @Get('admin/storage/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  getStorageStatus() {
+    return this.spacesStorageService.getConfigurationStatus();
+  }
+
   @Get('products')
   async getProducts(@Query('categoryId') categoryId?: string) {
     return this.shopService.getProducts(categoryId);
@@ -187,17 +199,29 @@ export class ShopController {
   ) {
     if (!files?.length) return { urls: [] };
     const urls: string[] = [];
-    // 고해상도 파일을 동시에 디코딩하면 서버 메모리가 급증하므로 순차 처리합니다.
-    for (const file of files) {
-      urls.push(
-        await optimizeUploadedImage(file, {
-          publicDirectory: 'review',
-          maxWidth: 1600,
-        }),
+    try {
+      // 고해상도 파일을 동시에 디코딩하면 서버 메모리가 급증하므로 순차 처리합니다.
+      for (const file of files) {
+        urls.push(
+          await this.spacesStorageService.storeUploadedImage(file, {
+            publicDirectory: 'review',
+            maxWidth: 1600,
+          }),
+        );
+      }
+    } catch (error) {
+      await this.spacesStorageService.deleteStoredUrls(urls);
+      await Promise.all(
+        files.map((file) => unlink(file.path).catch(() => undefined)),
       );
+      throw error;
     }
     const baseUrl = getBaseUrl(req);
-    return { urls: urls.map((url) => `${baseUrl}${url}`) };
+    return {
+      urls: urls.map((url) =>
+        /^https?:\/\//i.test(url) ? url : `${baseUrl}${url}`,
+      ),
+    };
   }
 
   @Post('products/:id/reviews')
@@ -347,7 +371,7 @@ export class ShopController {
     });
   }
 
-  /** [Admin] 상품 이미지 업로드 (multipart/form-data, field: files) → uploads/product */
+  /** [Admin] 상품 이미지 업로드 (multipart/form-data, field: files) */
   @Post('admin/upload')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
@@ -379,17 +403,29 @@ export class ShopController {
   ) {
     if (!files?.length) return { urls: [] };
     const urls: string[] = [];
-    // 한 번에 최대 20개 원본이 들어와도 메모리가 급증하지 않도록 순차 처리합니다.
-    for (const file of files) {
-      urls.push(
-        await optimizeUploadedImage(file, {
-          publicDirectory: 'product',
-          maxWidth: 1800,
-        }),
+    try {
+      // 한 번에 최대 20개 원본이 들어와도 메모리가 급증하지 않도록 순차 처리합니다.
+      for (const file of files) {
+        urls.push(
+          await this.spacesStorageService.storeUploadedImage(file, {
+            publicDirectory: 'product',
+            maxWidth: 1800,
+          }),
+        );
+      }
+    } catch (error) {
+      await this.spacesStorageService.deleteStoredUrls(urls);
+      await Promise.all(
+        files.map((file) => unlink(file.path).catch(() => undefined)),
       );
+      throw error;
     }
     const baseUrl = getBaseUrl(req);
-    return { urls: urls.map((url) => `${baseUrl}${url}`) };
+    return {
+      urls: urls.map((url) =>
+        /^https?:\/\//i.test(url) ? url : `${baseUrl}${url}`,
+      ),
+    };
   }
 
   /** [Admin] 상품 생성 */

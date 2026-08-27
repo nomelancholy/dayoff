@@ -29,6 +29,7 @@ import * as schema from '../db/schema';
 import { isOutOfDeliveryPostalCode } from './out-of-delivery-areas';
 import { EmailService } from '../common/email/email.service';
 import { NaverPayClient } from './naver-pay.client';
+import { SpacesStorageService } from './spaces-storage.service';
 
 const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const NAVER_PAY_PRODUCT_NAME_MAX_LENGTH = 128;
@@ -51,6 +52,7 @@ export class ShopService {
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
     private readonly naverPayClient: NaverPayClient,
+    private readonly spacesStorageService: SpacesStorageService,
   ) {}
 
   getNaverPayStatus() {
@@ -699,7 +701,7 @@ export class ShopService {
       normalizedData.stockQuantity = Math.floor(stockQuantity);
     }
 
-    const restockMailTargets = await this.db.transaction(async (tx) => {
+    const updateResult = await this.db.transaction(async (tx) => {
       const before = await tx.query.products.findFirst({
         where: eq(schema.products.id, id),
         columns: {
@@ -707,6 +709,10 @@ export class ShopService {
           price: true,
           originalPrice: true,
           discountRate: true,
+        },
+        with: {
+          images: { columns: { url: true } },
+          detailImages: { columns: { url: true } },
         },
       });
       if (!before) {
@@ -898,37 +904,64 @@ export class ShopService {
         throw new NotFoundException('상품을 찾을 수 없습니다.');
       }
 
-      const becameInStock =
-        before.stockQuantity <= 0 && after.stockQuantity > 0;
-      if (!becameInStock) return [];
-
-      const subscriptions = await tx.query.productRestockSubscriptions.findMany(
-        {
-          where: eq(schema.productRestockSubscriptions.productId, id),
-          with: {
-            user: {
-              columns: {
-                email: true,
-                fullName: true,
-              },
-            },
-          },
-        },
+      const previousImageUrls = [
+        ...before.images.map((image) => image.url),
+        ...before.detailImages.map((image) => image.url),
+      ];
+      const retainedImageUrls = new Set([
+        ...(images !== undefined
+          ? images.map((image: { url?: unknown }) => String(image.url))
+          : before.images.map((image) => image.url)),
+        ...(detailImages !== undefined
+          ? detailImages.map((image: { url?: unknown }) => String(image.url))
+          : before.detailImages.map((image) => image.url)),
+      ]);
+      const removedImageUrls = previousImageUrls.filter(
+        (url) => !retainedImageUrls.has(url),
       );
 
-      await tx
-        .delete(schema.productRestockSubscriptions)
-        .where(eq(schema.productRestockSubscriptions.productId, id));
+      let restockMailTargets: Array<{
+        email: string;
+        name: string | null;
+        productName: string;
+        productSlug: string;
+      }> = [];
 
-      return subscriptions
-        .filter((item) => !!item.user?.email)
-        .map((item) => ({
-          email: item.user.email,
-          name: item.user.fullName,
-          productName: after.name,
-          productSlug: after.slug,
-        }));
+      const becameInStock =
+        before.stockQuantity <= 0 && after.stockQuantity > 0;
+      if (becameInStock) {
+        const subscriptions =
+          await tx.query.productRestockSubscriptions.findMany({
+            where: eq(schema.productRestockSubscriptions.productId, id),
+            with: {
+              user: {
+                columns: {
+                  email: true,
+                  fullName: true,
+                },
+              },
+            },
+          });
+
+        await tx
+          .delete(schema.productRestockSubscriptions)
+          .where(eq(schema.productRestockSubscriptions.productId, id));
+
+        restockMailTargets = subscriptions
+          .filter((item) => !!item.user?.email)
+          .map((item) => ({
+            email: item.user.email,
+            name: item.user.fullName,
+            productName: after.name,
+            productSlug: after.slug,
+          }));
+      }
+
+      return { restockMailTargets, removedImageUrls };
     });
+    const { restockMailTargets, removedImageUrls } = updateResult;
+
+    await this.spacesStorageService.deleteStoredUrls(removedImageUrls);
 
     if (restockMailTargets.length > 0) {
       for (const target of restockMailTargets) {
@@ -987,7 +1020,7 @@ export class ShopService {
       throw new BadRequestException('잘못된 접근입니다.');
     }
 
-    return this.db.transaction(async (tx) => {
+    const updated = await this.db.transaction(async (tx) => {
       await tx
         .update(schema.productReviews)
         .set({
@@ -1025,6 +1058,17 @@ export class ShopService {
         },
       });
     });
+
+    if (data.imageUrls !== undefined) {
+      const retained = new Set(data.imageUrls);
+      await this.spacesStorageService.deleteStoredUrls(
+        existing.images
+          .map((image) => image.url)
+          .filter((url) => !retained.has(url)),
+      );
+    }
+
+    return updated;
   }
 
   /** 내 구매평 삭제 */
@@ -1035,6 +1079,7 @@ export class ShopService {
         eq(schema.productReviews.userId, userId),
       ),
       columns: { id: true },
+      with: { images: { columns: { url: true } } },
     });
 
     if (!existing) {
@@ -1044,6 +1089,10 @@ export class ShopService {
     await this.db
       .delete(schema.productReviews)
       .where(eq(schema.productReviews.id, reviewId));
+
+    await this.spacesStorageService.deleteStoredUrls(
+      existing.images.map((image) => image.url),
+    );
 
     return { id: reviewId };
   }
@@ -1074,13 +1123,14 @@ export class ShopService {
     const existing = await this.db.query.productReviews.findFirst({
       where: eq(schema.productReviews.id, reviewId),
       columns: { id: true },
+      with: { images: { columns: { url: true } } },
     });
 
     if (!existing) {
       throw new NotFoundException('리뷰를 찾을 수 없습니다.');
     }
 
-    return this.db.transaction(async (tx) => {
+    const updated = await this.db.transaction(async (tx) => {
       await tx
         .update(schema.productReviews)
         .set({
@@ -1121,6 +1171,17 @@ export class ShopService {
         },
       });
     });
+
+    if (data.imageUrls !== undefined) {
+      const retained = new Set(data.imageUrls);
+      await this.spacesStorageService.deleteStoredUrls(
+        existing.images
+          .map((image) => image.url)
+          .filter((url) => !retained.has(url)),
+      );
+    }
+
+    return updated;
   }
 
   /** [Admin] 구매평 삭제 */
@@ -1128,6 +1189,7 @@ export class ShopService {
     const existing = await this.db.query.productReviews.findFirst({
       where: eq(schema.productReviews.id, reviewId),
       columns: { id: true },
+      with: { images: { columns: { url: true } } },
     });
 
     if (!existing) {
@@ -1137,6 +1199,10 @@ export class ShopService {
     await this.db
       .delete(schema.productReviews)
       .where(eq(schema.productReviews.id, reviewId));
+
+    await this.spacesStorageService.deleteStoredUrls(
+      existing.images.map((image) => image.url),
+    );
 
     return { id: reviewId };
   }
@@ -1949,7 +2015,28 @@ export class ShopService {
 
   /** [Admin] 상품 삭제 */
   async deleteProduct(id: string) {
-    return await this.db.transaction(async (tx) => {
+    const product = await this.db.query.products.findFirst({
+      where: eq(schema.products.id, id),
+      columns: { id: true },
+      with: {
+        images: { columns: { url: true } },
+        detailImages: { columns: { url: true } },
+      },
+    });
+    if (!product) {
+      throw new NotFoundException('상품을 찾을 수 없습니다.');
+    }
+
+    const reviewImages = await this.db
+      .select({ url: schema.productReviewImages.url })
+      .from(schema.productReviewImages)
+      .innerJoin(
+        schema.productReviews,
+        eq(schema.productReviewImages.reviewId, schema.productReviews.id),
+      )
+      .where(eq(schema.productReviews.productId, id));
+
+    const deleted = await this.db.transaction(async (tx) => {
       // 연관 데이터 삭제
       await tx
         .delete(schema.productImages)
@@ -1977,5 +2064,13 @@ export class ShopService {
       }
       return deleted;
     });
+
+    await this.spacesStorageService.deleteStoredUrls([
+      ...product.images.map((image) => image.url),
+      ...product.detailImages.map((image) => image.url),
+      ...reviewImages.map((image) => image.url),
+    ]);
+
+    return deleted;
   }
 }

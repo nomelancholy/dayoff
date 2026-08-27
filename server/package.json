@@ -24,9 +24,11 @@
     "db:bootstrap": "node scripts/bootstrap-migrations-log.mjs",
     "db:seed-example": "node scripts/seed-example-product.mjs",
     "db:seed-orders": "node scripts/seed-order-history.mjs",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "storage:migrate": "node scripts/migrate-uploads-to-spaces.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1119.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",

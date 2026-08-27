@@ -14,6 +14,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/drizzle.deploy.config.cjs ./
 COPY --from=builder /app/src/db/migrations ./src/db/migrations
+COPY --from=builder /app/scripts ./scripts
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh && mkdir -p uploads
 EXPOSE 4000
