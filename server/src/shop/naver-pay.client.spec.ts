@@ -5,6 +5,7 @@ import { NaverPayClient } from './naver-pay.client';
 describe('NaverPayClient', () => {
   const values: Record<string, string> = {
     NODE_ENV: 'test',
+    NAVER_PAY_ENABLED: 'true',
     NAVER_PAY_MODE: 'development',
     NAVER_PAY_CLIENT_ID: 'client-id',
     NAVER_PAY_CLIENT_SECRET: 'client-secret',
@@ -28,7 +29,12 @@ describe('NaverPayClient', () => {
             detail: {
               paymentId: 'payment-1',
               merchantPayKey: 'order-1',
+              merchantUserKey: 'user-1',
               totalPayAmount: 10_000,
+              taxScopeAmount: 10_000,
+              taxExScopeAmount: 0,
+              admissionTypeCode: '01',
+              admissionState: 'SUCCESS',
             },
           },
         }),
@@ -112,13 +118,60 @@ describe('NaverPayClient', () => {
       get: (key: string) =>
         key === 'NODE_ENV'
           ? 'production'
-          : key === 'NAVER_PAY_CLIENT_ID' || key === 'NAVER_PAY_CHAIN_ID'
-            ? 'configured'
-            : undefined,
+          : key === 'NAVER_PAY_ENABLED'
+            ? 'true'
+            : key === 'NAVER_PAY_CLIENT_ID' || key === 'NAVER_PAY_CHAIN_ID'
+              ? 'configured'
+              : undefined,
     } as ConfigService;
 
     expect(() =>
       new NaverPayClient(productionConfig).getCheckoutConfig(),
     ).toThrow(BadRequestException);
+  });
+
+  it('does not expose credentials in its configuration status', () => {
+    expect(client.getConfigurationStatus()).toEqual({
+      enabled: true,
+      mode: 'development',
+      configured: true,
+      missingKeys: [],
+    });
+  });
+
+  it('blocks payment requests while the feature is disabled', () => {
+    const disabledConfig = {
+      get: (key: string) =>
+        key === 'NAVER_PAY_ENABLED' ? 'false' : values[key],
+    } as ConfigService;
+
+    expect(() =>
+      new NaverPayClient(disabledConfig).getCheckoutConfig(),
+    ).toThrow(BadRequestException);
+  });
+
+  it('still permits refunds for existing orders while new payments are disabled', async () => {
+    const disabledConfig = {
+      get: (key: string) =>
+        key === 'NAVER_PAY_ENABLED' ? 'false' : values[key],
+    } as ConfigService;
+    const disabledClient = new NaverPayClient(disabledConfig);
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ code: 'Success', body: {} }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(
+      disabledClient.cancelPayment({
+        paymentId: 'payment-1',
+        amount: 10_000,
+        reason: '고객 요청',
+        requester: '1',
+        idempotencyKey: 'cancel-order-1',
+      }),
+    ).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

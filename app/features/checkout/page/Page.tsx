@@ -81,6 +81,7 @@ function toCheckoutPageErrorMessage(err: unknown): string {
 }
 
 let naverPayScriptPromise: Promise<void> | null = null
+const EMPTY_CART_ITEM_IDS: string[] = []
 
 function loadNaverPayScript(): Promise<void> {
   if (window.Naver?.Pay) return Promise.resolve()
@@ -115,7 +116,7 @@ export const CheckoutPage = () => {
       cartItemQuantities?: number[]
     } | null) ?? null
   const couponCode = state?.couponCode ?? null
-  const cartItemIds = state?.cartItemIds ?? []
+  const cartItemIds = state?.cartItemIds ?? EMPTY_CART_ITEM_IDS
   const cartItemQuantities = state?.cartItemQuantities
 
   const {
@@ -205,6 +206,8 @@ export const CheckoutPage = () => {
       setPageError(toCheckoutPageErrorMessage(err))
     },
   })
+  const createCheckout = createMutation.mutate
+  const isCreatingCheckout = createMutation.isPending
 
   useEffect(() => {
     if (!CHECKOUT_ENABLED) return
@@ -235,14 +238,14 @@ export const CheckoutPage = () => {
       ','
     )}|${quantitiesKey}`
     if (lastCreateKeyRef.current === createKey && initData) return
-    if (createMutation.isPending) return
+    if (isCreatingCheckout) return
 
     lastCreateKeyRef.current = createKey
     setPageError(null)
     setInitData(null)
     setWidgetsReady(false)
     naverPayRef.current = null
-    createMutation.mutate()
+    createCheckout()
   }, [
     token,
     cartItemIds,
@@ -251,8 +254,11 @@ export const CheckoutPage = () => {
     addressesLoading,
     addressesIsError,
     addressesFetching,
+    addresses,
     couponCode,
     initData,
+    isCreatingCheckout,
+    createCheckout,
   ])
 
   // 주소가 없을 때 주소록으로 자동 이동 (신규 가입 유저 결제 플로우 보정)
@@ -420,7 +426,7 @@ export const CheckoutPage = () => {
                 onClick={() => {
                   setInitRetryNonce((n) => n + 1)
                   if (initData) return
-                  if (createMutation.isPending) return
+                  if (isCreatingCheckout) return
                   lastCreateKeyRef.current = null
                   if (!selectedAddressId) {
                     setPageError(
@@ -429,7 +435,7 @@ export const CheckoutPage = () => {
                     return
                   }
                   setPageError(null)
-                  createMutation.mutate()
+                  createCheckout()
                 }}
                 className="mono inline-block border border-red-200 bg-white px-6 py-2 text-[0.85rem] font-medium text-red-700 transition-colors hover:bg-red-50"
               >
@@ -539,9 +545,9 @@ export const CheckoutPage = () => {
                 type="button"
                 onClick={handleRequestPayment}
                 disabled={!widgetsReady || requesting}
-                className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.85rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333] disabled:opacity-50"
+                className="mono mt-10 block w-full bg-[#03C75A] py-4 text-[0.85rem] font-semibold tracking-[0.12em] text-black transition-colors hover:bg-[#02b351] disabled:opacity-50"
               >
-                {requesting ? '결제 요청 중…' : '결제하기'}
+                {requesting ? '결제 요청 중…' : 'Npay 결제하기'}
               </button>
             </section>
 

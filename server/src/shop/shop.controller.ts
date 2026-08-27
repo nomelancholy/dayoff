@@ -141,6 +141,14 @@ export class ShopController {
     return this.shopService.deleteCategory(id);
   }
 
+  /** [Admin] 네이버페이 운영 설정 점검 (인증값 자체는 반환하지 않음) */
+  @Get('admin/naver-pay/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  getNaverPayStatus() {
+    return this.shopService.getNaverPayStatus();
+  }
+
   @Get('products')
   async getProducts(@Query('categoryId') categoryId?: string) {
     return this.shopService.getProducts(categoryId);

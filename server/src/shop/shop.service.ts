@@ -31,6 +31,11 @@ import { EmailService } from '../common/email/email.service';
 import { NaverPayClient } from './naver-pay.client';
 
 const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const NAVER_PAY_PRODUCT_NAME_MAX_LENGTH = 128;
+
+function naverPayProductName(value: string) {
+  return Array.from(value).slice(0, NAVER_PAY_PRODUCT_NAME_MAX_LENGTH).join('');
+}
 
 function discountedPrice(originalPrice: number, discountRate: number) {
   return Math.floor((originalPrice * (100 - discountRate)) / 100);
@@ -47,6 +52,10 @@ export class ShopService {
     private readonly emailService: EmailService,
     private readonly naverPayClient: NaverPayClient,
   ) {}
+
+  getNaverPayStatus() {
+    return this.naverPayClient.getConfigurationStatus();
+  }
 
   /** [Admin] 주문 목록 조회 (관리자용) */
   async getAdminOrders(params?: { status?: string }) {
@@ -1474,14 +1483,16 @@ export class ShopService {
     }
 
     const total = Math.max(0, subtotal + shippingFee - discountAmount);
-    if (total <= 0) {
-      throw new BadRequestException('결제할 금액이 없습니다.');
+    if (total < 10) {
+      throw new BadRequestException('네이버페이 최소 결제 금액은 10원입니다.');
     }
 
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     // 네이버페이 공식 규격은 대표 상품명에 "외 N건"을 붙이지 않도록 안내한다.
-    const orderName = cartItems[0]?.product?.name ?? '도자기 상품';
+    const orderName = naverPayProductName(
+      cartItems[0]?.product?.name ?? '도자기 상품',
+    );
 
     const frontUrl = (
       this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:5173'
@@ -1582,7 +1593,11 @@ export class ShopService {
             categoryType: 'ETC',
             categoryId: 'ETC',
             uid: item.productId,
-            name: item.product.name,
+            name: naverPayProductName(
+              item.option
+                ? `${item.product.name} / ${item.option.name}: ${item.option.value}`
+                : item.product.name,
+            ),
             payReferrer: 'ETC',
             count: purchaseQty,
           };
@@ -1623,22 +1638,50 @@ export class ShopService {
     }
 
     const approval = await this.naverPayClient.approvePayment(paymentId);
-    let validationError: BadRequestException | null = null;
+
+    // 다른 주문의 paymentId를 전달한 요청으로 타 주문 결제를 취소하지 않도록
+    // 주문 식별값이 다르면 자동취소 없이 즉시 차단합니다.
     if (
       !approval.paymentId ||
       approval.paymentId !== paymentId ||
       !approval.merchantPayKey ||
-      approval.merchantPayKey !== order.orderNumber ||
-      (approval.merchantUserKey && approval.merchantUserKey !== userId)
+      approval.merchantPayKey !== order.orderNumber
     ) {
-      validationError = new BadRequestException(
+      this.logger.error(
+        `네이버페이 승인 주문 불일치: order=${order.orderNumber}, paymentId=${paymentId}, approvedMerchantPayKey=${approval.merchantPayKey ?? 'missing'}`,
+      );
+      throw new BadRequestException(
         '승인된 결제 정보가 주문 정보와 일치하지 않습니다.',
       );
     }
-    const approvedAmount = approval.totalPayAmount;
-    if (typeof approvedAmount !== 'number' || approvedAmount !== order.total) {
+
+    let validationError: BadRequestException | null = null;
+    if (
+      approval.merchantUserKey !== userId ||
+      approval.admissionState !== 'SUCCESS' ||
+      approval.admissionTypeCode !== '01'
+    ) {
       validationError = new BadRequestException(
-        '결제 금액이 주문 금액과 일치하지 않습니다.',
+        '승인된 결제 상태가 주문 정보와 일치하지 않습니다.',
+      );
+    }
+    const approvedAmount = approval.totalPayAmount;
+    if (
+      typeof approvedAmount !== 'number' ||
+      approvedAmount !== order.total ||
+      approval.taxScopeAmount !== order.total ||
+      approval.taxExScopeAmount !== 0
+    ) {
+      validationError = new BadRequestException(
+        '결제 금액 또는 과세 정보가 주문 정보와 일치하지 않습니다.',
+      );
+    }
+    const expectedProductName = order.orderItems[0]?.productName
+      ? naverPayProductName(order.orderItems[0].productName)
+      : null;
+    if (!expectedProductName || approval.productName !== expectedProductName) {
+      validationError = new BadRequestException(
+        '결제 상품 정보가 주문 정보와 일치하지 않습니다.',
       );
     }
     if (validationError) {
@@ -1653,7 +1696,30 @@ export class ShopService {
           requester: '2',
           idempotencyKey: `validation-${order.id}`,
         });
+        await this.db
+          .update(schema.orders)
+          .set({
+            status: 'cancelled',
+            naverPaymentId: paymentId,
+            naverPayHistId: approval.payHistId ?? null,
+            cancelledAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(schema.orders.id, order.id),
+              eq(schema.orders.status, 'pending'),
+            ),
+          );
       } catch (cancelError) {
+        await this.db
+          .update(schema.orders)
+          .set({
+            naverPaymentId: paymentId,
+            naverPayHistId: approval.payHistId ?? null,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.orders.id, order.id));
         this.logger.error(
           `결제 검증 실패 후 자동취소 실패: order=${order.orderNumber}, paymentId=${paymentId}`,
           cancelError instanceof Error ? cancelError.stack : undefined,

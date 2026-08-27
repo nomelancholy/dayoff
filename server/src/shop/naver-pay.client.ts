@@ -20,6 +20,10 @@ export interface NaverPayApprovalDetail {
   merchantPayKey?: string;
   merchantUserKey?: string;
   totalPayAmount?: number;
+  taxScopeAmount?: number;
+  taxExScopeAmount?: number;
+  productName?: string;
+  admissionTypeCode?: string;
   admissionState?: string;
 }
 
@@ -50,6 +54,38 @@ export class NaverPayClient {
     return value || undefined;
   }
 
+  isEnabled(): boolean {
+    return this.env('NAVER_PAY_ENABLED') === 'true';
+  }
+
+  getConfigurationStatus() {
+    const credentialKeys = [
+      'NAVER_PAY_CLIENT_ID',
+      'NAVER_PAY_CLIENT_SECRET',
+      'NAVER_PAY_CHAIN_ID',
+    ];
+    const missingKeys = credentialKeys.filter((key) => !this.env(key));
+    const configuredMode = this.env('NAVER_PAY_MODE');
+    const mode =
+      configuredMode === 'development' || configuredMode === 'production'
+        ? configuredMode
+        : null;
+    if (!mode) missingKeys.push('NAVER_PAY_MODE');
+
+    return {
+      enabled: this.isEnabled(),
+      mode,
+      configured: missingKeys.length === 0,
+      missingKeys,
+    };
+  }
+
+  private assertEnabled() {
+    if (!this.isEnabled()) {
+      throw new BadRequestException('네이버페이 결제가 비활성화되어 있습니다.');
+    }
+  }
+
   getMode(): NaverPayMode {
     const configured = this.env('NAVER_PAY_MODE');
     if (configured === 'development' || configured === 'production') {
@@ -65,6 +101,7 @@ export class NaverPayClient {
   }
 
   getCheckoutConfig() {
+    this.assertEnabled();
     const clientId = this.env('NAVER_PAY_CLIENT_ID');
     const chainId = this.env('NAVER_PAY_CHAIN_ID');
     if (!clientId || !chainId) {

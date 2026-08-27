@@ -13,9 +13,10 @@ export const CheckoutSuccessPage = () => {
   const resultMessage = params.get('resultMessage') ?? ''
   const paymentId = params.get('paymentId') ?? ''
   const merchantPayKey = params.get('merchantPayKey') ?? ''
+  const normalizedResultCode = resultCode.trim().toLowerCase()
 
   const canConfirm =
-    token && resultCode === 'Success' && paymentId && merchantPayKey
+    token && normalizedResultCode === 'success' && paymentId && merchantPayKey
 
   const didConfirmRef = useRef(false)
   const [confirmedResult, setConfirmedResult] = useState<{
@@ -80,7 +81,7 @@ export const CheckoutSuccessPage = () => {
   }
 
   if (!canConfirm) {
-    const userCancelled = resultCode === 'UserCancel'
+    const userCancelled = normalizedResultCode === 'usercancel'
     return (
       <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
         <h1 className="font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">

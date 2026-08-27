@@ -80,7 +80,11 @@ npm run db:studio
 - 승인된 `paymentId`와 결제 이력 번호는 주문에 저장되며 취소·대사에 사용합니다.
 - 운영에서는 `NAVER_PAY_MODE=production`과 운영용 `NAVER_PAY_CLIENT_ID`,
   `NAVER_PAY_CLIENT_SECRET`, `NAVER_PAY_CHAIN_ID`가 모두 필요합니다.
+- 결제 API 활성화에는 `NAVER_PAY_ENABLED=true`, 프론트 구매 버튼 활성화에는
+  `VITE_CHECKOUT_ENABLED=true`가 필요합니다.
 - 네이버페이센터에 실제 서비스 HTTPS 도메인과 결제 완료 URL을 등록해야 합니다.
+- 전체 설정과 검수 순서는 [`deploy/NAVER_PAY_SETUP.md`](../deploy/NAVER_PAY_SETUP.md)를
+  참고합니다.
 
 ## 테스트
 
