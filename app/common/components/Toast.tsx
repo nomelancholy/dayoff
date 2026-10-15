@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useUiStore } from '@/common/store/ui'
+import { CartToast } from './CartToast'
 
 const TOAST_DURATION_MS = 4000
 const SUCCESS_TOAST_DURATION_MS = 2500
@@ -9,7 +10,7 @@ export const Toast = () => {
   const { toast, hideToast } = useUiStore()
 
   useEffect(() => {
-    if (!toast) return
+    if (!toast || toast.variant === 'cart') return
     const duration =
       toast.variant === 'success' ? SUCCESS_TOAST_DURATION_MS : TOAST_DURATION_MS
     const t = setTimeout(hideToast, duration)
@@ -17,6 +18,7 @@ export const Toast = () => {
   }, [toast, hideToast])
 
   if (!toast) return null
+  if (toast.variant === 'cart') return <CartToast toast={toast} onClose={hideToast} />
 
   const variant = toast.variant ?? 'default'
   const isSuccess = variant === 'success'

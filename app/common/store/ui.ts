@@ -4,7 +4,13 @@ export interface ToastOptions {
   message: string
   actionLabel?: string
   actionHref?: string
-  variant?: 'default' | 'success' | 'warning'
+  variant?: 'default' | 'success' | 'warning' | 'cart'
+  cartItem?: {
+    name: string
+    imageUrl?: string
+    optionLabel?: string
+    quantity: number
+  }
   /** 클릭 좌표 기준으로 토스트를 가까운 위치에 표시(클라이언트 픽셀 좌표) */
   anchor?: { x: number; y: number }
 }

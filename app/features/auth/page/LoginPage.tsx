@@ -16,16 +16,16 @@ export const LoginPage = () => {
   }, [searchParams])
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] px-4 py-32 md:px-16">
-      <div className="mx-auto max-w-md">
-        <h1 className="font-serif text-4xl tracking-[0.12em] text-dot-primary">
+    <div className="min-h-screen bg-dot-bg px-6 pb-24 pt-32 md:px-16 md:pt-40">
+      <div className="mx-auto max-w-[400px]">
+        <h1 className="text-center text-3xl font-medium tracking-[0.04em] text-dot-primary">
           로그인
         </h1>
-        <p className="mt-2 text-sm text-[#666]">
-          소셜 로그인은 버튼을 통해 자동으로 계정이 생성됩니다.
+        <p className="mt-4 text-center text-sm leading-relaxed text-dot-secondary">
+          자주 사용하는 계정으로 간편하게 시작하세요.
         </p>
 
-        <div className="mt-8">
+        <div className="mt-10">
           <LoginForm />
         </div>
       </div>

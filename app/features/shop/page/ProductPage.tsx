@@ -231,18 +231,27 @@ export const ShopProductPage = () => {
         quantity,
         optionId: selectedOptionId,
       }),
-    onSuccess: () => {
+    onSuccess: (item) => {
       const shouldShowCartToast = cartToastRequestedRef.current
       cartToastRequestedRef.current = false
-      const anchor = toastAnchorRef.current
       toastAnchorRef.current = null
 
       queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] })
       if (shouldShowCartToast) {
         showToast({
-          variant: 'success',
-          message: '성공적으로 장바구니에 담겼습니다.',
-          ...(anchor ? { anchor } : {}),
+          variant: 'cart',
+          message: '장바구니에 담았습니다.',
+          actionLabel: '장바구니 보기',
+          actionHref: '/cart',
+          cartItem: {
+            name: product?.name ?? '',
+            imageUrl: product?.images?.[0]?.url,
+            optionLabel: product?.options
+              ?.filter((option) => option.id === item.optionId)
+              .map((option) => `${option.name}: ${option.value}`)
+              .join(', '),
+            quantity: item.quantity,
+          },
         })
       }
     },

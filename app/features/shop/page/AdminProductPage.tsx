@@ -21,6 +21,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { calculateDiscountedPrice } from '../lib/pricing'
+import { syncSavedProduct } from '../lib/productCache'
 
 const DEFAULT_STOCK_QUANTITY = 999
 const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -147,7 +148,8 @@ export const AdminProductPage = () => {
 
   const createMutation = useMutation({
     mutationFn: createProduct,
-    onSuccess: () => {
+    onSuccess: async (createdProduct) => {
+      await syncSavedProduct(queryClient, createdProduct)
       alert('상품이 등록되었습니다.')
       navigate('/shop')
     },
@@ -164,9 +166,8 @@ export const AdminProductPage = () => {
       id: string
       data: Parameters<typeof updateProduct>[1]
     }) => updateProduct(id, data),
-    onSuccess: (updatedProduct, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['shop', 'product', id] })
-      queryClient.invalidateQueries({ queryKey: ['shop', 'products'] })
+    onSuccess: async (updatedProduct) => {
+      await syncSavedProduct(queryClient, updatedProduct)
       alert('상품이 수정되었습니다.')
       navigate(`/shop/${updatedProduct.slug ?? productId}`)
     },

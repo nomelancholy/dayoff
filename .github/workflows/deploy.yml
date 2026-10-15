@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
 
+# 겹친 배포가 서로 실행 중인 컨테이너를 교체하지 않도록 직렬화합니다.
+concurrency:
+  group: dayoff-production
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_API_NAME: dayoff-api
@@ -86,7 +91,13 @@ jobs:
             docker builder prune -af
             df -h /
             docker compose -f docker-compose.prod.yml --env-file .env.deploy pull
-            docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d
+            # 기존 웹 서버는 DB/API가 준비될 때까지 유지합니다.
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d --wait --wait-timeout 120 postgres
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d --no-deps --wait --wait-timeout 180 api
+            # 새 Nginx 설정/인증서를 기존 웹 서버를 내리기 전에 검증합니다.
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy run --rm --no-deps web nginx -t
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d --no-deps --wait --wait-timeout 60 web
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T web wget -q -O /dev/null http://127.0.0.1/shop/products
             docker image prune -af
             docker builder prune -af
             docker system df

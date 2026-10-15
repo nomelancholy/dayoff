@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/common/lib/utils'
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
+import { fetchCartItems } from '@/features/shop/api/shop'
 
 const NAV_LINKS = [
   { to: '/about', label: 'About' },
@@ -25,6 +26,14 @@ export const Header = () => {
   })
 
   const isAdmin = user?.role === 'admin'
+  const { data: cartItems } = useQuery({
+    queryKey: ['shop', 'cart'],
+    queryFn: fetchCartItems,
+    enabled: !!token,
+  })
+  const cartQuantity = token
+    ? (cartItems ?? []).reduce((total, item) => total + item.quantity, 0)
+    : 0
   const mobileMenuLabel = useMemo(() => '메뉴', [])
 
   useEffect(() => {
@@ -104,10 +113,19 @@ export const Header = () => {
       <div className="col-start-3 flex justify-end gap-4 md:gap-6">
         <Link
           to="/cart"
-          className="text-dot-primary opacity-80 transition-all duration-500 ease-dot hover:-translate-y-0.5 hover:opacity-100"
-          aria-label="장바구니"
+          className="relative -m-2 inline-flex items-center justify-center p-2 text-dot-primary transition-transform duration-300 ease-dot hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 motion-reduce:transition-none"
+          aria-label={`장바구니${cartQuantity > 0 ? `, 상품 ${cartQuantity}개` : ''}`}
         >
-          <ShoppingCart size={20} />
+          <ShoppingCart size={20} aria-hidden="true" />
+          {cartQuantity > 0 ? (
+            <span
+              key={cartQuantity}
+              aria-hidden="true"
+              className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-dot-primary px-1 text-[10px] font-semibold leading-none tabular-nums text-white ring-2 ring-dot-bg animate-in zoom-in-75 duration-300 motion-reduce:animate-none"
+            >
+              {cartQuantity > 99 ? '99+' : cartQuantity}
+            </span>
+          ) : null}
         </Link>
         {isAdmin ? (
           <Link
