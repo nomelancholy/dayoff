@@ -18,6 +18,7 @@ import { CreateCouponDto } from './dto/create-coupon.dto';
 import { UpdateCouponDto } from './dto/update-coupon.dto';
 import { ValidateCouponDto } from './dto/validate-coupon.dto';
 import { IssueCouponDto } from './dto/issue-coupon.dto';
+import { UuidParam } from '../common/http/uuid-param.pipe';
 
 @Controller('coupons')
 export class CouponController {
@@ -52,7 +53,10 @@ export class CouponController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async update(@Param('id') id: string, @Body() dto: UpdateCouponDto) {
+  async update(
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateCouponDto,
+  ) {
     return this.couponService.update(id, {
       ...(dto.code !== undefined && { code: dto.code }),
       ...(dto.discountType !== undefined && { discountType: dto.discountType }),
@@ -73,7 +77,7 @@ export class CouponController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id', UuidParam) id: string) {
     return this.couponService.remove(id);
   }
 
@@ -81,7 +85,7 @@ export class CouponController {
   @Post(':id/issue')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async issue(@Param('id') id: string, @Body() dto: IssueCouponDto) {
+  async issue(@Param('id', UuidParam) id: string, @Body() dto: IssueCouponDto) {
     return this.couponService.issueToUser(id, dto.userId);
   }
 

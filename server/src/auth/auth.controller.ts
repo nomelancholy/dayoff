@@ -23,6 +23,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import type { UserRow } from './auth.service';
 import { AdminUsersQueryDto } from './dto/admin-users-query.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
+import { UuidParam } from '../common/http/uuid-param.pipe';
 
 @Controller('auth')
 export class AuthController {
@@ -53,7 +54,7 @@ export class AuthController {
   @Get('admin/users/:id/addresses')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  adminListUserAddresses(@Param('id') id: string) {
+  adminListUserAddresses(@Param('id', UuidParam) id: string) {
     return this.authService.listUserAddressesForAdmin(id);
   }
 
@@ -62,7 +63,7 @@ export class AuthController {
   @Roles('admin')
   adminUpdateUserRole(
     @CurrentUser() actor: UserRow,
-    @Param('id') id: string,
+    @Param('id', UuidParam) id: string,
     @Body() dto: UpdateUserRoleDto,
   ) {
     return this.authService.updateUserRoleByAdmin(actor.id, id, dto.role);
@@ -127,7 +128,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async updateAddress(
     @CurrentUser() user: UserRow,
-    @Param('id') id: string,
+    @Param('id', UuidParam) id: string,
     @Body() dto: UpdateAddressDto,
   ) {
     return this.authService.updateAddress(user.id, id, {
@@ -143,7 +144,10 @@ export class AuthController {
 
   @Delete('addresses/:id')
   @UseGuards(JwtAuthGuard)
-  async deleteAddress(@CurrentUser() user: UserRow, @Param('id') id: string) {
+  async deleteAddress(
+    @CurrentUser() user: UserRow,
+    @Param('id', UuidParam) id: string,
+  ) {
     return this.authService.deleteAddress(user.id, id);
   }
 

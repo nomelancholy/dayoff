@@ -1,5 +1,6 @@
 import { useReveal } from '@/common/hooks/useReveal'
 import { ContactInfo, MapSection } from './components'
+import { ContactForm } from './components/ContactForm'
 
 export const ContactPage = () => {
   const revealRef = useReveal()
@@ -11,6 +12,7 @@ export const ContactPage = () => {
           <ContactInfo />
           <MapSection />
         </div>
+        <ContactForm />
       </main>
     </div>
   )

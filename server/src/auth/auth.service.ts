@@ -10,25 +10,36 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { eq, and, desc, or, ilike, sql, inArray } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  desc,
+  or,
+  ilike,
+  sql,
+  inArray,
+  isNull,
+  isNotNull,
+} from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
 import type { AuthProvider } from '../db/schema/users';
+import { EmailService } from '../common/email/email.service';
+import { MediaCleanupService } from '../shop/media-cleanup.service';
 import {
   naverReviewEnabled,
   reviewCredentialVersion,
 } from './naver-review.config';
-import { EmailService } from '../common/email/email.service';
 
 export type UserRow = typeof schema.users.$inferSelect;
 
 export interface JwtPayload {
-  npayReview?: string;
   sub: string;
   email: string;
   role: string;
+  npayReview?: string;
 }
 
 export interface AuthResult {
@@ -48,6 +59,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly emailService: EmailService,
+    private readonly mediaCleanupService: MediaCleanupService,
   ) {}
 
   private async hashPassword(password: string): Promise<string> {
@@ -302,7 +314,41 @@ export class AuthService {
     const user = await this.findById(userId);
     if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
 
+    // 구매평은 FK(ON DELETE CASCADE)로 함께 지워지므로 첨부 사진 주소를 미리 확보합니다.
+    const reviewImages = await this.db
+      .select({ url: schema.productReviewImages.url })
+      .from(schema.productReviewImages)
+      .innerJoin(
+        schema.productReviews,
+        eq(schema.productReviewImages.reviewId, schema.productReviews.id),
+      )
+      .where(eq(schema.productReviews.userId, userId));
+
     await this.db.transaction(async (tx) => {
+      // 결제는 끝났지만 아직 발송되지 않은 주문이 지워지면 환불도 발송도 되지 않으므로,
+      // 그런 주문(또는 결제번호가 연결되어 확인이 필요한 주문)이 있으면 탈퇴를 막습니다.
+      const blockingOrders = await tx
+        .select({ id: schema.orders.id })
+        .from(schema.orders)
+        .where(
+          and(
+            eq(schema.orders.userId, userId),
+            or(
+              eq(schema.orders.status, 'paid'),
+              and(
+                eq(schema.orders.status, 'pending'),
+                isNotNull(schema.orders.naverPaymentId),
+              ),
+            ),
+          ),
+        )
+        .for('update');
+      if (blockingOrders.length > 0) {
+        throw new BadRequestException(
+          '발송을 기다리는 주문이 있어 탈퇴할 수 없습니다. 주문을 취소하시거나 상품 발송 후 다시 시도해 주세요.',
+        );
+      }
+
       const myOrders = await tx.query.orders.findMany({
         where: eq(schema.orders.userId, userId),
         columns: { id: true },
@@ -337,6 +383,11 @@ export class AuthService {
         throw new BadRequestException('회원 탈퇴 처리에 실패했습니다.');
       }
     });
+
+    await this.mediaCleanupService.removeUnreferenced(
+      reviewImages.map((image) => image.url),
+      'review',
+    );
 
     return { ok: true };
   }
@@ -417,25 +468,34 @@ export class AuthService {
       isDefault?: boolean;
     },
   ) {
-    if (data.isDefault) {
-      await this.db
-        .update(schema.addresses)
-        .set({ isDefault: false, updatedAt: new Date() })
-        .where(eq(schema.addresses.userId, userId));
-    }
-    const [created] = await this.db
-      .insert(schema.addresses)
-      .values({
-        userId,
-        label: data.label.trim(),
-        recipientName: data.recipientName?.trim() || null,
-        phone: data.phone?.trim() || null,
-        postalCode: data.postalCode?.trim() || null,
-        addressLine1: data.addressLine1.trim(),
-        addressLine2: data.addressLine2?.trim() || null,
-        isDefault: data.isDefault ?? false,
-      })
-      .returning();
+    const label = data.label.trim();
+    const addressLine1 = data.addressLine1.trim();
+    if (!label) throw new BadRequestException('주소 별칭을 입력해 주세요.');
+    if (!addressLine1) throw new BadRequestException('주소를 입력해 주세요.');
+
+    // 기본 배송지 해제와 새 주소 저장이 따로 반영되지 않도록 한 트랜잭션으로 처리합니다.
+    const created = await this.db.transaction(async (tx) => {
+      if (data.isDefault) {
+        await tx
+          .update(schema.addresses)
+          .set({ isDefault: false, updatedAt: new Date() })
+          .where(eq(schema.addresses.userId, userId));
+      }
+      const [row] = await tx
+        .insert(schema.addresses)
+        .values({
+          userId,
+          label,
+          recipientName: data.recipientName?.trim() || null,
+          phone: data.phone?.trim() || null,
+          postalCode: data.postalCode?.trim() || null,
+          addressLine1,
+          addressLine2: data.addressLine2?.trim() || null,
+          isDefault: data.isDefault ?? false,
+        })
+        .returning();
+      return row;
+    });
     if (!created) throw new BadRequestException('주소 추가에 실패했습니다.');
     return created;
   }
@@ -462,34 +522,49 @@ export class AuthService {
     });
     if (!existing) throw new BadRequestException('주소를 찾을 수 없습니다.');
 
-    if (data.isDefault === true) {
-      await this.db
-        .update(schema.addresses)
-        .set({ isDefault: false, updatedAt: new Date() })
-        .where(eq(schema.addresses.userId, userId));
-    }
-
     const updates: Partial<typeof schema.addresses.$inferInsert> = {
       updatedAt: new Date(),
     };
-    if (data.label !== undefined) updates.label = data.label.trim();
+    if (data.label !== undefined) {
+      const label = data.label.trim();
+      if (!label) throw new BadRequestException('주소 별칭을 입력해 주세요.');
+      updates.label = label;
+    }
     if (data.recipientName !== undefined)
       updates.recipientName = data.recipientName?.trim() || null;
     if (data.phone !== undefined) updates.phone = data.phone?.trim() || null;
     if (data.postalCode !== undefined)
       updates.postalCode = data.postalCode?.trim() || null;
-    if (data.addressLine1 !== undefined)
-      updates.addressLine1 = data.addressLine1.trim();
+    if (data.addressLine1 !== undefined) {
+      const addressLine1 = data.addressLine1.trim();
+      if (!addressLine1) throw new BadRequestException('주소를 입력해 주세요.');
+      updates.addressLine1 = addressLine1;
+    }
     if (data.addressLine2 !== undefined)
       updates.addressLine2 = data.addressLine2?.trim() || null;
     if (data.isDefault !== undefined) updates.isDefault = data.isDefault;
 
-    const [updated] = await this.db
-      .update(schema.addresses)
-      .set(updates)
-      .where(eq(schema.addresses.id, addressId))
-      .returning();
-    return updated;
+    // 이미 접수된 주문의 배송지는 주문에 따로 고정되어 있어 여기서 수정해도 바뀌지 않습니다.
+    return this.db.transaction(async (tx) => {
+      if (data.isDefault === true) {
+        await tx
+          .update(schema.addresses)
+          .set({ isDefault: false, updatedAt: new Date() })
+          .where(eq(schema.addresses.userId, userId));
+      }
+
+      const [updated] = await tx
+        .update(schema.addresses)
+        .set(updates)
+        .where(
+          and(
+            eq(schema.addresses.id, addressId),
+            eq(schema.addresses.userId, userId),
+          ),
+        )
+        .returning();
+      return updated;
+    });
   }
 
   /** 주소 삭제 */
@@ -502,19 +577,38 @@ export class AuthService {
     });
     if (!existing) throw new BadRequestException('주소를 찾을 수 없습니다.');
 
-    // 이 배송지를 참조하는 주문이 있으면 FK 제약 때문에 삭제가 실패합니다.
-    // 사용자 입장에서는 "왜" 삭제가 안 되는지 명확히 안내해야 합니다.
-    const usedInOrder = await this.db.query.orders.findFirst({
-      where: eq(schema.orders.shippingAddressId, addressId),
+    // 주문은 주문 시점의 배송지를 따로 보관하므로, 주문에 사용된 주소도 주소록에서 지울 수 있습니다.
+    // (결제 화면을 열기만 해도 주문 초안이 만들어져, 예전에는 그 주소를 지울 수 없었습니다.)
+    await this.db.transaction(async (tx) => {
+      // 스냅샷 도입 전에 만들어진 주문이 남아 있다면 지우기 전에 배송지를 주문에 옮겨 둡니다.
+      await tx
+        .update(schema.orders)
+        .set({
+          shippingRecipientName: existing.recipientName,
+          shippingPhone: existing.phone,
+          shippingPostalCode: existing.postalCode,
+          shippingAddressLine1: existing.addressLine1,
+          shippingAddressLine2: existing.addressLine2,
+        })
+        .where(
+          and(
+            eq(schema.orders.shippingAddressId, addressId),
+            isNull(schema.orders.shippingAddressLine1),
+          ),
+        );
+      await tx
+        .update(schema.orders)
+        .set({ shippingAddressId: null })
+        .where(eq(schema.orders.shippingAddressId, addressId));
+      await tx
+        .delete(schema.addresses)
+        .where(
+          and(
+            eq(schema.addresses.id, addressId),
+            eq(schema.addresses.userId, userId),
+          ),
+        );
     });
-    if (usedInOrder) {
-      throw new BadRequestException(
-        '이 배송지는 주문에 사용 중이라 삭제할 수 없습니다.',
-      );
-    }
-    await this.db
-      .delete(schema.addresses)
-      .where(eq(schema.addresses.id, addressId));
     return { ok: true };
   }
 

@@ -82,6 +82,8 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
       RESEND_REPLY_TO: ${RESEND_REPLY_TO:-}
+      CONTACT_ENABLED: ${CONTACT_ENABLED:-false}
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-}
     volumes:
       - dayoff_uploads:/app/uploads
     healthcheck:

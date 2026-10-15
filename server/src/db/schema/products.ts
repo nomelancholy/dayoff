@@ -26,9 +26,9 @@ export const productCategoriesRelations = relations(
 /** 상품 */
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
-  categoryId: uuid('category_id')
-    .notNull()
-    .references(() => productCategories.id),
+  // 판매 중인 상품은 항상 카테고리를 가집니다. 주문 이력 보존을 위해 숨김 처리된
+  // (삭제된) 상품만 null이 되어 카테고리 삭제를 막지 않습니다.
+  categoryId: uuid('category_id').references(() => productCategories.id),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
   description: text('description'),

@@ -70,6 +70,12 @@ export const orders = pgTable('orders', {
     .notNull()
     .default('pending'),
   shippingAddressId: uuid('shipping_address_id').references(() => addresses.id),
+  // 주문 시점의 배송지 스냅샷. 이후 주소록이 수정·삭제되어도 주문 배송 정보는 유지됩니다.
+  shippingRecipientName: text('shipping_recipient_name'),
+  shippingPhone: text('shipping_phone'),
+  shippingPostalCode: text('shipping_postal_code'),
+  shippingAddressLine1: text('shipping_address_line1'),
+  shippingAddressLine2: text('shipping_address_line2'),
   subtotal: integer('subtotal').notNull(),
   shippingFee: integer('shipping_fee').notNull().default(0),
   discountAmount: integer('discount_amount').notNull().default(0),
@@ -80,6 +86,11 @@ export const orders = pgTable('orders', {
   /** 네이버페이 원결제 승인 이력 번호. 운영 대사용입니다. */
   naverPayHistId: text('naver_pay_hist_id'),
   paidAt: timestamp('paid_at', { withTimezone: true }),
+  /**
+   * 결제 취소(환불)를 하기로 결정한 시각. 네이버페이에 취소를 요청하기 전에 먼저 기록합니다.
+   * 값이 있는 주문은 취소가 끝나기 전까지 발송 처리되거나 결제 완료로 확정되지 않습니다.
+   */
+  cancelRequestedAt: timestamp('cancel_requested_at', { withTimezone: true }),
   cancelledAt: timestamp('cancelled_at', { withTimezone: true }),
   trackingNumber: text('tracking_number'),
   createdAt: timestamp('created_at', { withTimezone: true })

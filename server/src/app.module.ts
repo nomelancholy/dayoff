@@ -7,6 +7,7 @@ import { DatabaseModule } from './common/database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { ShopModule } from './shop/shop.module';
 import { CouponModule } from './coupon/coupon.module';
+import { ContactModule } from './contact/contact.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { CouponModule } from './coupon/coupon.module';
     AuthModule,
     ShopModule,
     CouponModule,
+    ContactModule,
   ],
   controllers: [AppController],
   providers: [AppService],

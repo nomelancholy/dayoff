@@ -5,14 +5,15 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import type { Provider } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { NaverReviewController } from './naver-review.controller';
 import { AuthController } from './auth.controller';
+import { NaverReviewController } from './naver-review.controller';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { KakaoStrategy } from './strategies/kakao.strategy';
 import { NaverStrategy } from './strategies/naver.strategy';
 import { EmailModule } from '../common/email/email.module';
+import { StorageModule } from '../shop/storage.module';
 
 // 소셜 로그인은 env 설정이 있을 때만 전략 등록 (미설정 시 OAuth2Strategy가 clientID 필수로 크래시 방지)
 // 주의: AuthModule 파일 import 시점에 process.env를 읽으므로 dotenv/config로 미리 로딩해 둔다.
@@ -30,6 +31,7 @@ if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CALLBACK_URL) {
 @Module({
   imports: [
     EmailModule,
+    StorageModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

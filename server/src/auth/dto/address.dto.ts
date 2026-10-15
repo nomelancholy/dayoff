@@ -1,7 +1,16 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
+import { Trim } from '../../common/http/trim.decorator';
 
 export class CreateAddressDto {
+  @Trim()
   @IsString({ message: '주소 별칭을 입력해 주세요.' })
+  @IsNotEmpty({ message: '주소 별칭을 입력해 주세요.' })
   @MaxLength(50)
   label: string;
 
@@ -20,7 +29,9 @@ export class CreateAddressDto {
   @MaxLength(20)
   postalCode?: string;
 
+  @Trim()
   @IsString({ message: '주소를 입력해 주세요.' })
+  @IsNotEmpty({ message: '주소를 입력해 주세요.' })
   @MaxLength(200)
   addressLine1: string;
 
@@ -36,7 +47,9 @@ export class CreateAddressDto {
 
 export class UpdateAddressDto {
   @IsOptional()
-  @IsString()
+  @Trim()
+  @IsString({ message: '주소 별칭을 입력해 주세요.' })
+  @IsNotEmpty({ message: '주소 별칭을 입력해 주세요.' })
   @MaxLength(50)
   label?: string;
 
@@ -56,7 +69,9 @@ export class UpdateAddressDto {
   postalCode?: string;
 
   @IsOptional()
-  @IsString()
+  @Trim()
+  @IsString({ message: '주소를 입력해 주세요.' })
+  @IsNotEmpty({ message: '주소를 입력해 주세요.' })
   @MaxLength(200)
   addressLine1?: string;
 

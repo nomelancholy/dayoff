@@ -24,9 +24,22 @@ rawClient.interceptors.request.use(
 rawClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || '알 수 없는 에러가 발생했습니다.';
+    // 서버가 내려준 안내 문구(검증 오류는 배열)를 error.message에도 실어,
+    // `err.message`를 그대로 보여주는 화면에서 "Request failed with status code 400" 대신
+    // 실패 사유가 보이게 합니다.
+    const serverMessage: unknown = error.response?.data?.message;
+    const normalizedMessage = Array.isArray(serverMessage)
+      ? serverMessage.filter(Boolean).join(' ')
+      : typeof serverMessage === 'string'
+        ? serverMessage
+        : '';
+    if (normalizedMessage) {
+      error.message = normalizedMessage;
+    }
+
+    const message = normalizedMessage || '알 수 없는 에러가 발생했습니다.';
     console.error('API Error:', message);
-    
+
     // 401 Unauthorized 처리 (토큰 제거 후 로그인 페이지로)
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');

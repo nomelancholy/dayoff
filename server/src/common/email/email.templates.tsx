@@ -271,3 +271,59 @@ export const ProductRestockedEmail = ({
     </Body>
   </Html>
 );
+
+export const CouponIssuedEmail = ({
+  displayName,
+  code,
+  discountLabel,
+  conditionLabel,
+  periodLabel,
+  shopUrl,
+}: {
+  displayName: string;
+  code: string;
+  discountLabel: string;
+  conditionLabel: string;
+  periodLabel: string;
+  shopUrl: string;
+}) => (
+  <Html>
+    <Head />
+    <Preview>쿠폰이 도착했습니다</Preview>
+    <Body style={styles.body}>
+      <Container style={styles.container}>
+        <Text style={styles.brand}>D O T.</Text>
+        <Heading style={styles.heading}>쿠폰이 도착했습니다</Heading>
+        <Text style={styles.text}>
+          {displayName}님께 드리는 할인 쿠폰이 발급되었습니다.
+        </Text>
+        <Section style={styles.card}>
+          <Text style={styles.cardLabel}>쿠폰 코드</Text>
+          <Text
+            style={{
+              ...styles.listItem,
+              fontSize: '20px',
+              letterSpacing: '0.12em',
+              color: '#1f1f1f',
+            }}
+          >
+            {code}
+          </Text>
+          <Text style={styles.listItem}>{discountLabel}</Text>
+          <Text style={styles.listItem}>{conditionLabel}</Text>
+          <Text style={styles.listItem}>사용 기간 {periodLabel}</Text>
+        </Section>
+        <Text style={styles.text}>
+          장바구니의 쿠폰 입력란에 위 코드를 입력하시면 할인이 적용됩니다.
+        </Text>
+        <Section style={{ marginTop: '18px' }}>
+          <Button href={shopUrl} style={styles.button}>
+            쇼핑하러 가기
+          </Button>
+        </Section>
+        <Hr style={{ borderColor: '#e8e2d6', margin: '22px 0 14px' }} />
+        <Text style={styles.footer}>본 메일은 발신 전용입니다.</Text>
+      </Container>
+    </Body>
+  </Html>
+);

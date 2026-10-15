@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { confirmNaverPayment } from '../../api/checkout'
 import { getApiErrorMessage, getStoredToken } from '@/features/auth/api/auth'
 
 export const CheckoutSuccessPage = () => {
+  const queryClient = useQueryClient()
   const token = getStoredToken()
   const [params] = useSearchParams()
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ export const CheckoutSuccessPage = () => {
         merchantPayKey,
       }),
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['shop', 'cart'] })
       setConfirmedResult({
         orderNumber: data.orderNumber,
         status: String(data.status),

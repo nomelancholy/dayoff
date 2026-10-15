@@ -42,6 +42,12 @@ interface NaverPayHistoryBody {
   totalPageCount?: number;
 }
 
+/**
+ * 네이버페이가 요청을 받아 명시적으로 실패 응답을 준 경우입니다.
+ * (시간 초과·연결 오류처럼 처리 여부를 알 수 없는 경우와 구분하기 위한 타입)
+ */
+export class NaverPayRejectedException extends BadGatewayException {}
+
 @Injectable()
 export class NaverPayClient {
   // 공식 문서가 최소 60초를 요구하므로 네트워크 여유를 포함한다.
@@ -170,7 +176,7 @@ export class NaverPayClient {
 
   private apiError(action: string, data: NaverPayResponse<unknown>) {
     const detail = [data.code, data.message].filter(Boolean).join(': ');
-    return new BadGatewayException(
+    return new NaverPayRejectedException(
       `${action}에 실패했습니다.${detail ? ` ${detail}` : ''}`,
     );
   }

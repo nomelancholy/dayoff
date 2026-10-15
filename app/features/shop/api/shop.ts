@@ -329,46 +329,83 @@ export async function deleteProduct(id: string): Promise<Product> {
   return apiClient.delete(`/shop/admin/products/${id}`)
 }
 
+// 운영 Nginx는 요청 한 건의 본문을 32MB까지만 받습니다. 사진 여러 장을 한 요청으로 보내면
+// 합계가 한도를 넘어 업로드 전체가 실패(413)하므로, 한 요청의 합계가 한도 아래가 되도록 나눠 보냅니다.
+// (파일 한 장당 30MB 제한과 요청당 장수 제한은 서버가 따로 검사합니다.)
+const UPLOAD_REQUEST_MAX_BYTES = 24 * 1024 * 1024
+
+function splitUploadBatches(
+  files: File[],
+  maxFilesPerRequest: number
+): File[][] {
+  const batches: File[][] = []
+  let current: File[] = []
+  let currentBytes = 0
+  for (const file of files) {
+    const exceedsBytes =
+      current.length > 0 && currentBytes + file.size > UPLOAD_REQUEST_MAX_BYTES
+    if (exceedsBytes || current.length >= maxFilesPerRequest) {
+      batches.push(current)
+      current = []
+      currentBytes = 0
+    }
+    current.push(file)
+    currentBytes += file.size
+  }
+  if (current.length > 0) batches.push(current)
+  return batches
+}
+
+async function uploadImages(
+  path: string,
+  files: File[],
+  maxFilesPerRequest: number
+): Promise<{ urls: string[] }> {
+  if (!files.length) return { urls: [] }
+  const baseURL = getViteApiBaseUrl()
+  const token = localStorage.getItem('auth_token')
+  const urls: string[] = []
+  // 선택한 순서가 유지되도록 묶음을 차례대로 올립니다.
+  for (const batch of splitUploadBatches(files, maxFilesPerRequest)) {
+    const form = new FormData()
+    batch.forEach((f) => form.append('files', f))
+    const res = await fetch(`${baseURL}${path}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    })
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({}))) as {
+        message?: string | string[]
+      }
+      const message = Array.isArray(err.message)
+        ? err.message.join(' ')
+        : err.message
+      throw new Error(
+        message ||
+          (res.status === 413
+            ? '이미지 용량이 너무 큽니다. 한 장당 30MB 이하로 올려 주세요.'
+            : '이미지 업로드에 실패했습니다.')
+      )
+    }
+    const data = (await res.json()) as { urls?: string[] }
+    urls.push(...(data.urls ?? []))
+  }
+  return { urls }
+}
+
 /** 구매평용 이미지 업로드 (파일 직접 첨부) */
 export async function uploadReviewImages(
   files: File[]
 ): Promise<{ urls: string[] }> {
-  if (!files.length) return { urls: [] }
-  const form = new FormData()
-  files.forEach((f) => form.append('files', f))
-  const baseURL = getViteApiBaseUrl()
-  const token = localStorage.getItem('auth_token')
-  const res = await fetch(`${baseURL}/shop/upload`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || '이미지 업로드에 실패했습니다.')
-  }
-  return res.json()
+  return uploadImages('/shop/upload', files, 10)
 }
 
 /** [Admin] 상품 이미지 업로드 (파일 직접 첨부) */
 export async function uploadProductImages(
   files: File[]
 ): Promise<{ urls: string[] }> {
-  if (!files.length) return { urls: [] }
-  const form = new FormData()
-  files.forEach((f) => form.append('files', f))
-  const baseURL = getViteApiBaseUrl()
-  const token = localStorage.getItem('auth_token')
-  const res = await fetch(`${baseURL}/shop/admin/upload`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: form,
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || '이미지 업로드에 실패했습니다.')
-  }
-  return res.json()
+  return uploadImages('/shop/admin/upload', files, 20)
 }
 
 /** 구매평 작성 */

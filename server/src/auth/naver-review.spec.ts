@@ -10,6 +10,7 @@ import { NaverReviewController } from './naver-review.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { DRIZZLE } from '../common/database/database.module';
 import { EmailService } from '../common/email/email.service';
+import { MediaCleanupService } from '../shop/media-cleanup.service';
 import { NaverOrderClient } from '../shop/naver-order.client';
 
 describe('검수 전용 로그인', () => {
@@ -60,6 +61,7 @@ describe('검수 전용 로그인', () => {
         { provide: ConfigService, useValue: config },
         { provide: DRIZZLE, useValue: {} },
         { provide: EmailService, useValue: emailService },
+        { provide: MediaCleanupService, useValue: {} },
       ],
     }).compile();
     jest

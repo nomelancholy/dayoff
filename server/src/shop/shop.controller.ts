@@ -13,9 +13,6 @@ import {
   Req,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { randomBytes } from 'crypto';
 import { unlink } from 'fs/promises';
 import type { Request } from 'express';
 import type { Multer } from 'multer';
@@ -25,78 +22,17 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserRow } from '../auth/auth.service';
+import { UuidParam } from '../common/http/uuid-param.pipe';
 import { SpacesStorageService } from './spaces-storage.service';
+import { imageUploadOptions, type MediaDirectory } from './upload.config';
+import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+import { AddToCartDto, UpdateCartItemDto } from './dto/cart.dto';
+import { CreateReviewDto, UpdateReviewDto } from './dto/review.dto';
 import {
-  ArrayNotEmpty,
-  IsArray,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
-
-class CreateNaverCheckoutDto {
-  @IsOptional()
-  @IsString()
-  couponCode?: string;
-
-  @IsString()
-  shippingAddressId!: string;
-
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  cartItemIds!: string[];
-
-  // 상품 상세 "구매하기"처럼 장바구니에 이미 같은 상품이 merge 되어 있을 때
-  // 실제 결제/주문에 사용할 수량을 지정하기 위해 사용합니다.
-  @IsOptional()
-  @IsArray()
-  @IsInt({ each: true })
-  @Min(1, { each: true })
-  cartItemQuantities?: number[];
-}
-
-class ConfirmNaverPaymentDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(50)
-  paymentId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(64)
-  merchantPayKey!: string;
-}
-
-class UpdateAdminOrderShipmentDto {
-  @IsString()
-  @IsNotEmpty()
-  trackingNumber!: string;
-}
-
-class UpdateReviewDto {
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(10)
-  @MaxLength(5000)
-  body!: string;
-
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(5)
-  rating?: number;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  imageUrls?: string[];
-}
+  ConfirmNaverPaymentDto,
+  CreateNaverCheckoutDto,
+} from './dto/checkout.dto';
+import { UpdateAdminOrderShipmentDto } from './dto/order.dto';
 
 const getBaseUrl = (req: Request): string => {
   const protocol = req.protocol || 'http';
@@ -120,10 +56,8 @@ export class ShopController {
   @Post('admin/categories')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async createCategory(
-    @Body() body: { slug: string; name: string; sortOrder?: number },
-  ) {
-    return this.shopService.createCategory(body);
+  async createCategory(@Body() dto: CreateCategoryDto) {
+    return this.shopService.createCategory(dto);
   }
 
   /** [Admin] 카테고리 수정 */
@@ -131,17 +65,17 @@ export class ShopController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async updateCategory(
-    @Param('id') id: string,
-    @Body() body: { slug?: string; name?: string; sortOrder?: number },
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateCategoryDto,
   ) {
-    return this.shopService.updateCategory(id, body);
+    return this.shopService.updateCategory(id, dto);
   }
 
   /** [Admin] 카테고리 삭제 */
   @Delete('admin/categories/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async deleteCategory(@Param('id') id: string) {
+  async deleteCategory(@Param('id', UuidParam) id: string) {
     return this.shopService.deleteCategory(id);
   }
 
@@ -175,7 +109,7 @@ export class ShopController {
   @UseGuards(JwtAuthGuard)
   async getMyRestockNotificationStatus(
     @CurrentUser() user: UserRow,
-    @Param('id') productId: string,
+    @Param('id', UuidParam) productId: string,
   ) {
     return this.shopService.hasMyRestockSubscription(user.id, productId);
   }
@@ -184,7 +118,7 @@ export class ShopController {
   @UseGuards(JwtAuthGuard)
   async subscribeRestockNotification(
     @CurrentUser() user: UserRow,
-    @Param('id') productId: string,
+    @Param('id', UuidParam) productId: string,
   ) {
     return this.shopService.subscribeRestockNotification(user.id, productId);
   }
@@ -192,52 +126,28 @@ export class ShopController {
   /** 구매평용 이미지 업로드 (로그인 사용자, multipart/form-data, field name: files) */
   @Post('upload')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('files', 10))
+  @UseInterceptors(FilesInterceptor('files', 10, imageUploadOptions('review')))
   async uploadReviewImages(
     @Req() req: Request,
     @UploadedFiles() files: Multer.File[],
   ) {
-    if (!files?.length) return { urls: [] };
-    const urls: string[] = [];
-    try {
-      // 고해상도 파일을 동시에 디코딩하면 서버 메모리가 급증하므로 순차 처리합니다.
-      for (const file of files) {
-        urls.push(
-          await this.spacesStorageService.storeUploadedImage(file, {
-            publicDirectory: 'review',
-            maxWidth: 1600,
-          }),
-        );
-      }
-    } catch (error) {
-      await this.spacesStorageService.deleteStoredUrls(urls);
-      await Promise.all(
-        files.map((file) => unlink(file.path).catch(() => undefined)),
-      );
-      throw error;
-    }
-    const baseUrl = getBaseUrl(req);
-    return {
-      urls: urls.map((url) =>
-        /^https?:\/\//i.test(url) ? url : `${baseUrl}${url}`,
-      ),
-    };
+    return this.storeUploadedImages(req, files, 'review', 1600);
   }
 
   @Post('products/:id/reviews')
   @UseGuards(JwtAuthGuard)
   async createReview(
+    @Req() req: Request,
     @CurrentUser() user: UserRow,
-    @Param('id') productId: string,
-    @Body()
-    body: {
-      body: string;
-      rating?: number;
-      imageUrls?: string[];
-      orderItemId: string;
-    },
+    @Param('id', UuidParam) productId: string,
+    @Body() dto: CreateReviewDto,
   ) {
-    return this.shopService.createReview(user.id, productId, body);
+    return this.shopService.createReview(
+      user.id,
+      productId,
+      dto,
+      getBaseUrl(req),
+    );
   }
 
   /** 내가 작성한 구매평 목록 (Order History에서 리뷰 표시/작성용) */
@@ -251,17 +161,21 @@ export class ShopController {
   @Patch('my-reviews/:id')
   @UseGuards(JwtAuthGuard)
   async updateMyReview(
+    @Req() req: Request,
     @CurrentUser() user: UserRow,
-    @Param('id') id: string,
-    @Body() body: UpdateReviewDto,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateReviewDto,
   ) {
-    return this.shopService.updateMyReview(user.id, id, body);
+    return this.shopService.updateMyReview(user.id, id, dto, getBaseUrl(req));
   }
 
   /** 내 구매평 삭제 */
   @Delete('my-reviews/:id')
   @UseGuards(JwtAuthGuard)
-  async deleteMyReview(@CurrentUser() user: UserRow, @Param('id') id: string) {
+  async deleteMyReview(
+    @CurrentUser() user: UserRow,
+    @Param('id', UuidParam) id: string,
+  ) {
     return this.shopService.deleteMyReview(user.id, id);
   }
 
@@ -278,17 +192,18 @@ export class ShopController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async updateAdminReview(
-    @Param('id') id: string,
-    @Body() body: UpdateReviewDto,
+    @Req() req: Request,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateReviewDto,
   ) {
-    return this.shopService.updateAdminReview(id, body);
+    return this.shopService.updateAdminReview(id, dto, getBaseUrl(req));
   }
 
   /** [Admin] 구매평 삭제 */
   @Delete('admin/reviews/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async deleteAdminReview(@Param('id') id: string) {
+  async deleteAdminReview(@Param('id', UuidParam) id: string) {
     return this.shopService.deleteAdminReview(id);
   }
 
@@ -302,7 +217,10 @@ export class ShopController {
   /** 내 주문 취소 (발송 전 paid 주문만 가능) */
   @Post('orders/:id/cancel')
   @UseGuards(JwtAuthGuard)
-  async cancelMyOrder(@CurrentUser() user: UserRow, @Param('id') id: string) {
+  async cancelMyOrder(
+    @CurrentUser() user: UserRow,
+    @Param('id', UuidParam) id: string,
+  ) {
     return this.shopService.cancelMyPaidOrder(user.id, id);
   }
 
@@ -314,15 +232,12 @@ export class ShopController {
 
   @Post('cart')
   @UseGuards(JwtAuthGuard)
-  async addToCart(
-    @CurrentUser() user: UserRow,
-    @Body() body: { productId: string; quantity: number; optionId?: string },
-  ) {
+  async addToCart(@CurrentUser() user: UserRow, @Body() dto: AddToCartDto) {
     return this.shopService.addToCart(
       user.id,
-      body.productId,
-      body.quantity,
-      body.optionId,
+      dto.productId,
+      dto.quantity,
+      dto.optionId ?? undefined,
     );
   }
 
@@ -330,15 +245,18 @@ export class ShopController {
   @UseGuards(JwtAuthGuard)
   async updateCartItem(
     @CurrentUser() user: UserRow,
-    @Param('id') id: string,
-    @Body('quantity') quantity: number,
+    @Param('id', UuidParam) id: string,
+    @Body() dto: UpdateCartItemDto,
   ) {
-    return this.shopService.updateCartItemQuantity(user.id, id, quantity);
+    return this.shopService.updateCartItemQuantity(user.id, id, dto.quantity);
   }
 
   @Delete('cart/:id')
   @UseGuards(JwtAuthGuard)
-  async removeFromCart(@CurrentUser() user: UserRow, @Param('id') id: string) {
+  async removeFromCart(
+    @CurrentUser() user: UserRow,
+    @Param('id', UuidParam) id: string,
+  ) {
     return this.shopService.removeFromCart(user.id, id);
   }
 
@@ -375,64 +293,19 @@ export class ShopController {
   @Post('admin/upload')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  @UseInterceptors(
-    FilesInterceptor('files', 20, {
-      storage: diskStorage({
-        destination: './uploads/product',
-        filename: (_req, file, cb) => {
-          const ext = extname(file.originalname) || '.jpg';
-          cb(null, `${Date.now()}-${randomBytes(8).toString('hex')}${ext}`);
-        },
-      }),
-      // 상세 이미지가 긴 원본일 수 있어 관리자 업로드 한도를 30MB로 상향
-      limits: { fileSize: 30 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
-        const allowed = /^image\/(jpeg|png|gif|webp)$/;
-        if (allowed.test(file.mimetype)) cb(null, true);
-        else
-          cb(
-            new Error('이미지 파일만 업로드 가능합니다 (jpg, png, gif, webp).'),
-            false,
-          );
-      },
-    }),
-  )
+  @UseInterceptors(FilesInterceptor('files', 20, imageUploadOptions('product')))
   async uploadProductImages(
     @Req() req: Request,
     @UploadedFiles() files: Multer.File[],
   ) {
-    if (!files?.length) return { urls: [] };
-    const urls: string[] = [];
-    try {
-      // 한 번에 최대 20개 원본이 들어와도 메모리가 급증하지 않도록 순차 처리합니다.
-      for (const file of files) {
-        urls.push(
-          await this.spacesStorageService.storeUploadedImage(file, {
-            publicDirectory: 'product',
-            maxWidth: 1800,
-          }),
-        );
-      }
-    } catch (error) {
-      await this.spacesStorageService.deleteStoredUrls(urls);
-      await Promise.all(
-        files.map((file) => unlink(file.path).catch(() => undefined)),
-      );
-      throw error;
-    }
-    const baseUrl = getBaseUrl(req);
-    return {
-      urls: urls.map((url) =>
-        /^https?:\/\//i.test(url) ? url : `${baseUrl}${url}`,
-      ),
-    };
+    return this.storeUploadedImages(req, files, 'product', 1800);
   }
 
   /** [Admin] 상품 생성 */
   @Post('admin/products')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async createProduct(@Body() body: any) {
+  async createProduct(@Body() body: unknown) {
     return this.shopService.createProduct(body);
   }
 
@@ -440,7 +313,10 @@ export class ShopController {
   @Patch('admin/products/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async updateProduct(@Param('id') id: string, @Body() body: any) {
+  async updateProduct(
+    @Param('id', UuidParam) id: string,
+    @Body() body: unknown,
+  ) {
     return this.shopService.updateProduct(id, body);
   }
 
@@ -448,7 +324,7 @@ export class ShopController {
   @Delete('admin/products/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async deleteProduct(@Param('id') id: string) {
+  async deleteProduct(@Param('id', UuidParam) id: string) {
     return this.shopService.deleteProduct(id);
   }
 
@@ -465,7 +341,7 @@ export class ShopController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async updateAdminOrderShipment(
-    @Param('id') id: string,
+    @Param('id', UuidParam) id: string,
     @Body() dto: UpdateAdminOrderShipmentDto,
   ) {
     return this.shopService.updateAdminOrderShipment(id, dto.trackingNumber);
@@ -477,5 +353,38 @@ export class ShopController {
   @Roles('admin')
   async deleteAdminPendingOrders() {
     return this.shopService.deleteAdminPendingOrders();
+  }
+
+  private async storeUploadedImages(
+    req: Request,
+    files: Multer.File[] | undefined,
+    directory: MediaDirectory,
+    maxWidth: number,
+  ) {
+    if (!files?.length) return { urls: [] };
+    const urls: string[] = [];
+    try {
+      // 고해상도 원본을 동시에 디코딩하면 서버 메모리가 급증하므로 순차 처리합니다.
+      for (const file of files) {
+        urls.push(
+          await this.spacesStorageService.storeUploadedImage(file, {
+            publicDirectory: directory,
+            maxWidth,
+          }),
+        );
+      }
+    } catch (error) {
+      await this.spacesStorageService.deleteStoredUrls(urls, { directory });
+      await Promise.all(
+        files.map((file) => unlink(file.path).catch(() => undefined)),
+      );
+      throw error;
+    }
+    const baseUrl = getBaseUrl(req);
+    return {
+      urls: urls.map((url) =>
+        /^https?:\/\//i.test(url) ? url : `${baseUrl}${url}`,
+      ),
+    };
   }
 }
