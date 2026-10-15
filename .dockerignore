@@ -3,6 +3,8 @@ dist
 .git
 .env
 .env.*
+*.local
+**/*.local
 *.md
 server/node_modules
 server/dist

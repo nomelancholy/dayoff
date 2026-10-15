@@ -21,13 +21,16 @@ export function getApiErrorMessage(
   err: unknown,
   fallback = '요청을 처리하지 못했습니다.'
 ): string {
-  const error = err as { response?: { data?: { message?: string | string[] }; status?: number } }
+  const error = err as {
+    response?: { data?: { message?: string | string[] }; status?: number }
+  }
 
   // 네트워크 오류 등 응답이 없을 때
   if (!error.response) return fallback
   const message = error.response?.data?.message
   if (message == null) return fallback
-  if (Array.isArray(message)) return message.length ? message.join(' ') : fallback
+  if (Array.isArray(message))
+    return message.length ? message.join(' ') : fallback
   return message
 }
 
@@ -37,10 +40,12 @@ export function getStoredToken(): string | null {
 
 export function setStoredToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token)
+  window.dispatchEvent(new Event('auth-session-changed'))
 }
 
 export function clearStoredToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY)
+  window.dispatchEvent(new Event('auth-session-changed'))
 }
 
 /** 현재 로그인 사용자 정보 (JWT 필요) */
@@ -101,7 +106,7 @@ export async function updateAddress(
     addressLine1?: string
     addressLine2?: string
     isDefault?: boolean
-}
+  }
 ): Promise<AddressRow> {
   return apiClient.patch<AddressRow>(`/auth/addresses/${id}`, data)
 }

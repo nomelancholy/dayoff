@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import type { Provider } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { NaverReviewController } from './naver-review.controller';
 import { AuthController } from './auth.controller';
 import { RolesGuard } from './guards/roles.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -41,7 +42,7 @@ if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CALLBACK_URL) {
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, NaverReviewController],
   providers: [AuthService, JwtStrategy, RolesGuard, ...socialProviders],
   exports: [AuthService],
 })

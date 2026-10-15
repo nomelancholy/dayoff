@@ -1031,14 +1031,34 @@ function OrderHistorySection() {
   if (paidOrders.length === 0) {
     return (
       <p className="text-[0.95rem] text-dot-secondary">
-        주문 내역이 없습니다. 첫 구매 후 여기에서 주문 이력과 구매평 작성을
-        확인할 수 있습니다.
+        사이트에 저장된 주문 내역이 없습니다. 네이버페이로 구매한 주문은{' '}
+        <a
+          href="https://pay.naver.com"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          네이버페이 주문 내역
+        </a>
+        에서 확인해 주세요.
       </p>
     )
   }
 
   return (
     <div className="space-y-12">
+      <p className="text-sm text-dot-secondary">
+        네이버페이로 구매한 주문의 배송 조회·취소·반품은{' '}
+        <a
+          href="https://pay.naver.com"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          네이버페이 주문 내역
+        </a>
+        에서 이용해 주세요. 아래는 기존 사이트 주문 내역입니다.
+      </p>
       {reviewLightbox && (
         <div
           role="dialog"

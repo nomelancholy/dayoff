@@ -1,3 +1,7 @@
+import { NaverOrderClient } from './naver-order.client';
+import { NaverOrderService } from './naver-order.service';
+import { NaverOrderController } from './naver-order.controller';
+import { NaverOrderSessionGuard } from './naver-order-session.guard';
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -36,8 +40,15 @@ import { SpacesStorageService } from './spaces-storage.service';
       },
     }),
   ],
-  controllers: [ShopController],
-  providers: [ShopService, NaverPayClient, SpacesStorageService],
+  controllers: [ShopController, NaverOrderController],
+  providers: [
+    ShopService,
+    NaverPayClient,
+    SpacesStorageService,
+    NaverOrderClient,
+    NaverOrderService,
+    NaverOrderSessionGuard,
+  ],
   exports: [ShopService],
 })
 export class ShopModule {}

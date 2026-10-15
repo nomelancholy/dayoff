@@ -1,0 +1,66 @@
+name: Configure Npay review access
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: npay-review-setup
+  cancel-in-progress: false
+jobs:
+  configure:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure reviewer on production host
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          NPAY_REVIEW_SETUP_B64: ${{ secrets.NPAY_REVIEW_SETUP_B64 }}
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          envs: NPAY_REVIEW_SETUP_B64
+          script: |
+            set -eu
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+            test -f deploy/setup-npay-review.sh
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api test -f scripts/setup-npay-review.mjs
+            python3 - <<'PY'
+            import os, json, base64, pathlib, re, shutil
+            from datetime import datetime, timezone
+            payload = json.loads(base64.b64decode(os.environ['NPAY_REVIEW_SETUP_B64']))
+            keys = ['NAVER_ORDER_MERCHANT_ID', 'NAVER_ORDER_CERTI_KEY', 'NAVER_ORDER_BUTTON_KEY', 'NAVER_ORDER_ACCOUNT_ID']
+            assert all(isinstance(payload['keys'].get(k), str) and payload['keys'][k].strip() for k in keys), 'Missing Npay key'
+            env = pathlib.Path('.env.deploy')
+            text = env.read_text()
+            def configured(key):
+                match = re.search(r'^' + key + r'=(.*)$', text, re.M)
+                return match.group(1).strip().strip('\"\'') if match else ''
+            assert configured('NAVER_ORDER_MODE') in ('', 'test'), 'Live payment mode must not be overwritten'
+            assert configured('NAVER_ORDER_AUDIENCE') in ('', 'review'), 'Public audience must not be overwritten'
+            creds = pathlib.Path('npay-review-credentials.local')
+            if creds.exists():
+                assert json.loads(creds.read_text()) == payload['credentials'], 'Existing reviewer credentials differ'
+            stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+            backup = pathlib.Path('.env.deploy.before-npay-' + stamp + '.local')
+            shutil.copy2(env, backup)
+            os.chmod(backup, 0o600)
+            updates = {k: payload['keys'][k] for k in keys}
+            updates.update(NAVER_ORDER_MODE='test', NAVER_ORDER_AUDIENCE='review', NAVER_ORDER_ENABLED='false', NAVER_ORDER_PRODUCTION_READY='false')
+            for key, value in updates.items():
+                assert not any(c in value for c in ['\n', '\r', "'"]), 'Unexpected env value'
+                line = key + "='" + value + "'"
+                pattern = r'^' + key + r'=.*$'
+                text = re.sub(pattern, lambda m: line, text, flags=re.M) if re.search(pattern, text, re.M) else text.rstrip() + '\n' + line + '\n'
+            env.write_text(text)
+            os.chmod(env, 0o600)
+            if not creds.exists():
+                fd = os.open(creds, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(fd, 'w') as output:
+                    json.dump(payload['credentials'], output)
+            print('Npay review settings prepared; secrets not logged.')
+            PY
+            unset NPAY_REVIEW_SETUP_B64
+            sh deploy/setup-npay-review.sh
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy ps

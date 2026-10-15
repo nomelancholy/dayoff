@@ -16,11 +16,16 @@ import { DRIZZLE } from '../common/database/database.module';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../db/schema';
 import type { AuthProvider } from '../db/schema/users';
+import {
+  naverReviewEnabled,
+  reviewCredentialVersion,
+} from './naver-review.config';
 import { EmailService } from '../common/email/email.service';
 
 export type UserRow = typeof schema.users.$inferSelect;
 
 export interface JwtPayload {
+  npayReview?: string;
   sub: string;
   email: string;
   role: string;
@@ -152,6 +157,51 @@ export class AuthService {
       secret: this.configService.get<string>('JWT_SECRET') ?? 'change-me',
       expiresIn: 604800, // 7d
     });
+    return {
+      access_token,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      },
+    };
+  }
+
+  async loginNaverReview(
+    identifier: string,
+    password: string,
+  ): Promise<AuthResult> {
+    if (!naverReviewEnabled(this.configService))
+      throw new ForbiddenException('검수 로그인이 비활성화되어 있습니다.');
+    const id = this.configService.get<string>('NAVER_REVIEW_USER_ID')!.trim();
+    const user = await this.findById(id);
+    const alias =
+      this.configService.get<string>('NAVER_REVIEW_LOGIN_ID')?.trim() ||
+      'npay_test';
+    const normalized = identifier.trim().toLowerCase();
+    if (
+      !user?.password ||
+      user.provider !== 'email' ||
+      user.role !== 'member' ||
+      ![alias.toLowerCase(), user.email.toLowerCase()].includes(normalized) ||
+      !(await this.comparePassword(password, user.password))
+    )
+      throw new UnauthorizedException(
+        '아이디 또는 비밀번호가 올바르지 않습니다.',
+      );
+    const access_token = this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        npayReview: reviewCredentialVersion(user.password),
+      },
+      {
+        secret: this.configService.get<string>('JWT_SECRET') ?? 'change-me',
+        expiresIn: 4 * 60 * 60,
+      },
+    );
     return {
       access_token,
       user: {

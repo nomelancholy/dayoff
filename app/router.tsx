@@ -9,10 +9,10 @@ import { ClassPage } from '@/features/class/page/Page'
 import { ContactPage } from '@/features/contact/page/Page'
 import { CartPage } from '@/features/cart/page/Page'
 import { AccountPage } from '@/features/account/page/Page'
-import { CheckoutPage } from '@/features/checkout/page/Page'
 import { CheckoutSuccessPage } from '@/features/checkout/success/page/Page'
 import { CheckoutFailPage } from '@/features/checkout/fail/page/Page'
 import { LoginPage } from '@/features/auth/page/LoginPage'
+import { NaverReviewLoginPage } from '@/features/auth/page/NaverReviewLoginPage'
 import { RegisterPage } from '@/features/auth/page/RegisterPage'
 import { AdminPage } from '@/features/admin/page/Page'
 import { TermsPage } from '@/features/legal/page/TermsPage'
@@ -36,11 +36,12 @@ export const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'business-info', element: <BusinessInfoPage /> },
       { path: 'cart', element: <CartPage /> },
-      { path: 'checkout', element: <CheckoutPage /> },
+      { path: 'checkout', element: <Navigate to="/cart" replace /> },
       { path: 'checkout/success', element: <CheckoutSuccessPage /> },
       { path: 'checkout/fail', element: <CheckoutFailPage /> },
       { path: 'account', element: <AccountPage /> },
       { path: 'login', element: <LoginPage /> },
+      { path: 'npay-review', element: <NaverReviewLoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'admin', element: <AdminPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

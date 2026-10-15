@@ -15,7 +15,7 @@ import {
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import { useUiStore } from '@/common/store/ui'
 import { cn } from '@/common/lib/utils'
-import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
+import { NaverOrderButton } from '@/features/naver-order/components/NaverOrderButton'
 import {
   ArrowLeft,
   ChevronDown,
@@ -49,7 +49,6 @@ export const ShopProductPage = () => {
   const [activeTab, setActiveTab] = useState<ProductTabKey>('productGuide')
   const [isOptionMenuOpen, setIsOptionMenuOpen] = useState(false)
   const token = getStoredToken()
-  const checkoutFlowRequestedRef = useRef(false)
   const cartToastRequestedRef = useRef(false)
   const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
   const optionMenuRef = useRef<HTMLDivElement | null>(null)
@@ -232,11 +231,9 @@ export const ShopProductPage = () => {
         quantity,
         optionId: selectedOptionId,
       }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       const shouldShowCartToast = cartToastRequestedRef.current
       cartToastRequestedRef.current = false
-      const shouldNavigateToCheckout = checkoutFlowRequestedRef.current
-      checkoutFlowRequestedRef.current = false
       const anchor = toastAnchorRef.current
       toastAnchorRef.current = null
 
@@ -246,16 +243,6 @@ export const ShopProductPage = () => {
           variant: 'success',
           message: '성공적으로 장바구니에 담겼습니다.',
           ...(anchor ? { anchor } : {}),
-        })
-      }
-
-      if (shouldNavigateToCheckout) {
-        navigate('/checkout', {
-          state: {
-            couponCode: null,
-            cartItemIds: [data.id],
-            cartItemQuantities: [quantity],
-          },
         })
       }
     },
@@ -308,7 +295,6 @@ export const ShopProductPage = () => {
 
   const handleAddToCart = () => {
     // 장바구니 담기에서는 checkout 주문 생성이 절대 일어나면 안 됩니다.
-    checkoutFlowRequestedRef.current = false
     if (!getStoredToken()) {
       alert('로그인이 필요합니다.')
       navigate('/login')
@@ -322,7 +308,6 @@ export const ShopProductPage = () => {
     if (hasOptions && !selectedOptionId) {
       // 옵션 미선택 경고: alert 대신 "클릭 근처" 토스트로 안내합니다.
       cartToastRequestedRef.current = false
-      checkoutFlowRequestedRef.current = false
       const anchor = toastAnchorRef.current
       toastAnchorRef.current = null
       showToast({
@@ -705,48 +690,23 @@ export const ShopProductPage = () => {
                 >
                   {cartMutation.isPending ? '담는 중…' : '장바구니 담기'}
                 </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    captureToastAnchor(e)
-                    cartToastRequestedRef.current = false
-                    if (!getStoredToken()) {
-                      alert('로그인이 필요합니다.')
-                      navigate('/login')
-                      return
+                <div className="sm:col-span-2">
+                  <NaverOrderButton
+                    items={[
+                      {
+                        productId: product.id,
+                        optionId: selectedOptionId,
+                        quantity,
+                      },
+                    ]}
+                    disabled={isSoldOut}
+                    validate={() =>
+                      hasOptions && !selectedOptionId
+                        ? '옵션을 선택해 주세요.'
+                        : null
                     }
-                    if (!product) {
-                      alert('상품 정보를 불러오는 중입니다.')
-                      return
-                    }
-
-                    if (hasOptions && !selectedOptionId) {
-                      checkoutFlowRequestedRef.current = false
-                      const anchor = toastAnchorRef.current
-                      toastAnchorRef.current = null
-                      showToast({
-                        variant: 'warning',
-                        message: '옵션을 선택해 주세요.',
-                        ...(anchor ? { anchor } : {}),
-                      })
-                      return
-                    }
-
-                    checkoutFlowRequestedRef.current = true
-                    if (isSoldOut) {
-                      alert('품절된 상품입니다.')
-                      checkoutFlowRequestedRef.current = false
-                      return
-                    }
-                    cartMutation.mutate()
-                  }}
-                  disabled={
-                    !CHECKOUT_ENABLED || cartMutation.isPending || isSoldOut
-                  }
-                  className="mono bg-dot-primary py-3 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50 md:py-4 md:text-base"
-                >
-                  {CHECKOUT_ENABLED ? '구매하기' : '구매 준비 중'}
-                </button>
+                  />
+                </div>
               </div>
             </div>
           </div>

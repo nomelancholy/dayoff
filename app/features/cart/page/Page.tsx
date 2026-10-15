@@ -1,29 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   fetchCartItems,
   updateCartItemQuantity,
   removeCartItem,
 } from '@/features/shop/api/shop'
-import { getApiErrorMessage, getStoredToken } from '@/features/auth/api/auth'
+import { getStoredToken } from '@/features/auth/api/auth'
 import { Minus, Plus } from 'lucide-react'
-import { validateCoupon } from '@/features/coupon/api/coupon'
-import type { ValidateCouponResult } from '@/features/coupon/types/coupon'
-import { CHECKOUT_ENABLED } from '@/common/config/featureFlags'
+import { NaverOrderButton } from '@/features/naver-order/components/NaverOrderButton'
 import { ProductPrice } from '@/features/shop/components/ProductPrice'
 
 export const CartPage = () => {
   const queryClient = useQueryClient()
   const token = getStoredToken()
-  const navigate = useNavigate()
-  const [couponCode, setCouponCode] = useState('')
-  const [couponError, setCouponError] = useState<string | null>(null)
-  const [appliedCoupon, setAppliedCoupon] =
-    useState<ValidateCouponResult | null>(null)
-  const [appliedOrderAmount, setAppliedOrderAmount] = useState<number | null>(
-    null
-  )
   const [hasUserTouchedSelection, setHasUserTouchedSelection] = useState(false)
   const [userSelectedCartItemIds, setUserSelectedCartItemIds] = useState<
     string[]
@@ -78,20 +68,6 @@ export const CartPage = () => {
 
   const subtotal = selectedSubtotal
 
-  const validateMutation = useMutation({
-    mutationFn: () => validateCoupon(couponCode, subtotal),
-    onSuccess: (data) => {
-      setAppliedCoupon(data)
-      setAppliedOrderAmount(subtotal)
-      setCouponError(null)
-    },
-    onError: (err) => {
-      setAppliedCoupon(null)
-      setAppliedOrderAmount(null)
-      setCouponError(getApiErrorMessage(err, '쿠폰을 적용하지 못했습니다.'))
-    },
-  })
-
   if (!token) {
     return (
       <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
@@ -139,18 +115,8 @@ export const CartPage = () => {
     )
   }
 
-  const isCouponInvalidated =
-    appliedOrderAmount != null && appliedOrderAmount !== subtotal
-  const activeCoupon = isCouponInvalidated ? null : appliedCoupon
-  const visibleCouponError =
-    couponError ??
-    (isCouponInvalidated
-      ? '장바구니 금액이 변경되어 쿠폰이 해제되었습니다. 다시 적용해 주세요.'
-      : null)
-
   const shipping = subtotal === 0 ? 0 : subtotal >= 100000 ? 0 : 4000
-  const discount = activeCoupon?.discountAmount ?? 0
-  const total = Math.max(0, subtotal + shipping - discount)
+  const total = Math.max(0, subtotal + shipping)
 
   return (
     <div className="min-h-screen bg-dot-bg px-4 py-28 md:px-16 md:py-48">
@@ -195,7 +161,7 @@ export const CartPage = () => {
                           setHasUserTouchedSelection(true)
                           setUserSelectedCartItemIds((prev) => {
                             // prev가 비어있으면(첫 터치) 전부 선택 상태에서 토글 시작
-                            const base = prev.length
+                            const base = hasUserTouchedSelection
                               ? prev
                               : items.map((i) => i.id)
                             const set = new Set(base)
@@ -299,99 +265,30 @@ export const CartPage = () => {
                     {shipping === 0 ? '무료' : `₩${shipping.toLocaleString()}`}
                   </span>
                 </div>
-                {discount > 0 && (
-                  <div className="flex justify-between">
-                    <span>할인</span>
-                    <span>-₩{discount.toLocaleString()}</span>
-                  </div>
-                )}
               </div>
               <div className="mt-8 flex justify-between border-t border-[#eee] pt-6 text-[1.2rem] font-medium">
-                <span>총액</span>
+                <span>예상 총액</span>
                 <span>₩{total.toLocaleString()}</span>
               </div>
 
-              <div className="mt-10 border-t border-[#eee] pt-6">
-                <p className="mono mb-3 text-[0.85rem] tracking-[0.12em] text-dot-primary">
-                  쿠폰
-                </p>
-                {visibleCouponError && (
-                  <p className="mb-3 rounded border border-red-100 bg-red-50/50 px-3 py-2 text-[10px] text-red-600">
-                    {visibleCouponError}
-                  </p>
-                )}
-                {activeCoupon ? (
-                  <div className="flex items-center justify-between rounded border border-[#eee] bg-[#fafafa] px-3 py-3">
-                    <div>
-                      <p className="mono text-[0.8rem] text-dot-primary">
-                        {activeCoupon.coupon.code}
-                      </p>
-                      <p className="mt-1 text-[0.85rem] text-dot-secondary">
-                        -₩{activeCoupon.discountAmount.toLocaleString()} 적용
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAppliedCoupon(null)
-                        setAppliedOrderAmount(null)
-                        setCouponError(null)
-                        setCouponCode('')
-                      }}
-                      className="mono text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
-                    >
-                      해제
-                    </button>
-                  </div>
-                ) : (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      setCouponError(null)
-                      if (!couponCode.trim()) {
-                        setCouponError('쿠폰 코드를 입력해 주세요.')
-                        return
-                      }
-                      validateMutation.mutate()
-                    }}
-                    className="flex gap-2"
-                  >
-                    <input
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      placeholder="쿠폰 코드"
-                      className="w-full border border-[#eee] bg-white px-3 py-3 text-[11px] tracking-wide text-dot-primary placeholder:text-[#bbb] focus:border-dot-primary focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      disabled={
-                        validateMutation.isPending ||
-                        subtotal <= 0 ||
-                        selectedItems.length === 0
-                      }
-                      className="mono shrink-0 border border-dot-primary bg-dot-primary px-4 py-3 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                    >
-                      {validateMutation.isPending ? '적용 중…' : '적용'}
-                    </button>
-                  </form>
-                )}
+              <p className="mt-6 text-sm leading-relaxed text-dot-secondary">
+                배송지에 따른 최종 배송비는 네이버 주문서에서 확인해 주세요.
+                사이트 쿠폰은 네이버페이 주문에 사용할 수 없습니다.
+              </p>
+              <div className="mt-6">
+                <NaverOrderButton
+                  items={selectedItems.map((item) => ({
+                    productId: item.productId,
+                    optionId: item.optionId,
+                    quantity: item.quantity,
+                  }))}
+                  disabled={
+                    !selectedItems.length ||
+                    updateMutation.isPending ||
+                    removeMutation.isPending
+                  }
+                />
               </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  navigate('/checkout', {
-                    state: {
-                      couponCode: activeCoupon?.coupon.code ?? null,
-                      cartItemIds: selectedCartItemIds,
-                    },
-                  })
-                }
-                disabled={!CHECKOUT_ENABLED || selectedCartItemIds.length === 0}
-                className="mono mt-10 block w-full bg-dot-primary py-4 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {CHECKOUT_ENABLED ? '결제 진행' : '구매 준비 중'}
-              </button>
             </aside>
           </>
         )}

@@ -543,7 +543,7 @@ export class ShopService {
     if (!name || !slug) {
       throw new BadRequestException('상품명과 slug는 필수입니다.');
     }
-    if (!PRODUCT_SLUG_PATTERN.test(slug)) {
+    if (!PRODUCT_SLUG_PATTERN.test(slug) || slug === 'naver-order') {
       throw new BadRequestException(
         'slug는 영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.',
       );
@@ -654,7 +654,7 @@ export class ShopService {
       if (!slug) {
         throw new BadRequestException('slug는 비워둘 수 없습니다.');
       }
-      if (!PRODUCT_SLUG_PATTERN.test(slug)) {
+      if (!PRODUCT_SLUG_PATTERN.test(slug) || slug === 'naver-order') {
         throw new BadRequestException(
           'slug는 영문 소문자, 숫자, 하이픈(-)만 사용할 수 있습니다.',
         );
@@ -1429,6 +1429,14 @@ export class ShopService {
     cartItemQuantities?: number[],
     shippingAddressId?: string,
   ) {
+    if (
+      this.configService.get<string>('NAVER_PAY_LEGACY_CHECKOUT_ENABLED') !==
+      'true'
+    ) {
+      throw new BadRequestException(
+        '상품 상세 또는 장바구니에서 네이버페이 주문을 이용해 주세요.',
+      );
+    }
     const ids = cartItemIds ?? [];
     if (ids.length === 0) {
       throw new BadRequestException('선택한 상품이 없습니다.');
