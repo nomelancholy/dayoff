@@ -19,22 +19,30 @@ export function NaverOrderButton({
   validate?: () => string | null
 }) {
   const id = `npay-${useId().replace(/:/g, '')}`
+  const container = useRef<HTMLDivElement>(null)
+  const generation = useRef(0)
   const current = useRef({ items, disabled, validate })
   useEffect(() => {
     current.current = { items, disabled, validate }
   }, [items, disabled, validate])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [initializationFailed, setInitializationFailed] = useState(false)
   const [busy, setBusy] = useState(false)
   const inFlight = useRef(false)
   const { data: config } = useNaverOrderConfig()
   useEffect(() => {
-    if (!config?.enabled) return
+    if (!config?.enabled || !container.current) return
+    // 각 초기화가 자체 DOM을 소유해야 늦게 완료된 SDK가 새 버튼을 지우지 않습니다.
+    const mount = document.createElement('div')
+    mount.id = `${id}-${++generation.current}`
+    container.current.appendChild(mount)
     let cancelled = false
     let button: NpayButton | undefined
     const initialize = async () => {
       setLoading(true)
       setError(null)
+      setInitializationFailed(false)
       try {
         await prepareNaverTracking(config)
         await loadNaverScript(config.sdkUrl)
@@ -42,7 +50,7 @@ export function NaverOrderButton({
         if (!window.Npay) throw new Error('네이버페이를 불러오지 못했습니다.')
         button = await window.Npay.order.create({
           buttonKey: config.buttonKey,
-          containerId: id,
+          containerId: mount.id,
           orderRegistrationVersion: '2.1',
           type: 'template',
           colorTheme: 'green',
@@ -83,8 +91,17 @@ export function NaverOrderButton({
         })
         if (cancelled) button.dispose()
       } catch (err) {
-        if (!cancelled)
-          setError(getApiErrorMessage(err, '네이버페이를 불러오지 못했습니다.'))
+        mount.remove()
+        if (!cancelled) {
+          setInitializationFailed(true)
+          const domainRejected =
+            err instanceof Error && /Origin verification failed/i.test(err.message)
+          setError(
+            domainRejected
+              ? `네이버페이에 등록된 쇼핑몰 주소와 현재 접속 주소(${window.location.origin})가 일치하지 않아 구매 버튼을 표시할 수 없습니다. 가맹점 담당자가 네이버페이의 연동 URL과 버튼 인증키 설정을 확인해야 합니다.`
+              : '네이버페이 연결에 실패했습니다. 잠시 후 다시 시도해 주세요. 계속되면 네트워크 연결과 브라우저의 콘텐츠 차단 설정을 확인해 주세요.'
+          )
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -93,6 +110,7 @@ export function NaverOrderButton({
     return () => {
       cancelled = true
       button?.dispose()
+      mount.remove()
     }
   }, [config, id, disabled])
 
@@ -100,7 +118,11 @@ export function NaverOrderButton({
   if (!config?.enabled) return null
   return (
     <div className="min-w-0 w-full" aria-busy={busy || loading}>
-      <div id={id} className="h-[150px] w-full min-w-[200px]" />
+      <div
+        ref={container}
+        hidden={initializationFailed}
+        className="h-[150px] w-full min-w-[200px]"
+      />
       {loading && (
         <p role="status" className="text-sm text-dot-secondary">
           네이버페이를 불러오는 중입니다.
@@ -116,10 +138,21 @@ export function NaverOrderButton({
           {error}
         </p>
       )}
-      <p className="mt-2 text-xs leading-relaxed text-dot-secondary">
-        사이트 회원가입 없이 네이버 계정으로 구매할 수 있습니다. 주문·배송
-        조회와 취소·반품은 네이버페이에서 이용해 주세요.
-      </p>
+      {initializationFailed && (
+        <button
+          type="button"
+          className="mt-3 border border-dot-secondary px-4 py-2 text-sm"
+          onClick={() => window.location.reload()}
+        >
+          새로고침하여 다시 확인
+        </button>
+      )}
+      {!loading && !initializationFailed && (
+        <p className="mt-2 text-xs leading-relaxed text-dot-secondary">
+          사이트 회원가입 없이 네이버 계정으로 구매할 수 있습니다. 주문·배송
+          조회와 취소·반품은 네이버페이에서 이용해 주세요.
+        </p>
+      )}
     </div>
   )
 }
