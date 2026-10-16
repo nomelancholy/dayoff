@@ -82,17 +82,6 @@ export class NaverOrderController {
     );
   }
 
-  @Get('naver-order/shipping-fees')
-  @Header('Content-Type', 'application/xml; charset=utf-8')
-  @Header('Cache-Control', 'no-store')
-  fees(@Req() req: Request) {
-    const params = new URL(req.originalUrl, 'http://localhost').searchParams;
-    return this.orders.additionalFees(
-      this.ids(params, /^productId\[\d+\]$/),
-      params.get('zipcode') ?? '',
-    );
-  }
-
   private ids(params: URLSearchParams, pattern: RegExp) {
     const ids = [...params]
       .filter(([key]) => pattern.test(key))

@@ -135,6 +135,8 @@ describe('주문형 2.1', () => {
     { items: [{ productId: id, quantity: 1000 }] },
     { items: [{ productId: id, quantity: 1 }], couponCode: 'FORGED' },
     { items: [] },
+    { items: [{ productId: id, quantity: 1 }], source: 'https://example.com' },
+    { items: [{ productId: id, quantity: 1 }], backUrl: 'https://example.com' },
   ])(
     '가격·쿠폰 위조/잘못된 수량은 네이버 호출 전에 차단한다: %j',
     async (body) => {
@@ -204,22 +206,65 @@ describe('주문형 2.1', () => {
       await service.productInfo([{ id: payProductId(id) }], false),
     ).toContain('<status>NOT_SALE</status>');
   });
-  it('도서산간 XML은 기존 우편번호 기준으로 추가금만 반환한다', async () => {
-    for (const [zipcode, amount] of [
-      ['04551', 0],
-      ['63000', 1000],
-      ['58826', 1000],
-      ['28826', 0],
-    ]) {
-      const res = await request(app.getHttpServer())
-        .get('/shop/naver-order/shipping-fees')
-        .query({ 'productId[0]': payProductId(id), zipcode })
-        .expect(200);
-      expect(res.text).toContain(`<surprice>${amount}</surprice>`);
+  it('주문등록과 상품정보 XML은 동일한 네이버 권역별 추가배송비를 전달한다', async () => {
+    await request(app.getHttpServer())
+      .post('/shop/naver-order/register')
+      .set('Authorization', reviewAuth)
+      .send({ source: 'cart', items: [{ productId: id, quantity: 1 }] })
+      .expect(200);
+    const res = await request(app.getHttpServer())
+      .get('/shop/naver-order/products')
+      .query({ 'product[0][id]': payProductId(id) })
+      .expect(200);
+    for (const xml of [fetchMock.mock.calls[0][1].body as string, res.text]) {
+      expect(xml).toContain(
+        '<surchargeByArea><apiSupport>false</apiSupport><splitUnit>2</splitUnit><area2Price>1000</area2Price></surchargeByArea>',
+      );
+      expect(xml).toContain('<feePrice>4000</feePrice>');
+      expect(xml).toContain(
+        '<conditionalFree><basePrice>100000</basePrice></conditionalFree>',
+      );
+      expect(xml).not.toContain('<apiSupport>true</apiSupport>');
     }
-    expect(() => service.additionalFees([payProductId(id)], '')).toThrow();
+    await request(app.getHttpServer())
+      .get('/shop/naver-order/shipping-fees')
+      .query({ 'productId[0]': payProductId(id), zipcode: '63000' })
+      .expect(404);
+  });
+  it('상품 번호는 원래 UUID로 복원하며 잘못된 번호를 거부한다', () => {
     expect(databaseProductId(payProductId(id))).toBe(id);
     expect(() => databaseProductId('invalid')).toThrow();
+  });
+  it.each([
+    ['product', 'https://dayoff.today/shop/cup'],
+    ['cart', 'https://dayoff.today/cart'],
+  ])(
+    '출발 화면 %s에 맞는 복귀 주소를 네이버에 전달한다',
+    async (source, expected) => {
+      await request(app.getHttpServer())
+        .post('/shop/naver-order/register')
+        .set('Authorization', reviewAuth)
+        .send({ items: [{ productId: id, quantity: 1 }], source })
+        .expect(200);
+      expect(fetchMock.mock.calls[0][1].body).toContain(
+        `<backUrl>${expected}</backUrl>`,
+      );
+    },
+  );
+  it('상품 상세에서 서로 다른 상품을 함께 주문하는 요청은 거부한다', async () => {
+    products.push({ ...product(), id: optionId, slug: 'second' });
+    await request(app.getHttpServer())
+      .post('/shop/naver-order/register')
+      .set('Authorization', reviewAuth)
+      .send({
+        source: 'product',
+        items: [
+          { productId: id, quantity: 1 },
+          { productId: optionId, quantity: 1 },
+        ],
+      })
+      .expect(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
   it('비회원·일반 회원·위조/만료 토큰은 버튼 설정과 직접 주문등록 모두 차단한다', async () => {
     const denied = [

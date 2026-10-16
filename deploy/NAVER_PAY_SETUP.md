@@ -98,7 +98,6 @@ API 컨테이너를 재생성합니다. 이미 공개/운영 결제 모드인 �
 - 전체 상품: `https://dayoff.today/shop`
 - 장바구니: `https://dayoff.today/cart`
 - 상품정보 XML: `https://dayoff.today/shop/naver-order/products`
-- 도서산간비 XML: `https://dayoff.today/shop/naver-order/shipping-fees`
 - 검수 전용 일반 회원 이메일/비밀번호: 별도 전달
 
 XML 콜백은 네이버 서버가 로그인 없이 요청하므로 계정 제한을 적용하지 않습니다.
@@ -119,18 +118,17 @@ XML 콜백은 네이버 서버가 로그인 없이 요청하므로 계정 제한
 - 서비스: `https://dayoff.today`
 - 상품 상세: `https://dayoff.today/shop/<상품 slug>`
 - 상품정보 XML: `https://dayoff.today/shop/naver-order/products`
-- 도서산간 배송비 XML: `https://dayoff.today/shop/naver-order/shipping-fees`
 
 네이버페이센터의 연동 정보에 XML URL을 등록해야 합니다. 상품 조회는
-`product[0][id]=<상품번호>&optionSearch=true`, 배송비 조회는
-`productId[0]=<상품번호>&zipcode=63000` 형식입니다.
+`product[0][id]=<상품번호>&optionSearch=true` 형식입니다.
+추가배송비는 XML의 권역별 설정으로 전달하며 자체 배송비 조회 API는 사용하지 않습니다.
 상품번호는 DB UUID를 base64url로 표현한 22자 값이며 서버가 주문등록 때 자동 전송합니다.
 이미지는 외부에서 접근 가능한 URL이어야 합니다.
 
 ## 구현 범위와 오픈 전 남은 작업
 
 구현: 공식 버튼 SDK, 공통 유입 스크립트, 비회원 주문등록, 서버 가격·옵션·공유 재고
-검증, 상품정보 XML, 도서산간비 XML, 비밀값을 제외한 관리자 설정 상태 조회.
+검증, 상품정보 XML, 네이버 권역별 추가배송비 설정, 비밀값을 제외한 관리자 설정 상태 조회.
 주문등록 성공은 결제 완료가 아니므로 자체 주문을 만들거나 재고/쿠폰/장바구니를
 변경하지 않습니다. 과세 실물 상품만 지원합니다.
 
@@ -159,8 +157,9 @@ NAVER_ORDER_API_CLIENT_SECRET=
 초과판매 위험이 있으므로 소량 재고 상품은 자동 동기화 검증 후 오픈을 권장합니다.
 네이버 주문은 사이트 주문내역·구매평·결제완료 메일에 자동 반영되지 않습니다.
 
-배송 정책은 4,000원 / 10만원 이상 기본배송비 무료 / 기존 우편번호표의 도서산간
-추가비 1,000원을 XML로 제공합니다. **네이버 주문서가 무료배송 기준을 충족할 때
+배송 정책은 4,000원 / 10만원 이상 기본배송비 무료 / 제주·도서산간
+추가비 1,000원을 XML로 제공합니다. 권역 판별은 네이버페이에 맡기며
+`apiSupport=false`, `splitUnit=2`, `area2Price=1000`을 주문등록·상품정보에 동일 적용합니다. **네이버 주문서가 무료배송 기준을 충족할 때
 추가비를 처리하는 결과를 검수해야 합니다.** 기존 결제형은 10만원 이상이면 도서산간도
 무료였으므로 금액 일치 확인 전 실결제 오픈하지 않습니다. 반품비는 센터 설정을 사용합니다.
 
@@ -225,3 +224,14 @@ XML 기본 URL에는 네이버가 조회할 상품 ID를 쿼리로 추가합니�
 `https://dayoff.today/shop/naver-order/products?product%5B0%5D%5Bid%5D=lhIAKnrhRuqXDvhbfPYWzQ&optionSearch=true`
 
 검수 비밀번호와 인증키는 이 문서 또는 Git에 저장하지 않습니다.
+
+
+## 검수 보완: 복귀 주소 및 권역별 추가배송비
+
+- 상품 상세 주문등록의 `order/backUrl`은 서버 상품 slug로 만든 해당 상세 URL입니다.
+- 장바구니 주문등록은 `https://dayoff.today/cart`로 복귀합니다.
+- 클라이언트는 출발 화면(`source=product|cart`)만 전송합니다. 외부 복귀 URL은 받지 않습니다.
+- 주문등록과 상품정보 XML 모두 `surchargeByArea/apiSupport=false`입니다.
+- `splitUnit=2`, `area2Price=1000`: 네이버가 내륙과 제주·도서산간을 구분하며 후자에 1,000원을 추가합니다.
+- 기본배송비 4,000원, 10만원 이상 기본배송비 무료, 배송비 묶음 그룹 `dayoff`는 유지합니다.
+- 자체 우편번호표를 조회하던 `/shop/naver-order/shipping-fees`는 제거했습니다. 네이버에 추가배송비 조회 API URL을 등록할 필요가 없습니다.

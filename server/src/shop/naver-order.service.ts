@@ -6,7 +6,6 @@ import * as schema from '../db/schema';
 import { NaverOrderClient } from './naver-order.client';
 import { RegisterNaverOrderDto } from './dto/naver-order.dto';
 import { documentXml, shippingXml, tag } from './naver-order.xml';
-import { isOutOfDeliveryPostalCode } from './out-of-delivery-areas';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // UUID를 22자 base64url로 표현하여 주문형 상품 ID 제한 안에 넣습니다.
@@ -78,6 +77,12 @@ export class NaverOrderService {
     this.client.assertEnabled();
     const ids = [...new Set(dto.items.map((i) => i.productId))];
     const products = await this.load(ids);
+    // 이전 버전 화면도 안전한 사이트 내 주소로 복귀하도록 기본값을 제공합니다.
+    const source = dto.source ?? (ids.length === 1 ? 'product' : 'cart');
+    if (source === 'product' && ids.length !== 1)
+      throw new BadRequestException(
+        '상품 상세에서는 한 상품만 주문할 수 있습니다.',
+      );
     const productXml: string[] = [];
     for (const id of ids) {
       const product = products.find((p) => p.id === id);
@@ -116,8 +121,12 @@ export class NaverOrderService {
       );
     }
     const origin = new URL(this.client.value('FRONTEND_URL')).origin;
+    const backUrl =
+      source === 'cart'
+        ? `${origin}/cart`
+        : `${origin}/shop/${encodeURIComponent(products.find((p) => p.id === ids[0])!.slug)}`;
     const body = documentXml(
-      `<order>${tag('merchantId', this.client.value('NAVER_ORDER_MERCHANT_ID'))}${tag('certiKey', this.client.value('NAVER_ORDER_CERTI_KEY'))}${productXml.join('')}${tag('backUrl', `${origin}/shop`)}<interface>${tag('naverInflowCode', dto.naverInflowCode ?? '')}${tag('cpaInflowCode', dto.cpaInflowCode ?? '')}${tag('saClickId', dto.saClickId ?? '')}</interface></order>`,
+      `<order>${tag('merchantId', this.client.value('NAVER_ORDER_MERCHANT_ID'))}${tag('certiKey', this.client.value('NAVER_ORDER_CERTI_KEY'))}${productXml.join('')}${tag('backUrl', backUrl)}<interface>${tag('naverInflowCode', dto.naverInflowCode ?? '')}${tag('cpaInflowCode', dto.cpaInflowCode ?? '')}${tag('saClickId', dto.saClickId ?? '')}</interface></order>`,
     );
     // 주문서 등록은 결제가 아닙니다. 자체 주문 paid 처리/재고 차감/장바구니 삭제 금지.
     return this.client.register(body);
@@ -150,15 +159,6 @@ export class NaverOrderService {
           return `<product>${this.base(product)}${tag('status', status)}${tag('stockQuantity', Math.max(0, product.stockQuantity))}<supplementSupport>false</supplementSupport>${tag('optionSupport', !!product.options.length)}${options}${shippingXml()}</product>`;
         })
         .join('')}</products>`,
-    );
-  }
-
-  additionalFees(ids: string[], zipcode: string) {
-    if (!/^\d{5}$/.test(zipcode))
-      throw new BadRequestException('우편번호가 올바르지 않습니다.');
-    ids.forEach(databaseProductId);
-    return documentXml(
-      `<additionalFees>${ids.map((id) => `<additionalFee>${tag('id', id)}${tag('surprice', isOutOfDeliveryPostalCode(zipcode) ? 1000 : 0)}</additionalFee>`).join('')}</additionalFees>`,
     );
   }
 }

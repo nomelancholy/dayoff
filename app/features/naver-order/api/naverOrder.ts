@@ -34,6 +34,7 @@ export const registerNaverOrder = (items: NaverOrderItem[]) =>
     '/shop/naver-order/register',
     {
       items,
+      source: window.location.pathname === '/cart' ? 'cart' : 'product',
       naverInflowCode: cookie('NA_CO'),
       cpaInflowCode: cookie('CPAValidator'),
       saClickId: cookie('NVADID'),
