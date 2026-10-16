@@ -218,7 +218,7 @@ describe('주문형 2.1', () => {
       .expect(200);
     for (const xml of [fetchMock.mock.calls[0][1].body as string, res.text]) {
       expect(xml).toContain(
-        '<surchargeByArea><apiSupport>false</apiSupport><splitUnit>2</splitUnit><area2Price>1000</area2Price></surchargeByArea>',
+        '<surchargeByArea><apiSupport>false</apiSupport><splitUnit>3</splitUnit><area2Price>5000</area2Price><area3Price>3000</area3Price></surchargeByArea>',
       );
       expect(xml).toContain('<feePrice>4000</feePrice>');
       expect(xml).toContain(

@@ -16,6 +16,6 @@ export const tag = (name: string, value: string | number | boolean) =>
   `<${name}>${xml(value)}</${name}>`;
 export const documentXml = (body: string) =>
   `<?xml version="1.0" encoding="UTF-8"?>${body}`;
-// 2권역: 내륙 / 제주 및 도서산간. 지역 판별은 네이버가 담당하며 자체 API는 사용하지 않습니다.
+// 3권역: 내륙 / 제주 외 도서산간(+5,000원) / 제주(+3,000원). 지역 판별은 네이버가 담당합니다.
 export const shippingXml = () =>
-  `<shippingPolicy><groupId>dayoff</groupId><method>DELIVERY</method><feeType>CONDITIONAL_FREE</feeType><feePayType>PREPAYED</feePayType><feePrice>4000</feePrice><conditionalFree><basePrice>100000</basePrice></conditionalFree><surchargeByArea><apiSupport>false</apiSupport><splitUnit>2</splitUnit><area2Price>1000</area2Price></surchargeByArea></shippingPolicy>`;
+  `<shippingPolicy><groupId>dayoff</groupId><method>DELIVERY</method><feeType>CONDITIONAL_FREE</feeType><feePayType>PREPAYED</feePayType><feePrice>4000</feePrice><conditionalFree><basePrice>100000</basePrice></conditionalFree><surchargeByArea><apiSupport>false</apiSupport><splitUnit>3</splitUnit><area2Price>5000</area2Price><area3Price>3000</area3Price></surchargeByArea></shippingPolicy>`;
