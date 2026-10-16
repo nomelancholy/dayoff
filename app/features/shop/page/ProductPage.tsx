@@ -695,12 +695,13 @@ export const ShopProductPage = () => {
                     handleAddToCart()
                   }}
                   disabled={cartMutation.isPending || isSoldOut}
-                  className="mono border border-dot-primary bg-white py-3 text-sm font-semibold tracking-wide text-dot-primary transition-colors hover:bg-dot-primary hover:text-white disabled:opacity-50 md:py-4 md:text-base"
+                  className="sm:col-span-2 mono border border-dot-primary bg-white py-3 text-sm font-semibold tracking-wide text-dot-primary transition-colors hover:bg-dot-primary hover:text-white disabled:opacity-50 md:py-4 md:text-base"
                 >
                   {cartMutation.isPending ? '담는 중…' : '장바구니 담기'}
                 </button>
                 <div className="sm:col-span-2">
                   <NaverOrderButton
+                    showGuestNotice={!token}
                     items={[
                       {
                         productId: product.id,

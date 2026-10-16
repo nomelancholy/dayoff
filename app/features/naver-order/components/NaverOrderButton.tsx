@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { ShoppingBag } from 'lucide-react'
+import './NaverOrderButton.css'
 import { getApiErrorMessage } from '@/features/auth/api/auth'
 import { useNaverOrderConfig } from '../hooks/useNaverOrderConfig'
 import {
@@ -13,10 +15,12 @@ export function NaverOrderButton({
   items,
   disabled = false,
   validate,
+  showGuestNotice = false,
 }: {
   items: NaverOrderItem[]
   disabled?: boolean
   validate?: () => string | null
+  showGuestNotice?: boolean
 }) {
   const id = `npay-${useId().replace(/:/g, '')}`
   const container = useRef<HTMLDivElement>(null)
@@ -95,7 +99,8 @@ export function NaverOrderButton({
         if (!cancelled) {
           setInitializationFailed(true)
           const domainRejected =
-            err instanceof Error && /Origin verification failed/i.test(err.message)
+            err instanceof Error &&
+            /Origin verification failed/i.test(err.message)
           setError(
             domainRejected
               ? `네이버페이에 등록된 쇼핑몰 주소와 현재 접속 주소(${window.location.origin})가 일치하지 않아 구매 버튼을 표시할 수 없습니다. 가맹점 담당자가 네이버페이의 연동 URL과 버튼 인증키 설정을 확인해야 합니다.`
@@ -121,7 +126,7 @@ export function NaverOrderButton({
       <div
         ref={container}
         hidden={initializationFailed}
-        className="h-[150px] w-full min-w-[200px]"
+        className="dayoff-npay-button w-full min-w-[200px]"
       />
       {loading && (
         <p role="status" className="text-sm text-dot-secondary">
@@ -147,12 +152,33 @@ export function NaverOrderButton({
           새로고침하여 다시 확인
         </button>
       )}
-      {!loading && !initializationFailed && (
-        <p className="mt-2 text-xs leading-relaxed text-dot-secondary">
-          사이트 회원가입 없이 네이버 계정으로 구매할 수 있습니다. 주문·배송
-          조회와 취소·반품은 네이버페이에서 이용해 주세요.
-        </p>
-      )}
+      {!loading &&
+        !initializationFailed &&
+        (showGuestNotice ? (
+          <aside
+            aria-label="비회원 구매 안내"
+            className="mt-3 flex items-start gap-3 rounded-sm border border-[#DCE8DE] bg-[#F3F7F2] px-4 py-3.5"
+          >
+            <ShoppingBag
+              size={18}
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-[#39724A]"
+            />
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold leading-5 text-dot-primary">
+                회원가입 없이 바로 구매하세요
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[#59665C]">
+                네이버 계정으로 간편하게 결제할 수 있어요. 주문·배송 조회와
+                취소·반품은 네이버페이에서 이용해 주세요.
+              </p>
+            </div>
+          </aside>
+        ) : (
+          <p className="mt-3 text-xs leading-relaxed text-dot-secondary">
+            주문·배송 조회와 취소·반품은 네이버페이에서 이용해 주세요.
+          </p>
+        ))}
     </div>
   )
 }

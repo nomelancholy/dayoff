@@ -1,0 +1,28 @@
+/* Keep the official SDK markup/logo and match the adjacent shop action dimensions.
+   Scope overrides because the SDK injects its own stylesheet after this one. */
+.dayoff-npay-button {
+  min-height: 46px;
+}
+
+.dayoff-npay-button .npay_button_sdk_wrapper {
+  padding-top: 0 !important;
+}
+
+.dayoff-npay-button .npay_button_sdk_wrapper .npay_link_order {
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 46px !important;
+  padding: 0 16px !important;
+}
+
+@media (min-width: 768px) {
+  .dayoff-npay-button {
+    min-height: 58px;
+  }
+
+  .dayoff-npay-button .npay_button_sdk_wrapper .npay_link_order {
+    height: 58px !important;
+  }
+}
