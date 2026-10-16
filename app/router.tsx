@@ -12,7 +12,6 @@ import { AccountPage } from '@/features/account/page/Page'
 import { CheckoutSuccessPage } from '@/features/checkout/success/page/Page'
 import { CheckoutFailPage } from '@/features/checkout/fail/page/Page'
 import { LoginPage } from '@/features/auth/page/LoginPage'
-import { NaverReviewLoginPage } from '@/features/auth/page/NaverReviewLoginPage'
 import { RegisterPage } from '@/features/auth/page/RegisterPage'
 import { AdminPage } from '@/features/admin/page/Page'
 import { TermsPage } from '@/features/legal/page/TermsPage'
@@ -41,7 +40,7 @@ export const router = createBrowserRouter([
       { path: 'checkout/fail', element: <CheckoutFailPage /> },
       { path: 'account', element: <AccountPage /> },
       { path: 'login', element: <LoginPage /> },
-      { path: 'npay-review', element: <NaverReviewLoginPage /> },
+      { path: 'npay-review', element: <Navigate to="/shop" replace /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'admin', element: <AdminPage /> },
       { path: '*', element: <Navigate to="/" replace /> },

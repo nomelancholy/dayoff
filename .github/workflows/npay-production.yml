@@ -1,0 +1,24 @@
+name: Activate Npay production
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dayoff-production
+  cancel-in-progress: false
+jobs:
+  activate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Activate approved Npay merchant on production host
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            set -eu
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+            sh deploy/activate-npay-production.sh

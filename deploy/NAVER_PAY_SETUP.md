@@ -1,3 +1,23 @@
+# 실운영 전환 상태
+
+최종 승인 후 네이버페이 주문형을 전체 공개합니다. 아래 검수 관련 절차는 과거 기록입니다.
+
+- 운영 SDK: `https://npay-order.pstatic.net/assets/button/latest/npay.button.js`
+- 운영 주문등록: `https://api.pay.naver.com/o/customer/api/order/v20/register`
+- 비회원 포함 전체 상품 상세에서 구매 가능. 장바구니는 기존 사이트 로그인 정책을 유지합니다.
+- `/npay-review`는 `/shop`으로 이동합니다. 검수 로그인 비활성화와 함께 기존 검수 JWT도 거부합니다.
+- 배송비: 기본 4,000원 / 10만원 이상 기본배송비 무료 / 제주 +3,000원 / 제주 외 도서산간 +5,000원.
+- 주문관리 API 자동 동기화는 아직 미구현입니다. 네이버페이센터에서 주문·취소·배송을 처리하고 사이트 관리자에서 재고를 수동 조정합니다.
+
+운영 서버 설정 전환은 코드 배포 완료 후 `Activate Npay production` 수동 워크플로를 실행합니다.
+`deploy/activate-npay-production.sh`가 기존 `.env.deploy` 인증키를 재사용하고 비밀값을 출력하지 않습니다.
+설정 파일을 권한 600으로 백업하고 기동/설정 확인 실패 시 이전 환경으로 복구합니다.
+설정값은 `NAVER_ORDER_MODE=production`, `NAVER_ORDER_AUDIENCE=public`,
+`NAVER_ORDER_ENABLED=true`, `NAVER_ORDER_PRODUCTION_READY=true`, `NAVER_REVIEW_LOGIN_ENABLED=false`입니다.
+`NAVER_REVIEW_USER_ID`는 기존 검수 세션을 계속 차단하기 위해 보존합니다.
+
+---
+
 # 네이버페이 주문형 2.1 운영 준비
 
 신규 구매는 **주문형**으로 전환했습니다. 상품 상세의 Npay 버튼은 사이트 로그인 없이

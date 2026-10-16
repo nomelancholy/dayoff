@@ -93,3 +93,11 @@ DigitalOcean Spaces 환경변수, 설정 점검, 기존 이미지 이전 절차�
 ## DB 마이그레이션 백업
 
 API 교체 직전에 운영 호스트의 `backups/pre-deploy-<UTC시각>-<커밋>.dump`에 PostgreSQL custom dump를 저장하고 `pg_restore --list`로 읽을 수 있는지 검사합니다. 백업 실패 시 API를 교체하지 않습니다. 백업 파일은 호스트에만 보관하며 배포 로그에는 내용이나 인증값을 출력하지 않습니다. 별도 보관 정책에 따라 외부 백업 및 보존 기간을 관리하세요.
+
+
+## 네이버페이 최종 승인 후 운영
+
+`deploy/NAVER_PAY_SETUP.md`의 실운영 전환 상태를 따릅니다. 검수 로그인 화면과 검수 설정용
+워크플로는 제거했으며 `/npay-review`는 `/shop`으로 이동합니다.
+인증키는 서버 `.env.deploy`에 유지하고 `Activate Npay production` 워크플로로 운영 공개합니다.
+주문·취소·배송 처리는 네이버페이센터, 사이트 재고는 관리자 수동 관리가 필요합니다.
