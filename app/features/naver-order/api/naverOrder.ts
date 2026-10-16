@@ -8,6 +8,7 @@ export type NaverOrderConfig =
       accountId: string
       origin: string
       sdkUrl: string
+      orderHistoryUrl: string
     }
 export type NaverOrderItem = {
   productId: string

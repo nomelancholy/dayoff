@@ -191,3 +191,37 @@ NAVER_ORDER_API_CLIENT_SECRET=
 - https://order-docs.pay.naver.com/docs/button-sdk/integration-guide
 - https://order-docs.pay.naver.com/docs/button-sdk/api-reference
 - https://github.com/npay-mall-order-api/merchant-order-api (주문등록 2.1 상세 PDF 및 주문관리 API 안내)
+
+
+## 2026-10-16 URL 변경 후 검수 재확인
+
+네이버 담당자가 Sandbox 가맹점 URL을 변경한 후 버튼 metadata의 merchantUrl이
+`https://dayoff.today/`로 응답하는 것을 확인했습니다. 기존 Origin verification failed는
+재현되지 않습니다. 검수 계정과 테스트 모드를 유지하며 운영 결제로 전환하지 않습니다.
+
+- 기본 연동 버전: **2.1**, 공식 버튼 SDK 사용.
+- PC 주문서: `https://test-order.pay.naver.com/customer/buy/{key}/{merchantNo}`.
+- 모바일 주문서: `https://test-m.pay.naver.com/o/customer/buy/{key}/{merchantNo}`.
+- 검수 계정 주문내역 링크: `https://test-pay.naver.com`.
+- 찜하기·톡톡은 현재 제공하지 않습니다. 구매 버튼만 노출합니다.
+- 전체 10개 상품에서 공식 구매 버튼과 XML 응답을 확인했습니다.
+- 상품/장바구니 주문등록 성공 및 네이버 로그인으로의 이동까지 확인했습니다.
+  네이버 로그인 이후 주문서 금액·배송비·테스트 결제 완료는 별도 확인이 필요합니다.
+- 테스트 계정 장바구니의 수량 4개가 재고 1개를 초과하여 1개로 조정했습니다.
+  실제 상품 재고는 변경하지 않았습니다.
+
+검수 담당자에게 회신할 정보:
+
+1. 기본 연동 2.1
+2. 로그인 `https://dayoff.today/npay-review` (아이디 `npay_test`, 비밀번호 별도 전달)
+3. 전체 상품 `https://dayoff.today/shop`
+4. 상품 상세 `https://dayoff.today/shop/moucheture-plate`
+5. 장바구니 `https://dayoff.today/cart`
+6. 상품정보 XML 기본 URL `https://dayoff.today/shop/naver-order/products`
+
+XML 기본 URL에는 네이버가 조회할 상품 ID를 쿼리로 추가합니다. 파라미터 없이
+브라우저에서 열면 400이 반환되는 것이 정상입니다. 브라우저 확인용 실제 상품 예시:
+
+`https://dayoff.today/shop/naver-order/products?product%5B0%5D%5Bid%5D=lhIAKnrhRuqXDvhbfPYWzQ&optionSearch=true`
+
+검수 비밀번호와 인증키는 이 문서 또는 Git에 저장하지 않습니다.

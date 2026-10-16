@@ -92,6 +92,10 @@ export class NaverOrderClient {
       buttonKey: this.value('NAVER_ORDER_BUTTON_KEY'),
       accountId: this.value('NAVER_ORDER_ACCOUNT_ID'),
       origin: new URL(this.value('FRONTEND_URL')).origin,
+      orderHistoryUrl:
+        status.mode === 'production'
+          ? 'https://pay.naver.com'
+          : 'https://test-pay.naver.com',
       sdkUrl:
         status.mode === 'production'
           ? 'https://npay-order.pstatic.net/assets/button/latest/npay.button.js'

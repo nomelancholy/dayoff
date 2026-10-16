@@ -28,6 +28,7 @@ import {
 import { ProductReviewForm } from '@/features/shop/components/ProductReviewForm'
 import { ProductReviewEditForm } from '@/features/shop/components/ProductReviewEditForm'
 import { cn } from '@/common/lib/utils'
+import { useNaverOrderConfig } from '@/features/naver-order/hooks/useNaverOrderConfig'
 import {
   isOptionalKoreanMobile,
   KOREAN_PHONE_INVALID_MESSAGE,
@@ -850,6 +851,10 @@ function AddressForm({
 
 /** 주문 이력: 주문 목록 + 상품별 구매평 보기/작성 */
 function OrderHistorySection() {
+  const { data: naverOrderConfig } = useNaverOrderConfig()
+  const naverOrderHistoryUrl = naverOrderConfig?.enabled
+    ? naverOrderConfig.orderHistoryUrl
+    : 'https://pay.naver.com'
   const queryClient = useQueryClient()
   const [writingReviewOrderItemId, setWritingReviewOrderItemId] = useState<
     string | null
@@ -1033,7 +1038,7 @@ function OrderHistorySection() {
       <p className="text-[0.95rem] text-dot-secondary">
         사이트에 저장된 주문 내역이 없습니다. 네이버페이로 구매한 주문은{' '}
         <a
-          href="https://pay.naver.com"
+          href={naverOrderHistoryUrl}
           target="_blank"
           rel="noreferrer"
           className="underline"
@@ -1050,7 +1055,7 @@ function OrderHistorySection() {
       <p className="text-sm text-dot-secondary">
         네이버페이로 구매한 주문의 배송 조회·취소·반품은{' '}
         <a
-          href="https://pay.naver.com"
+          href={naverOrderHistoryUrl}
           target="_blank"
           rel="noreferrer"
           className="underline"
