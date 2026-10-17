@@ -104,7 +104,7 @@ export class NaverOrderApiClient {
     if (
       endpoint.startsWith('/v1/pay-order/') &&
       trace &&
-      /^[A-Za-z0-9_.:-]{1,256}$/.test(trace)
+      /^[\x21-\x7E]{1,512}$/.test(trace)
     )
       this.traces[endpoint] = trace;
     return data;

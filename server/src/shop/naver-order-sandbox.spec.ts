@@ -186,7 +186,7 @@ describe('Admin sandbox checkout isolation', () => {
               ],
             },
           },
-          'changes-trace',
+          'changes-trace^1792197935833^12345',
         ),
       )
       .mockResolvedValueOnce(
@@ -199,7 +199,7 @@ describe('Admin sandbox checkout isolation', () => {
               },
             ],
           },
-          'details-trace',
+          'details-trace^1792197935834^67890',
         ),
       );
     const res = await request(app.getHttpServer())
@@ -207,8 +207,8 @@ describe('Admin sandbox checkout isolation', () => {
       .set('x-test-role', 'admin')
       .expect(200);
     expect(res.body).toMatchObject({
-      changesTraceId: 'changes-trace',
-      detailsTraceId: 'details-trace',
+      changesTraceId: 'changes-trace^1792197935833^12345',
+      detailsTraceId: 'details-trace^1792197935834^67890',
       detailsRead: 1,
       inventoryModified: false,
     });
@@ -222,7 +222,7 @@ describe('Admin sandbox checkout isolation', () => {
         json({ access_token: 'token', expires_in: 3600 }, 'token-trace'),
       )
       .mockResolvedValueOnce(
-        json({ data: { count: 0, lastChangeStatuses: [] } }, 'changes-trace'),
+        json({ data: { count: 0, lastChangeStatuses: [] } }, 'changes-trace^1792197935833^12345'),
       );
     const res = await request(app.getHttpServer())
       .post(path + '/traces')

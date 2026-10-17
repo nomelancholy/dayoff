@@ -21,6 +21,7 @@ const { NaverOrderSandboxController } = require('../dist/src/shop/naver-order-sa
     if (new URL(registration.desktopUrl).hostname !== 'test-order.pay.naver.com' || new URL(registration.mobileUrl).hostname !== 'test-m.pay.naver.com') throw Error('UNSAFE_REDIRECT');
     // Independent probe avoids the administrator's double-click cooldown.
     const read = await new NaverOrderSandboxController(config, db).traces();
+    if (!read.changesTraceId) throw Error('MISSING_CHANGES_TRACE');
     const after = await snapshot();
     if (JSON.stringify(before) !== JSON.stringify(after)) throw Error('STOCK_CHANGED_DURING_CHECK');
     const origin = 'http://127.0.0.1:' + env.PORT;
