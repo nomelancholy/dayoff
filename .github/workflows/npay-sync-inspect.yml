@@ -1,0 +1,41 @@
+name: Inspect Npay sandbox synchronization
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dayoff-production
+  cancel-in-progress: false
+jobs:
+  inspect:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check sandbox synchronization health without exporting order records
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            set -eu
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node - <<'JS'
+            const { Client } = require('pg');
+            (async () => {
+              const env = process.env;
+              if (env.NAVER_ORDER_API_MODE !== 'sandbox' || env.NAVER_ORDER_INVENTORY_ENABLED === 'true') throw Error('NOT_SANDBOX_READ_ONLY');
+              const db = new Client({ connectionString: env.DATABASE_URL });
+              await db.connect();
+              try {
+                await db.query('BEGIN READ ONLY');
+                await db.query("SET LOCAL statement_timeout = '10s'");
+                // Only booleans leave the host: no names, dates, IDs, quantities or order rows.
+                const health = await db.query("SELECT EXISTS (SELECT 1 FROM naver_order_sync_state WHERE mode = 'sandbox' AND last_error IS NULL AND last_success_at > now() - interval '3 minutes' AND cursor > now() - interval '3 minutes' AND inventory_enabled = false) AS healthy");
+                const paid = await db.query("SELECT EXISTS (SELECT 1 FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' AND status IN ('PAYED','DELIVERING','DELIVERED','PURCHASE_DECIDED') AND product_id IS NOT NULL AND manual_review = false AND consumed = quantity AND cancelled_quantity = 0 AND applied_consumed = 0) AS recorded");
+                const isolation = await db.query("SELECT NOT EXISTS (SELECT 1 FROM naver_order_inventory WHERE mode = 'sandbox' AND applied_consumed <> 0) AS isolated");
+                await db.query('COMMIT');
+                console.log(JSON.stringify({ syncEnabled: env.NAVER_ORDER_SYNC_ENABLED === 'true', productionCheckout: env.NAVER_ORDER_MODE === 'production', inventoryEnabled: env.NAVER_ORDER_INVENTORY_ENABLED === 'true', syncHealthy: health.rows[0].healthy, paidSandboxOrderRecorded: paid.rows[0].recorded, sandboxStockIsolated: isolation.rows[0].isolated }));
+              } finally { await db.end(); }
+            })().catch(() => { console.error('SANDBOX_INSPECTION_FAILED'); process.exit(1); });
+            JS
