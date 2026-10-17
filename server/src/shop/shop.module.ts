@@ -1,3 +1,6 @@
+import { NaverOrderApiClient } from './naver-order-api.client';
+import { NaverOrderSyncService } from './naver-order-sync.service';
+import { NaverOrderSyncController } from './naver-order-sync.controller';
 import { NaverOrderSessionGuard } from './naver-order-session.guard';
 import { NaverOrderClient } from './naver-order.client';
 import { NaverOrderService } from './naver-order.service';
@@ -12,9 +15,11 @@ import { StorageModule } from './storage.module';
 
 @Module({
   imports: [CouponModule, EmailModule, StorageModule],
-  controllers: [ShopController, NaverOrderController],
+  controllers: [ShopController, NaverOrderController, NaverOrderSyncController],
   providers: [
     ShopService,
+    NaverOrderApiClient,
+    NaverOrderSyncService,
     NaverPayClient,
     NaverOrderClient,
     NaverOrderService,

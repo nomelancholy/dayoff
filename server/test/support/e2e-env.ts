@@ -17,3 +17,5 @@ process.env.NAVER_PAY_CHAIN_ID = 'e2e-chain-id';
 // 실수로 실제 DatabaseModule 팩토리가 호출되더라도 테스트 DB만 바라보게 합니다.
 process.env.DATABASE_URL =
   process.env.E2E_DATABASE_URL ?? 'postgresql://invalid:invalid@127.0.0.1:1/x';
+
+process.env.NAVER_ORDER_SYNC_ENABLED = 'false';

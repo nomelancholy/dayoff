@@ -85,6 +85,13 @@
       "when": 1791158400000,
       "tag": "0011_order_shipping_snapshot_and_coupon_periods",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792195200000,
+      "tag": "0012_naver_order_inventory_sync",
+      "breakpoints": true
     }
   ]
 }

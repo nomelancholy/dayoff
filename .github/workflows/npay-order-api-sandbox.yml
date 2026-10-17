@@ -1,0 +1,27 @@
+name: Configure Npay order API sandbox
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dayoff-production
+  cancel-in-progress: false
+jobs:
+  configure:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install sandbox API credentials and verify read-only access
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          NPAY_ORDER_API_SETUP_B64: ${{ secrets.NPAY_ORDER_API_SETUP_B64 }}
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          envs: NPAY_ORDER_API_SETUP_B64
+          script: |
+            set -eu
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+            sh deploy/setup-npay-order-api-sandbox.sh

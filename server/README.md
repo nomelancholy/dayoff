@@ -93,6 +93,6 @@ Resend 설정과 로컬 검증 방법은 [`deploy/CONTACT_SETUP.md`](../deploy/C
 - 도서산간 배송비 XML: `GET /shop/naver-order/shipping-fees`
 - 관리자 설정 점검: `GET /shop/admin/naver-order/status`
 
-주문관리 API의 결제/취소 수집과 재고 자동 동기화는 아직 미구현입니다.
+주문관리 API의 결제/취소 수집과 재고 자동 동기화는 구현되어 있으며 Sandbox 검증 단계입니다. 운영 키 발급·재고 기준시각 설정 후에 실제 재고 반영을 켭니다. [운영 가이드](../deploy/NAVER_ORDER_SYNC.md)를 참고하세요.
 운영 오픈 전 준비 사항은 [주문형 설정 문서](../deploy/NAVER_PAY_SETUP.md)를 참고합니다.
 기존 결제형 승인·취소는 기존 주문용으로 유지하며 신규 결제형 주문은 기본 차단합니다.
