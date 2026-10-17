@@ -39,6 +39,10 @@ export function identifier(value: unknown): value is string {
 
 @Injectable()
 export class NaverOrderApiClient {
+  private readonly traces: Record<string, string> = {};
+  traceIds(): Readonly<Record<string, string>> {
+    return { ...this.traces };
+  }
   private token?: { value: string; expires: number };
   private tokenRequest?: Promise<string>;
   constructor(private readonly config: ConfigService) {}
@@ -94,6 +98,15 @@ export class NaverOrderApiClient {
         allowed.includes(data.code) ? data.code : `HTTP_${response.status}`,
       );
     }
+    // Retain only gateway trace headers for order reads, never tokens or payloads.
+    const endpoint = path.split('?')[0];
+    const trace = response.headers.get('GNCP-GW-Trace-ID');
+    if (
+      endpoint.startsWith('/v1/pay-order/') &&
+      trace &&
+      /^[A-Za-z0-9_.:-]{1,256}$/.test(trace)
+    )
+      this.traces[endpoint] = trace;
     return data;
   }
   private async issueToken(): Promise<string> {

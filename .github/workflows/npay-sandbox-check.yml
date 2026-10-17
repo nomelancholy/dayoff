@@ -1,0 +1,24 @@
+name: Verify Npay sandbox tools
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dayoff-production
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify isolated sandbox registration and read-only API access
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            set -eu
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node scripts/check-npay-sandbox-tools.cjs

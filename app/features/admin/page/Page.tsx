@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
 import type { AuthUser } from '@/features/auth/api/auth'
@@ -50,7 +50,15 @@ export const AdminPage = () => {
           <h1 className="font-serif text-4xl tracking-[0.08em] text-dot-primary">
             ADMIN
           </h1>
-          <p className="mt-2 text-dot-secondary">Signed in as {adminUser.email}</p>
+          <p className="mt-2 text-dot-secondary">
+            Signed in as {adminUser.email}
+          </p>
+          <Link
+            to="/admin/npay-test"
+            className="mt-4 inline-block text-sm underline"
+          >
+            네이버페이 샌드박스 테스트
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-[260px_1fr]">
@@ -62,9 +70,7 @@ export const AdminPage = () => {
             {activeKey === 'users' ? (
               <AdminUsersSection currentUserId={adminUser.id} />
             ) : null}
-            {activeKey === 'orders' ? (
-              <AdminOrdersSection />
-            ) : null}
+            {activeKey === 'orders' ? <AdminOrdersSection /> : null}
             {activeKey === 'reviews' ? <AdminReviewsSection /> : null}
           </main>
         </div>
@@ -72,4 +78,3 @@ export const AdminPage = () => {
     </div>
   )
 }
-

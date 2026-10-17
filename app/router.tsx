@@ -1,3 +1,4 @@
+import { NpayTestPage } from '@/features/admin/page/NpayTestPage'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '@/common/components/Layout'
 import { HomePage } from '@/features/home/page/Page'
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'npay-review', element: <Navigate to="/shop" replace /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'admin', element: <AdminPage /> },
+      { path: 'admin/npay-test', element: <NpayTestPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
