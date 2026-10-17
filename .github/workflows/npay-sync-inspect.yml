@@ -22,6 +22,8 @@ jobs:
             cd "${{ secrets.DROPLET_APP_PATH }}"
             docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node - <<'JS'
             const { Client } = require('pg');
+            const { ConfigService } = require('@nestjs/config');
+            const { NaverOrderApiClient } = require('./dist/src/shop/naver-order-api.client');
             (async () => {
               const env = process.env;
               if (env.NAVER_ORDER_API_MODE !== 'sandbox' || env.NAVER_ORDER_INVENTORY_ENABLED === 'true') throw Error('NOT_SANDBOX_READ_ONLY');
@@ -35,8 +37,17 @@ jobs:
                 const paid = await db.query("SELECT EXISTS (SELECT 1 FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' AND status IN ('PAYED','DELIVERING','DELIVERED','PURCHASE_DECIDED') AND manual_review = false AND consumed = quantity AND cancelled_quantity = 0 AND applied_consumed = 0) AS recorded");
                 const cancelled = await db.query("SELECT EXISTS (SELECT 1 FROM (SELECT * FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' ORDER BY last_changed_date DESC LIMIT 1) latest WHERE status = 'CANCELED' AND quantity > 0 AND cancelled_quantity = quantity AND consumed = 0 AND applied_consumed = 0 AND manual_review = false) AS reconciled");
                 const isolation = await db.query("SELECT NOT EXISTS (SELECT 1 FROM naver_order_inventory WHERE mode = 'sandbox' AND applied_consumed <> 0) AS isolated");
+                const latest = await db.query("SELECT product_order_id FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' ORDER BY payment_date DESC LIMIT 1");
                 await db.query('COMMIT');
-                console.log(JSON.stringify({ syncEnabled: env.NAVER_ORDER_SYNC_ENABLED === 'true', productionCheckout: env.NAVER_ORDER_MODE === 'production', inventoryEnabled: env.NAVER_ORDER_INVENTORY_ENABLED === 'true', syncHealthy: health.rows[0].healthy, paidSandboxOrderRecorded: paid.rows[0].recorded, sandboxStockIsolated: isolation.rows[0].isolated, latestSandboxCancellationReconciled: cancelled.rows[0].reconciled }));
+                let providerCancellationPending = false, providerCancellationComplete = false;
+                if (latest.rows.length) {
+                  const api = new NaverOrderApiClient(new ConfigService(env));
+                  const [detail] = await api.details([latest.rows[0].product_order_id]);
+                  const p = detail.productOrder;
+                  providerCancellationPending = p.claimType === 'CANCEL' && ['CANCEL_REQUEST', 'CANCELING'].includes(p.claimStatus);
+                  providerCancellationComplete = p.productOrderStatus === 'CANCELED';
+                }
+                console.log(JSON.stringify({ syncEnabled: env.NAVER_ORDER_SYNC_ENABLED === 'true', productionCheckout: env.NAVER_ORDER_MODE === 'production', inventoryEnabled: env.NAVER_ORDER_INVENTORY_ENABLED === 'true', syncHealthy: health.rows[0].healthy, paidSandboxOrderRecorded: paid.rows[0].recorded, sandboxStockIsolated: isolation.rows[0].isolated, latestSandboxCancellationReconciled: cancelled.rows[0].reconciled, providerCancellationPending, providerCancellationComplete }));
               } finally { await db.end(); }
             })().catch(() => { console.error('SANDBOX_INSPECTION_FAILED'); process.exit(1); });
             JS
