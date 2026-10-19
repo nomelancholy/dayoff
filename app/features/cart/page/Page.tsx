@@ -1,12 +1,13 @@
+import { useCart } from '../hooks/useCart'
+import { cartItemIssue, cartSelectionIssue } from '../lib/guestCart'
 import { useMemo, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
-  fetchCartItems,
   updateCartItemQuantity,
   removeCartItem,
 } from '@/features/shop/api/shop'
-import { getStoredToken } from '@/features/auth/api/auth'
+import { getApiErrorMessage, getStoredToken } from '@/features/auth/api/auth'
 import { Minus, Plus } from 'lucide-react'
 import { NaverOrderButton } from '@/features/naver-order/components/NaverOrderButton'
 import { ProductPrice } from '@/features/shop/components/ProductPrice'
@@ -19,11 +20,7 @@ export const CartPage = () => {
     string[]
   >([])
 
-  const { data: items, isLoading } = useQuery({
-    queryKey: ['shop', 'cart'],
-    queryFn: fetchCartItems,
-    enabled: !!token,
-  })
+  const { data: items, isLoading, isError, refetch } = useCart()
 
   const selectedCartItemIds = useMemo(() => {
     if (!items) return []
@@ -66,25 +63,25 @@ export const CartPage = () => {
     },
   })
 
+  const selectionIssue = cartSelectionIssue(selectedItems)
+  const mutationError = updateMutation.error ?? removeMutation.error
   const subtotal = selectedSubtotal
 
-  if (!token) {
+  if (isError) {
     return (
-      <div className="min-h-screen bg-dot-bg px-4 py-28 text-center md:px-16 md:py-48">
-        <span className="mono text-dot-primary">선택한 상품</span>
-        <h1 className="mt-2 font-serif text-3xl tracking-[0.12em] text-dot-primary md:text-4xl">
-          장바구니
-        </h1>
-        <p className="mt-8 text-[0.9rem] text-dot-secondary">
-          장바구니를 보려면 로그인 해주세요.
+      <main className="min-h-screen bg-dot-bg px-5 py-40 text-center">
+        <h1 className="text-3xl">장바구니</h1>
+        <p role="alert" className="mt-8">
+          장바구니 상품을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
         </p>
-        <Link
-          to="/login"
-          className="mt-10 inline-block border border-dot-primary px-8 py-3.5 text-[0.8rem] font-medium uppercase tracking-[0.2em] text-dot-primary transition-colors hover:bg-dot-primary hover:text-white"
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="mt-6 border px-6 py-3"
         >
-          로그인
-        </Link>
-      </div>
+          다시 불러오기
+        </button>
+      </main>
     )
   }
 
@@ -127,6 +124,22 @@ export const CartPage = () => {
           </h1>
         </header>
 
+        {!token && (
+          <p className="col-span-full text-sm leading-relaxed text-dot-secondary">
+            회원가입 없이 장바구니를 이용하고 네이버페이로 구매할 수 있습니다.
+            비회원 장바구니는 현재 브라우저에 저장됩니다.
+          </p>
+        )}
+        {mutationError && (
+          <p role="alert" className="col-span-full text-sm text-red-700">
+            {getApiErrorMessage(
+              mutationError,
+              mutationError instanceof Error
+                ? mutationError.message
+                : '장바구니 변경에 실패했습니다.'
+            )}
+          </p>
+        )}
         {!items || items.length === 0 ? (
           <div className="col-span-full py-24 text-center">
             <h2 className="mx-auto max-w-[260px] break-keep font-sans text-2xl font-semibold leading-snug text-dot-primary">
@@ -175,16 +188,20 @@ export const CartPage = () => {
                     </label>
                   </div>
                   <Link
-                    to={`/shop/${item.product.slug}`}
+                    to={
+                      item.product.slug ? `/shop/${item.product.slug}` : '/shop'
+                    }
                     className="block h-[120px] w-[120px] shrink-0 overflow-hidden rounded-sm bg-[#F2F2F2]"
                   >
-                    <img
-                      src={item.product.images?.[0]?.url}
-                      alt={item.product.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
+                    {item.product.images?.[0]?.url && (
+                      <img
+                        src={item.product.images[0].url}
+                        alt={item.product.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
+                    )}
                   </Link>
                   <div>
                     {item.product.category && (
@@ -200,9 +217,20 @@ export const CartPage = () => {
                         {item.option.name}: {item.option.value}
                       </p>
                     )}
+                    {cartItemIssue(item) && (
+                      <p className="mt-2 text-sm text-red-700">
+                        {cartItemIssue(item)}
+                      </p>
+                    )}
                     <div className="mt-4 flex items-center gap-4 rounded border border-[#eee] bg-white px-3 py-1.5 w-fit">
                       <button
                         type="button"
+                        aria-label={`${item.product.name} 수량 줄이기`}
+                        disabled={
+                          item.quantity <= 1 ||
+                          updateMutation.isPending ||
+                          removeMutation.isPending
+                        }
                         onClick={() =>
                           updateMutation.mutate({
                             id: item.id,
@@ -218,6 +246,14 @@ export const CartPage = () => {
                       </span>
                       <button
                         type="button"
+                        aria-label={`${item.product.name} 수량 늘리기`}
+                        disabled={
+                          !!cartItemIssue(item) ||
+                          item.quantity >=
+                            Math.min(999, item.product.stockQuantity) ||
+                          updateMutation.isPending ||
+                          removeMutation.isPending
+                        }
                         onClick={() =>
                           updateMutation.mutate({
                             id: item.id,
@@ -240,6 +276,9 @@ export const CartPage = () => {
                     />
                     <button
                       type="button"
+                      disabled={
+                        updateMutation.isPending || removeMutation.isPending
+                      }
                       onClick={() => removeMutation.mutate(item.id)}
                       className="mono whitespace-nowrap text-[0.8rem] text-dot-secondary underline transition-colors hover:text-dot-primary"
                     >
@@ -275,15 +314,20 @@ export const CartPage = () => {
                 배송지에 따른 최종 배송비는 네이버 주문서에서 확인해 주세요.
                 사이트 쿠폰은 네이버페이 주문에 사용할 수 없습니다.
               </p>
+              {selectionIssue && (
+                <p className="mt-4 text-sm text-red-700">{selectionIssue}</p>
+              )}
               <div className="mt-6">
                 <NaverOrderButton
+                  showGuestNotice={!token}
+                  validate={() => selectionIssue}
                   items={selectedItems.map((item) => ({
                     productId: item.productId,
                     optionId: item.optionId,
                     quantity: item.quantity,
                   }))}
                   disabled={
-                    !selectedItems.length ||
+                    !!selectionIssue ||
                     updateMutation.isPending ||
                     removeMutation.isPending
                   }

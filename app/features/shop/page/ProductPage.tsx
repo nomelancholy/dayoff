@@ -263,7 +263,12 @@ export const ShopProductPage = () => {
         const message = isAxiosError(err)
           ? err.response?.data?.message
           : undefined
-        alert(message || '장바구니 담기에 실패했습니다.')
+        alert(
+          message ||
+            (err instanceof Error
+              ? err.message
+              : '장바구니 담기에 실패했습니다.')
+        )
       }
     },
   })
@@ -304,11 +309,6 @@ export const ShopProductPage = () => {
 
   const handleAddToCart = () => {
     // 장바구니 담기에서는 checkout 주문 생성이 절대 일어나면 안 됩니다.
-    if (!getStoredToken()) {
-      alert('로그인이 필요합니다.')
-      navigate('/login')
-      return
-    }
     if (!product) {
       alert('상품 정보를 불러오는 중입니다.')
       return

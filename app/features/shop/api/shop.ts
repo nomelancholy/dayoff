@@ -1,3 +1,10 @@
+import { getStoredToken } from '@/features/auth/api/auth'
+import {
+  fetchGuestCart,
+  addGuestCart,
+  updateGuestCart,
+  removeGuestCart,
+} from '@/features/cart/lib/guestCart'
 import apiClient from '@/common/lib/apiClient'
 import { getViteApiBaseUrl } from '@/common/lib/viteApiBaseUrl'
 
@@ -77,6 +84,7 @@ export interface Product {
 }
 
 export interface CartItem {
+  availabilityMessage?: string
   id: string
   userId: string
   productId: string
@@ -245,7 +253,7 @@ export function cancelMyOrder(
 
 /** 장바구니 목록 조회 */
 export async function fetchCartItems(): Promise<CartItem[]> {
-  return apiClient.get('/shop/cart')
+  return getStoredToken() ? apiClient.get('/shop/cart') : fetchGuestCart()
 }
 
 /** 장바구니 추가 */
@@ -254,7 +262,9 @@ export async function addToCart(data: {
   quantity: number
   optionId?: string
 }): Promise<CartItem> {
-  return apiClient.post('/shop/cart', data)
+  return getStoredToken()
+    ? apiClient.post('/shop/cart', data)
+    : addGuestCart(data)
 }
 
 /** 장바구니 수량 변경 */
@@ -262,12 +272,16 @@ export async function updateCartItemQuantity(
   id: string,
   quantity: number
 ): Promise<CartItem> {
-  return apiClient.patch(`/shop/cart/${id}`, { quantity })
+  return id.startsWith('guest:')
+    ? updateGuestCart(id, quantity)
+    : apiClient.patch(`/shop/cart/${id}`, { quantity })
 }
 
 /** 장바구니 삭제 */
 export async function removeCartItem(id: string): Promise<void> {
-  return apiClient.delete(`/shop/cart/${id}`)
+  return id.startsWith('guest:')
+    ? removeGuestCart(id)
+    : apiClient.delete(`/shop/cart/${id}`)
 }
 
 /** [Admin] 상품 생성 */

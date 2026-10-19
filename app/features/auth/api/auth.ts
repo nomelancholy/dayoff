@@ -35,7 +35,11 @@ export function getApiErrorMessage(
 }
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(AUTH_TOKEN_KEY)
+  try {
+    return localStorage.getItem(AUTH_TOKEN_KEY)
+  } catch {
+    return null
+  }
 }
 
 export function setStoredToken(token: string): void {

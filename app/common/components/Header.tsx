@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/common/lib/utils'
 import { fetchMe, getStoredToken } from '@/features/auth/api/auth'
-import { fetchCartItems } from '@/features/shop/api/shop'
+import { useCart } from '@/features/cart/hooks/useCart'
 
 const NAV_LINKS = [
   { to: '/about', label: 'About' },
@@ -25,15 +25,9 @@ export const Header = () => {
     enabled: !!token,
   })
 
-  const isAdmin = user?.role === 'admin'
-  const { data: cartItems } = useQuery({
-    queryKey: ['shop', 'cart'],
-    queryFn: fetchCartItems,
-    enabled: !!token,
-  })
-  const cartQuantity = token
-    ? (cartItems ?? []).reduce((total, item) => total + item.quantity, 0)
-    : 0
+  const isAdmin = !!token && user?.role === 'admin'
+  const { data: cartItems } = useCart()
+  const cartQuantity = (cartItems ?? []).reduce((total, item) => total + item.quantity, 0)
   const mobileMenuLabel = useMemo(() => '메뉴', [])
 
   useEffect(() => {
