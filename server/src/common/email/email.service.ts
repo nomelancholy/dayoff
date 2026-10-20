@@ -8,6 +8,7 @@ import { render } from '@react-email/render';
 import * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
+  ContactInquiryEmail,
   CouponIssuedEmail,
   OrderPaidEmail,
   ProductRestockedEmail,
@@ -29,6 +30,12 @@ const KST_DATE_FORMAT = new Intl.DateTimeFormat('ko-KR', {
   year: 'numeric',
   month: 'long',
   day: 'numeric',
+});
+
+const KST_DATE_TIME_FORMAT = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  dateStyle: 'long',
+  timeStyle: 'short',
 });
 
 @Injectable()
@@ -127,6 +134,7 @@ export class EmailService {
         '문의 접수 설정을 준비 중입니다. 안내된 이메일로 연락해 주세요.',
       );
     }
+    const receivedAt = KST_DATE_TIME_FORMAT.format(new Date());
     const text = [
       'CONTACT 페이지에 새 문의가 도착했습니다.',
       '',
@@ -134,16 +142,26 @@ export class EmailService {
       `이메일: ${params.email}`,
       `카테고리: ${params.category}`,
       `제목: ${params.subject}`,
+      `접수일시: ${receivedAt} (한국 시간)`,
+      ...(params.attachment ? [`첨부파일: ${params.attachment.filename}`] : []),
       '',
       params.message,
+      '',
+      '메일함의 답장 버튼으로 문의자에게 바로 회신할 수 있습니다.',
     ].join('\n');
-    const html = renderToStaticMarkup(
-      React.createElement(
-        'div',
-        { style: { whiteSpace: 'pre-wrap', lineHeight: 1.7 } },
-        text,
-      ),
-    );
+    const html =
+      '<!DOCTYPE html>' +
+      renderToStaticMarkup(
+        React.createElement(ContactInquiryEmail, {
+          name: params.name,
+          email: params.email,
+          category: params.category,
+          subject: params.subject,
+          message: params.message,
+          receivedAt,
+          attachmentName: params.attachment?.filename,
+        }),
+      );
     // 문의는 메일 자체가 접수 수단이므로 주문 알림과 달리 실패를 호출자에게 전달합니다.
     await this.sendEmail({
       to: params.to,

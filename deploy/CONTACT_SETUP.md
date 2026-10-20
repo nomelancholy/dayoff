@@ -44,6 +44,10 @@ RESEND_FROM_EMAIL="디오티 <contact@your-domain.com>"
   이미 설정된 값이 올바르면 유지합니다.
 - 문의 메일의 `Reply-To`는 문의자 이메일로 자동 지정됩니다. 기존 `RESEND_REPLY_TO`
   설정을 수정할 필요 없이 메일함에서 답장 버튼으로 문의자에게 회신할 수 있습니다.
+- 문의 알림 템플릿은 `server/src/common/email/email.templates.tsx`의
+  `ContactInquiryEmail`에서 관리합니다. 성함·이메일·유형·제목·문의 내용·한국 시간
+  기준 접수일시와 선택한 첨부파일명을 표시하며, 문의자에게 답장하는 버튼을 포함합니다.
+  Resend 대시보드에 별도 템플릿을 등록할 필요는 없습니다.
 
 서버를 재시작합니다. 프론트 `VITE_API_URL`이 로컬 서버 주소를 가리키는지 확인합니다
 (미설정 시 `http://localhost:4000`). 설정 후 테스트 문의 1건을 보내 실제 메일 수신과
@@ -70,6 +74,14 @@ RESEND_FROM_EMAIL="디오티 <contact@your-domain.com>"
 저장소의 compose에는 변수 전달, Nginx에는 `/api/contact/` 프록시 및 6MB 요청 한도가
 준비되어 있습니다. **프론트·백엔드·Nginx 설정을 함께 반영**해야 합니다.
 `/contact` 페이지 경로는 계속 프론트에서 처리됩니다.
+
+GitHub Actions 배포에서는 저장소 Secret `RESEND_API_KEY`와 Variables
+`RESEND_FROM_EMAIL`, `CONTACT_TO_EMAIL`, `CONTACT_ENABLED`를 사용합니다.
+배포가 기존 `.env.deploy`를 `backups/contact-config-before-*.env`에 권한 600으로
+백업한 뒤 문의 관련 항목만 반영합니다. 나머지 환경설정은 유지합니다.
+네 항목을 모두 설정한 뒤 `CONTACT_ENABLED=true`로 활성화하며,
+`CONTACT_ENABLED=false`로 바꾸면 다음 배포에서 접수만 비활성화합니다.
+설정값은 배포 로그에 출력하지 않습니다.
 
 ## 외부 호출 없는 검증
 

@@ -77,15 +77,23 @@ jobs:
     steps:
       - name: SSH — pull images and restart
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          CONTACT_DEPLOY_ENABLED: ${{ vars.CONTACT_ENABLED }}
+          CONTACT_DEPLOY_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CONTACT_DEPLOY_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+          CONTACT_DEPLOY_TO_EMAIL: ${{ vars.CONTACT_TO_EMAIL }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
+          envs: CONTACT_DEPLOY_ENABLED,CONTACT_DEPLOY_API_KEY,CONTACT_DEPLOY_FROM_EMAIL,CONTACT_DEPLOY_TO_EMAIL
           script: |
             set -e
             cd "${{ secrets.DROPLET_APP_PATH }}"
             git fetch origin main
             git reset --hard origin/main
+            # 기존 환경설정을 백업한 뒤 문의 설정만 반영하며 값은 로그에 남기지 않습니다.
+            python3 deploy/configure-contact.py .env.deploy
             # 작은 Droplet에서 이전 이미지/빌드 캐시 때문에 pull이 실패하지 않도록 공간 확보
             docker image prune -af
             docker builder prune -af

@@ -83,6 +83,13 @@ describe('CONTACT 문의 접수 (외부 메일·DB 호출 없음)', () => {
     expect(mail.text).toContain(DATA.message);
     expect(mail.html).not.toContain('<script>');
     expect(mail.html).toContain('&lt;script&gt;');
+    expect(mail.html).toContain('새 문의가 도착했습니다');
+    expect(mail.html).toContain('문의자에게 답장하기');
+    expect(mail.html).toContain('문의 유형 · 상품 문의');
+    expect(mail.html).toContain('mailto:visitor@example.com?subject=Re%3A%20');
+    expect(mail.html).toContain('안녕하세요.<br/>');
+    expect(mail.text).toContain('접수일시:');
+    expect(mail.html).not.toContain('첨부파일 1개');
   });
 
   it('선택한 파일을 공개 업로드 저장소 없이 메일에 첨부한다', async () => {
@@ -94,10 +101,13 @@ describe('CONTACT 문의 접수 (외부 메일·DB 호출 없음)', () => {
       .expect(200);
     const mail = JSON.parse(fetchMock.mock.calls[0][1].body) as {
       attachments: unknown;
+      html: string;
     };
     expect(mail.attachments).toEqual([
       { filename: 'reference.pdf', content: PDF.toString('base64') },
     ]);
+    expect(mail.html).toContain('첨부파일 1개');
+    expect(mail.html).toContain('reference.pdf');
   });
 
   it.each([

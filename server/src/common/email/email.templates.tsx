@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -88,6 +89,114 @@ const styles = {
     color: '#878173',
   },
 } as const;
+
+export const ContactInquiryEmail = ({
+  name,
+  email,
+  category,
+  subject,
+  message,
+  receivedAt,
+  attachmentName,
+}: {
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  receivedAt: string;
+  attachmentName?: string;
+}) => (
+  <Html lang="ko">
+    <Head />
+    <Preview>{`[${category}] ${name}님의 새 문의 · ${subject}`}</Preview>
+    <Body style={styles.body}>
+      <Container style={styles.container}>
+        <Text style={styles.brand}>D O T. / CONTACT</Text>
+        <Heading style={styles.heading}>새 문의가 도착했습니다</Heading>
+        <Text style={styles.text}>CONTACT 페이지에서 접수된 문의입니다.</Text>
+        <Hr style={{ borderColor: '#e8e2d6', margin: '24px 0' }} />
+        <Section>
+          <Text style={{ ...styles.cardLabel, marginBottom: '6px' }}>
+            문의 유형 · {category}
+          </Text>
+          <Heading
+            as="h2"
+            style={{
+              ...styles.heading,
+              fontSize: '21px',
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {subject}
+          </Heading>
+        </Section>
+        <Section style={styles.card}>
+          <Text style={styles.listItem}>
+            <strong style={{ marginRight: '12px' }}>성함</strong> {name}
+          </Text>
+          <Text style={{ ...styles.listItem, overflowWrap: 'anywhere' }}>
+            <strong style={{ marginRight: '12px' }}>이메일</strong>{' '}
+            <Link
+              href={`mailto:${email}`}
+              style={{ color: '#37342f', textDecoration: 'underline' }}
+            >
+              {email}
+            </Link>
+          </Text>
+          <Text style={{ ...styles.listItem, marginBottom: '0' }}>
+            <strong style={{ marginRight: '12px' }}>접수일시</strong>{' '}
+            {receivedAt} (한국 시간)
+          </Text>
+        </Section>
+        <Section style={{ margin: '28px 0' }}>
+          <Text style={styles.cardLabel}>문의 내용</Text>
+          <Text style={{ ...styles.text, overflowWrap: 'anywhere' }}>
+            {message.split(/\r?\n/).map((line, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && <br />}
+                {line}
+              </React.Fragment>
+            ))}
+          </Text>
+        </Section>
+        {attachmentName && (
+          <Section style={styles.card}>
+            <Text style={styles.cardLabel}>첨부파일 1개</Text>
+            <Text style={{ ...styles.listItem, overflowWrap: 'anywhere' }}>
+              {attachmentName}
+            </Text>
+            <Text style={{ ...styles.footer, marginTop: '6px' }}>
+              파일은 이 메일의 첨부파일에서 확인해 주세요.
+            </Text>
+          </Section>
+        )}
+        <Section style={{ marginTop: '28px' }}>
+          <Button
+            href={`mailto:${email}?subject=${encodeURIComponent(`Re: ${subject}`)}`}
+            style={{ ...styles.button, padding: '14px 22px' }}
+          >
+            문의자에게 답장하기
+          </Button>
+        </Section>
+        <Text
+          style={{
+            ...styles.text,
+            marginTop: '14px',
+            fontSize: '12px',
+            color: '#6f685b',
+          }}
+        >
+          메일함의 답장 버튼으로도 문의자에게 바로 회신할 수 있습니다.
+        </Text>
+        <Hr style={{ borderColor: '#e8e2d6', margin: '24px 0 14px' }} />
+        <Text style={styles.footer}>
+          디오티 CONTACT · 운영자에게 발송되는 문의 알림입니다.
+        </Text>
+      </Container>
+    </Body>
+  </Html>
+);
 
 export const WelcomeEmail = ({
   displayName,
