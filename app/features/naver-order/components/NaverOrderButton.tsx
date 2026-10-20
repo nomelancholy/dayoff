@@ -168,12 +168,14 @@ export function NaverOrderButton({
               <p className="text-[13px] font-semibold leading-5 text-dot-primary">
                 가입 없이 간편하게, 회원이라면 더 많은 혜택
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-[#59665C]">
+              <p className="mt-1 break-keep text-xs leading-relaxed text-[#59665C]">
                 네이버페이로 회원가입 없이 간편하게 구매할 수 있어요.
+                <br />
                 DOT 회원으로 가입하시면 쿠폰 등 회원 전용 혜택을 받으실 수 있어요.
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-[#59665C]">
+              <p className="mt-2 break-keep text-xs leading-relaxed text-[#59665C]">
                 사이트 쿠폰은 네이버페이 주문에 적용되지 않습니다.
+                <br />
                 주문·배송 조회와 취소·반품은 네이버페이에서 이용해 주세요.
               </p>
             </div>
