@@ -1,3 +1,4 @@
+import { OrderReviewPage } from '@/features/order-review/page/Page'
 import { NpayTestPage } from '@/features/admin/page/NpayTestPage'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '@/common/components/Layout'
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'business-info', element: <BusinessInfoPage /> },
       { path: 'cart', element: <CartPage /> },
+      { path: 'order-review', element: import.meta.env.DEV ? <OrderReviewPage /> : <Navigate to="/cart" replace /> },
       { path: 'checkout', element: <Navigate to="/cart" replace /> },
       { path: 'checkout/success', element: <CheckoutSuccessPage /> },
       { path: 'checkout/fail', element: <CheckoutFailPage /> },

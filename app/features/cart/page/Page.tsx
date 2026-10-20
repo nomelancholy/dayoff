@@ -1,3 +1,4 @@
+import { ReviewOrderLink } from '@/features/order-review/components/ReviewOrderLink'
 import { useCart } from '../hooks/useCart'
 import { cartItemIssue, cartSelectionIssue } from '../lib/guestCart'
 import { useMemo, useState } from 'react'
@@ -316,6 +317,15 @@ export const CartPage = () => {
               </p>
               {selectionIssue && (
                 <p className="mt-4 text-sm text-red-700">{selectionIssue}</p>
+              )}
+              {import.meta.env.DEV && (
+                <div className="mt-6">
+                  <ReviewOrderLink
+                    source="cart"
+                    items={selectedItems.map(item => ({ productId: item.productId, optionId: item.optionId, quantity: item.quantity }))}
+                    disabled={!!selectionIssue || updateMutation.isPending || removeMutation.isPending}
+                  />
+                </div>
               )}
               <div className="mt-6">
                 <NaverOrderButton

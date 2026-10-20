@@ -1,3 +1,5 @@
+import { OrderReviewService } from './order-review.service';
+import { OrderReviewController } from './order-review.controller';
 import { NaverOrderSandboxController } from './naver-order-sandbox.controller';
 import { NaverOrderApiClient } from './naver-order-api.client';
 import { NaverOrderSyncService } from './naver-order-sync.service';
@@ -17,12 +19,14 @@ import { StorageModule } from './storage.module';
 @Module({
   imports: [CouponModule, EmailModule, StorageModule],
   controllers: [
+    OrderReviewController,
     ShopController,
     NaverOrderController,
     NaverOrderSyncController,
     NaverOrderSandboxController,
   ],
   providers: [
+    OrderReviewService,
     ShopService,
     NaverOrderApiClient,
     NaverOrderSyncService,

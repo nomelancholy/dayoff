@@ -1,3 +1,4 @@
+import { ReviewOrderLink } from '@/features/order-review/components/ReviewOrderLink'
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { isAxiosError } from 'axios'
@@ -699,6 +700,16 @@ export const ShopProductPage = () => {
                 >
                   {cartMutation.isPending ? '담는 중…' : '장바구니 담기'}
                 </button>
+                {import.meta.env.DEV && (
+                  <div className="sm:col-span-2">
+                    <ReviewOrderLink
+                      source="product"
+                      items={[{ productId: product.id, optionId: selectedOptionId, quantity }]}
+                      disabled={isSoldOut}
+                      validate={() => hasOptions && !selectedOptionId ? '옵션을 선택해 주세요.' : null}
+                    />
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <NaverOrderButton
                     showGuestNotice={!token}
