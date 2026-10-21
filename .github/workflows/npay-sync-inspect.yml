@@ -20,7 +20,7 @@ jobs:
             for l in lines[-12:]:
                 m=re.search(r"(GET|POST) ([^ ]+) HTTP/[0-9.]+\" ([0-9]+)",l)
                 if not m:continue
-                q=urllib.parse.parse_qs(urllib.parse.urlsplit(m[2]).query);out.append({"method":m[1],"status":m[3],"keys":list(q),"code1Length":len(q.get("merchantCustomCode1",[""])[0]),"code2Length":len(q.get("merchantCustomCode2",[""])[0]),"optionSearch":q.get("optionSearch"),"supplementSearch":q.get("supplementSearch")})
+                q=urllib.parse.parse_qs(urllib.parse.urlsplit(m[2]).query);out.append({"method":m[1],"status":m[3],"keys":list(q),"productIds":q.get("product[0][id]"),"bytes":l.split(chr(34))[2].strip(),"code1Length":len(q.get("merchantCustomCode1",[""])[0]),"code2Length":len(q.get("merchantCustomCode2",[""])[0]),"optionSearch":q.get("optionSearch"),"supplementSearch":q.get("supplementSearch")})
             print("XML_REQUESTS",json.dumps(out))'
             docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node - <<'JS'
             const {Pool}=require('pg');
@@ -29,9 +29,9 @@ jobs:
               const params=new URLSearchParams({merchantCustomCode1:'dc1_'+row.id,merchantCustomCode2:row.token,optionSearch:'true',supplementSearch:'true'});
               const ids=[...new Set(row.items.map(i=>i.productId))];ids.forEach((id,n)=>params.set(`product[${n}][id]`,Buffer.from(id.replace(/-/g,''),'hex').toString('base64url')));
               console.log(JSON.stringify({state:row.state,xmlRequested:!!row.validated_at,discount:row.discount_amount,expectedPrices:row.items.map(i=>i.discountedUnitPrice)}));
-              for(const base of ['http://127.0.0.1:'+process.env.PORT,process.env.FRONTEND_URL]){
+              for(const base of ['http://127.0.0.1:'+process.env.PORT,...Array(5).fill(process.env.FRONTEND_URL)]){ const start=performance.now();
                 const r=await fetch(base+'/shop/naver-order/products?'+params,{signal:AbortSignal.timeout(10000)}),text=await r.text();
-                console.log(JSON.stringify({via:base.startsWith('http:')?'internal':'public',http:r.status,contentType:r.headers.get('content-type'),xml:text,prices:[...text.matchAll(/<basePrice>(.*?)<\/basePrice>/g)].map(m=>m[1]),stock:[...text.matchAll(/<stockQuantity>(.*?)<\/stockQuantity>/g)].map(m=>m[1]),statuses:[...text.matchAll(/<status>(.*?)<\/status>/g)].map(m=>m[1]),bodyLength:text.length}));
+                console.log(JSON.stringify({via:base.startsWith('http:')?'internal':'public',http:r.status,contentType:r.headers.get('content-type'),elapsedMs:Math.round(performance.now()-start),prices:[...text.matchAll(/<basePrice>(.*?)<\/basePrice>/g)].map(m=>m[1]),stock:[...text.matchAll(/<stockQuantity>(.*?)<\/stockQuantity>/g)].map(m=>m[1]),statuses:[...text.matchAll(/<status>(.*?)<\/status>/g)].map(m=>m[1]),bodyLength:text.length}));
               }
             }finally{await db.end()}})().catch(()=>{console.error('INSPECTION_FAILED');process.exit(1)});
             JS
