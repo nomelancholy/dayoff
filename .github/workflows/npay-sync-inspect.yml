@@ -3,16 +3,11 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: dayoff-production
-  cancel-in-progress: false
 jobs:
   inspect:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Check sandbox synchronization health without exporting order records
-        uses: appleboy/ssh-action@v1.2.5
+      - uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
@@ -20,34 +15,17 @@ jobs:
           script: |
             set -eu
             cd "${{ secrets.DROPLET_APP_PATH }}"
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy logs --since 4h --no-color api 2>&1 | python3 -c 'import sys,re; t=sys.stdin.read(); print("XML_HTTP_ERRORS", re.findall(r"GET /shop/naver-order/products -> ([0-9]{3})",t)); print("XML_STACK_FUNCTIONS",re.findall(r"at ((?:Naver|Order|Coupon)[A-Za-z0-9_.]+)",t)[-25:])'
             docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node - <<'JS'
-            const { Client } = require('pg');
-            const { ConfigService } = require('@nestjs/config');
-            const { NaverOrderApiClient } = require('./dist/src/shop/naver-order-api.client');
-            (async () => {
-              const env = process.env;
-              if (env.NAVER_ORDER_API_MODE !== 'sandbox' || env.NAVER_ORDER_INVENTORY_ENABLED === 'true') throw Error('NOT_SANDBOX_READ_ONLY');
-              const db = new Client({ connectionString: env.DATABASE_URL });
-              await db.connect();
-              try {
-                await db.query('BEGIN READ ONLY');
-                await db.query("SET LOCAL statement_timeout = '10s'");
-                // Only booleans leave the host: no names, dates, IDs, quantities or order rows.
-                const health = await db.query("SELECT EXISTS (SELECT 1 FROM naver_order_sync_state WHERE mode = 'sandbox' AND last_error IS NULL AND last_success_at > now() - interval '3 minutes' AND cursor > now() - interval '3 minutes' AND inventory_enabled = false) AS healthy");
-                const paid = await db.query("SELECT EXISTS (SELECT 1 FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' AND status IN ('PAYED','DELIVERING','DELIVERED','PURCHASE_DECIDED') AND manual_review = false AND consumed = quantity AND cancelled_quantity = 0 AND applied_consumed = 0) AS recorded");
-                const cancelled = await db.query("SELECT EXISTS (SELECT 1 FROM (SELECT * FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' ORDER BY last_changed_date DESC LIMIT 1) latest WHERE status = 'CANCELED' AND quantity > 0 AND cancelled_quantity = quantity AND consumed = 0 AND applied_consumed = 0 AND manual_review = false) AS reconciled");
-                const isolation = await db.query("SELECT NOT EXISTS (SELECT 1 FROM naver_order_inventory WHERE mode = 'sandbox' AND applied_consumed <> 0) AS isolated");
-                const latest = await db.query("SELECT product_order_id FROM naver_order_inventory WHERE mode = 'sandbox' AND payment_date > now() - interval '24 hours' ORDER BY payment_date DESC LIMIT 1");
-                await db.query('COMMIT');
-                let providerCancellationPending = false, providerCancellationComplete = false;
-                if (latest.rows.length) {
-                  const api = new NaverOrderApiClient(new ConfigService(env));
-                  const [detail] = await api.details([latest.rows[0].product_order_id]);
-                  const p = detail.productOrder;
-                  providerCancellationPending = p.claimType === 'CANCEL' && ['CANCEL_REQUEST', 'CANCELING'].includes(p.claimStatus);
-                  providerCancellationComplete = p.productOrderStatus === 'CANCELED';
-                }
-                console.log(JSON.stringify({ syncEnabled: env.NAVER_ORDER_SYNC_ENABLED === 'true', productionCheckout: env.NAVER_ORDER_MODE === 'production', inventoryEnabled: env.NAVER_ORDER_INVENTORY_ENABLED === 'true', syncHealthy: health.rows[0].healthy, paidSandboxOrderRecorded: paid.rows[0].recorded, sandboxStockIsolated: isolation.rows[0].isolated, latestSandboxCancellationReconciled: cancelled.rows[0].reconciled, providerCancellationPending, providerCancellationComplete }));
-              } finally { await db.end(); }
-            })().catch(() => { console.error('SANDBOX_INSPECTION_FAILED'); process.exit(1); });
+            const {Pool}=require('pg');
+            (async()=>{const db=new Pool({connectionString:process.env.DATABASE_URL});try{
+              const {rows}=await db.query("select * from naver_coupon_checkouts where mode='sandbox' order by created_at desc limit 1");const row=rows[0];if(!row)throw Error('NO_CHECKOUT');
+              const params=new URLSearchParams({merchantCustomCode1:'dc1_'+row.id,merchantCustomCode2:row.token,optionSearch:'true',supplementSearch:'true'});
+              const ids=[...new Set(row.items.map(i=>i.productId))];ids.forEach((id,n)=>params.set(`product[${n}][id]`,Buffer.from(id.replace(/-/g,''),'hex').toString('base64url')));
+              console.log(JSON.stringify({state:row.state,xmlRequested:!!row.validated_at,discount:row.discount_amount,expectedPrices:row.items.map(i=>i.discountedUnitPrice)}));
+              for(const base of ['http://127.0.0.1:'+process.env.PORT,process.env.FRONTEND_URL]){
+                const r=await fetch(base+'/shop/naver-order/products?'+params,{signal:AbortSignal.timeout(10000)}),text=await r.text();
+                console.log(JSON.stringify({via:base.startsWith('http:')?'internal':'public',http:r.status,contentType:r.headers.get('content-type'),xmlRoot:text.slice(0,160),prices:[...text.matchAll(/<basePrice>(.*?)<\/basePrice>/g)].map(m=>m[1]),stock:[...text.matchAll(/<stockQuantity>(.*?)<\/stockQuantity>/g)].map(m=>m[1]),statuses:[...text.matchAll(/<status>(.*?)<\/status>/g)].map(m=>m[1]),bodyLength:text.length}));
+              }
+            }finally{await db.end()}})().catch(()=>{console.error('INSPECTION_FAILED');process.exit(1)});
             JS
