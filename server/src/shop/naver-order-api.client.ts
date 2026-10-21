@@ -69,7 +69,11 @@ export class NaverOrderApiClient {
       ),
     };
   }
+  private nextRequestAt = 0;
   private async request(path: string, init: RequestInit) {
+    const delay = Math.max(0, this.nextRequestAt - Date.now());
+    this.nextRequestAt = Math.max(Date.now(), this.nextRequestAt) + 1100;
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
     let response: Response;
     try {
       response = await fetch(this.base() + path, {
@@ -211,6 +215,23 @@ export class NaverOrderApiClient {
     )
       throw new NaverApiError('INVALID_CURSOR');
     return data as ChangedPage;
+  }
+  async productOrderIds(orderId: string): Promise<string[]> {
+    if (!identifier(orderId)) throw new NaverApiError('INVALID_ORDER_IDS');
+    const result = await this.authenticated(
+      '/v1/pay-order/mall/orders/' +
+        encodeURIComponent(orderId) +
+        '/product-order-ids',
+    );
+    if (
+      !Array.isArray(result.data) ||
+      !result.data.length ||
+      result.data.length > 300 ||
+      result.data.some((id) => !identifier(id)) ||
+      new Set(result.data).size !== result.data.length
+    )
+      throw new NaverApiError('INVALID_ORDER_IDS');
+    return result.data;
   }
   async details(ids: string[]): Promise<unknown[]> {
     if (!ids.length || ids.length > 300 || ids.some((id) => !identifier(id)))

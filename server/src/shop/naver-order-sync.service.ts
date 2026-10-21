@@ -1,3 +1,4 @@
+import { reconcileNaverCoupon } from './naver-coupon-reconcile';
 import {
   Inject,
   Injectable,
@@ -109,6 +110,21 @@ export class NaverOrderSyncService implements OnModuleInit, OnModuleDestroy {
       lastSuccessAt: current?.lastSuccessAt,
       lastError: this.lastError ?? current?.lastError,
       recent,
+      couponReview: await this.db
+        .select({
+          id: schema.naverCouponCheckouts.id,
+          state: schema.naverCouponCheckouts.state,
+          updatedAt: schema.naverCouponCheckouts.updatedAt,
+        })
+        .from(schema.naverCouponCheckouts)
+        .where(
+          and(
+            eq(schema.naverCouponCheckouts.mode, mode),
+            eq(schema.naverCouponCheckouts.state, 'review'),
+          ),
+        )
+        .orderBy(desc(schema.naverCouponCheckouts.updatedAt))
+        .limit(30),
     };
   }
   async run() {
@@ -156,6 +172,7 @@ export class NaverOrderSyncService implements OnModuleInit, OnModuleDestroy {
         );
         let sequence: string | undefined;
         const cursors = new Set<string>();
+        const reconciledCoupons = new Set<string>();
         let processed = 0,
           stockChanges = 0;
         for (let page = 0; ; page++) {
@@ -251,6 +268,23 @@ export class NaverOrderSyncService implements OnModuleInit, OnModuleDestroy {
                 target: [ledger.mode, ledger.productOrderId],
                 set: row,
               });
+            const couponCode = (
+              detail as { productOrder?: { sellerInternalCode1?: string } }
+            ).productOrder?.sellerInternalCode1;
+            const couponKey = `${couponCode}:${snap.orderId}`;
+            if (
+              couponCode?.startsWith('dc1_') &&
+              !reconciledCoupons.has(couponKey)
+            ) {
+              await reconcileNaverCoupon(
+                tx,
+                detail,
+                config.mode,
+                config.mallId,
+                this.api,
+              );
+              reconciledCoupons.add(couponKey);
+            }
             processed++;
           }
           if (!changed.more) break;

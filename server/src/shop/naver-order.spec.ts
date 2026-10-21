@@ -1,3 +1,4 @@
+import { NaverCouponCheckoutService } from './naver-coupon-checkout.service';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from '../auth/auth.service';
 import { JwtStrategy } from '../auth/strategies/jwt.strategy';
@@ -55,6 +56,13 @@ describe('주문형 2.1', () => {
     const module = await Test.createTestingModule({
       controllers: [NaverOrderController],
       providers: [
+        {
+          provide: NaverCouponCheckoutService,
+          useValue: {
+            enabled: () => false,
+            productPricing: async () => undefined,
+          },
+        },
         JwtStrategy,
         {
           provide: AuthService,
@@ -323,12 +331,20 @@ describe('주문형 2.1', () => {
     config.set('NAVER_ORDER_MODE', 'production');
     config.set('NAVER_ORDER_AUDIENCE', 'public');
     config.set('NAVER_ORDER_PRODUCTION_READY', 'true');
-    const res = await request(app.getHttpServer()).get('/shop/naver-order/config').expect(200);
-    expect(res.body.sdkUrl).toBe('https://npay-order.pstatic.net/assets/button/latest/npay.button.js');
+    const res = await request(app.getHttpServer())
+      .get('/shop/naver-order/config')
+      .expect(200);
+    expect(res.body.sdkUrl).toBe(
+      'https://npay-order.pstatic.net/assets/button/latest/npay.button.js',
+    );
     expect(res.body.orderHistoryUrl).toBe('https://pay.naver.com');
-    await request(app.getHttpServer()).post('/shop/naver-order/register')
-      .send({ source: 'product', items: [{ productId: id, quantity: 1 }] }).expect(200);
-    expect(fetchMock.mock.calls[0][0]).toBe('https://api.pay.naver.com/o/customer/api/order/v20/register');
+    await request(app.getHttpServer())
+      .post('/shop/naver-order/register')
+      .send({ source: 'product', items: [{ productId: id, quantity: 1 }] })
+      .expect(200);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.pay.naver.com/o/customer/api/order/v20/register',
+    );
   });
 
   it('실제 테스트 API의 22자 주문서 키를 허용하고 잘못된 응답은 차단한다', async () => {

@@ -1,3 +1,4 @@
+import { NaverCouponCheckoutService } from './naver-coupon-checkout.service';
 import { OrderReviewService } from './order-review.service';
 import { OrderReviewController } from './order-review.controller';
 import { NaverOrderSandboxController } from './naver-order-sandbox.controller';
@@ -27,6 +28,7 @@ import { StorageModule } from './storage.module';
   ],
   providers: [
     OrderReviewService,
+    NaverCouponCheckoutService,
     ShopService,
     NaverOrderApiClient,
     NaverOrderSyncService,

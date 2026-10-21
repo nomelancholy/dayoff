@@ -261,3 +261,20 @@ XML 기본 URL에는 네이버가 조회할 상품 ID를 쿼리로 추가합니�
 - 마지막 상품 삭제 후에는 네이버페이 버튼이 표시되지 않아야 합니다.
 - 비회원 장바구니는 브라우저별로 보관하며 회원 장바구니와 분리됩니다.
 - 로컬 저장 데이터 정합성, 최신 가격 조회, 옵션·공유 재고 검증: `node --test tests/guest-cart.test.mjs`.
+
+## Member coupon checkout (2026-10-21)
+
+Naver support confirmed own-site discounts may be sent as per-unit `basePrice`.
+The new `/order-review` flow is gated by `NAVER_COUPON_CHECKOUT_ENABLED=true`.
+Keep it false until Sandbox payment and cancellation have been verified.
+
+- Calculate prices and eligible issued coupons on the server. Select the greatest usable discount by default; allow opting out.
+- Allocate once across products as integer unit prices, sharing a price across options. Unallocatable won are excluded from the displayed discount; unit price stays at least 1 won.
+- Reserve one coupon per checkout in `naver_coupon_checkouts`. Repeated requests reuse the same provider buy key. A random token and checkout UUID are passed via `merchantCustomCode1/2`.
+- Product XML looks up the frozen price using both custom codes. Current stock is authoritative and capped at the checkout quantity. Paid, released, cancelled, or review-required checkouts return zero stock.
+- The order API echoes these fields as `sellerInternalCode1/2`. Fetch all product-order IDs and details for the provider order before coupon reconciliation. Payment consumes once; complete cancellation (including nonpayment cancellation) releases/restores once. Partial cancellation retains the coupon; restoration does not extend its original expiry.
+- Quantity/price/identity discrepancies and returns/exchanges require review. Admin sync status includes `couponReview`; these reservations are not automatically freed.
+- A registered checkout can be resumed. Release is permitted only before any product XML validation or provider-order observation. Do not release merely because the browser closed or two business days elapsed. A checkout that was validated but never became an observable order may require manual reconciliation after provider expiry.
+- A healthy production order-sync cursor is required for new discounted checkouts and price validation. The existing noncoupon checkout remains available while the feature flag is false.
+
+`Test Npay coupon sandbox` workflow (`prepare` then `sync`) uses an isolated Sandbox checkout and the already-installed Sandbox API credential backup. It never changes global production mode, real inventory, or real coupon redemption. `prepare` requires `result_public_key` (base64 PEM RSA public key, >=2048 bits); checkout URLs are hybrid-encrypted in public workflow logs. Retain the matching private key locally to read them. Complete and cancel the test payment, then run `sync` to verify `paymentSeen` and `cancellationReconciled`. Sandbox test coupons are issued only to the existing review account.

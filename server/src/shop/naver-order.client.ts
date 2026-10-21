@@ -89,6 +89,8 @@ export class NaverOrderClient {
       return { enabled: false as const };
     return {
       enabled: true as const,
+      couponCheckoutEnabled:
+        this.value('NAVER_COUPON_CHECKOUT_ENABLED') === 'true',
       buttonKey: this.value('NAVER_ORDER_BUTTON_KEY'),
       accountId: this.value('NAVER_ORDER_ACCOUNT_ID'),
       origin: new URL(this.value('FRONTEND_URL')).origin,

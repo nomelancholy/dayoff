@@ -4,6 +4,7 @@ export type NaverOrderConfig =
   | { enabled: false }
   | {
       enabled: true
+      couponCheckoutEnabled?: boolean
       buttonKey: string
       accountId: string
       origin: string
@@ -17,7 +18,7 @@ export type NaverOrderItem = {
 }
 export const fetchNaverOrderConfig = () =>
   apiClient.get<NaverOrderConfig>('/shop/naver-order/config')
-function cookie(name: string) {
+export function cookie(name: string) {
   const value =
     document.cookie
       .split('; ')

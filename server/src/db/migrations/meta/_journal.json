@@ -92,6 +92,13 @@
       "when": 1792195200000,
       "tag": "0012_naver_order_inventory_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792540800000,
+      "tag": "0013_naver_coupon_checkouts",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { NaverCouponCheckoutService } from './naver-coupon-checkout.service';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
@@ -69,6 +70,7 @@ describe('read-only order review and issued coupons', () => {
       usedAt: null,
     }));
     db = {
+      select: () => ({ from: () => ({ where: async () => [] }) }),
       insert: jest.fn(() => {
         throw new Error('preview must not write');
       }),
@@ -101,6 +103,14 @@ describe('read-only order review and issued coupons', () => {
     const module = await Test.createTestingModule({
       controllers: [OrderReviewController],
       providers: [
+        {
+          provide: NaverCouponCheckoutService,
+          useValue: {
+            enabled: () => false,
+            productPricing: async () => undefined,
+            pending: async () => [],
+          },
+        },
         OrderReviewService,
         CouponService,
         { provide: ConfigService, useValue: config },
@@ -150,6 +160,31 @@ describe('read-only order review and issued coupons', () => {
       paymentEnabled: false,
       previewOnly: true,
     });
+  });
+  it('allocates rounded discounts once so selection and payable amount agree', async () => {
+    catalog[0].price = 433;
+    const otherId = '11111111-1111-4111-8111-111111111112';
+    catalog.push({ ...catalog[0], id: otherId, price: 228, options: [] });
+    coupons[1].discountValue = 1910;
+    const res = await post(app, {
+      items: [
+        { productId, optionId: optionA, quantity: 2 },
+        { productId: otherId, quantity: 5 },
+      ],
+      source: 'cart',
+      userCouponId: ownId(2),
+    }).expect(200);
+    expect(res.body.discountAmount).toBe(1909);
+    expect(
+      res.body.coupons.find((c: any) => c.userCouponId === ownId(2))
+        .discountAmount,
+    ).toBe(1909);
+    expect(
+      res.body.items.reduce(
+        (n: number, i: any) => n + i.discountedUnitPrice * i.quantity,
+        0,
+      ),
+    ).toBe(res.body.discountedSubtotal);
   });
   it('recalculates a percentage coupon for the current quantity', async () => {
     const res = await post(app, { ...body(2), userCouponId: ownId(1) }).expect(

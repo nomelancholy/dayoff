@@ -1,3 +1,4 @@
+import { useNaverOrderConfig } from '@/features/naver-order/hooks/useNaverOrderConfig'
 import { ReviewOrderLink } from '@/features/order-review/components/ReviewOrderLink'
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
@@ -49,6 +50,10 @@ export const ShopProductPage = () => {
   const [mainImageIndex, setMainImageIndex] = useState(0)
   const [activeTab, setActiveTab] = useState<ProductTabKey>('productGuide')
   const [isOptionMenuOpen, setIsOptionMenuOpen] = useState(false)
+  const { data: npayConfig } = useNaverOrderConfig()
+  const couponCheckout = !!(
+    npayConfig?.enabled && npayConfig.couponCheckoutEnabled
+  )
   const token = getStoredToken()
   const cartToastRequestedRef = useRef(false)
   const toastAnchorRef = useRef<{ x: number; y: number } | null>(null)
@@ -700,33 +705,45 @@ export const ShopProductPage = () => {
                 >
                   {cartMutation.isPending ? '담는 중…' : '장바구니 담기'}
                 </button>
-                {import.meta.env.DEV && (
+                {(couponCheckout || import.meta.env.DEV) && (
                   <div className="sm:col-span-2">
                     <ReviewOrderLink
                       source="product"
-                      items={[{ productId: product.id, optionId: selectedOptionId, quantity }]}
+                      items={[
+                        {
+                          productId: product.id,
+                          optionId: selectedOptionId,
+                          quantity,
+                        },
+                      ]}
                       disabled={isSoldOut}
-                      validate={() => hasOptions && !selectedOptionId ? '옵션을 선택해 주세요.' : null}
+                      validate={() =>
+                        hasOptions && !selectedOptionId
+                          ? '옵션을 선택해 주세요.'
+                          : null
+                      }
                     />
                   </div>
                 )}
                 <div className="sm:col-span-2">
-                  <NaverOrderButton
-                    showGuestNotice={!token}
-                    items={[
-                      {
-                        productId: product.id,
-                        optionId: selectedOptionId,
-                        quantity,
-                      },
-                    ]}
-                    disabled={isSoldOut}
-                    validate={() =>
-                      hasOptions && !selectedOptionId
-                        ? '옵션을 선택해 주세요.'
-                        : null
-                    }
-                  />
+                  {(!couponCheckout || !token) && (
+                    <NaverOrderButton
+                      showGuestNotice={!token}
+                      items={[
+                        {
+                          productId: product.id,
+                          optionId: selectedOptionId,
+                          quantity,
+                        },
+                      ]}
+                      disabled={isSoldOut}
+                      validate={() =>
+                        hasOptions && !selectedOptionId
+                          ? '옵션을 선택해 주세요.'
+                          : null
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </div>

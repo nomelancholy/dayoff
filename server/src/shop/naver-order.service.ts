@@ -7,6 +7,13 @@ import { NaverOrderClient } from './naver-order.client';
 import { RegisterNaverOrderDto } from './dto/naver-order.dto';
 import { documentXml, shippingXml, tag } from './naver-order.xml';
 
+export type NaverOrderPricing = {
+  prices: Map<string, number>;
+  quantities?: Map<string, number>;
+  customCode1?: string;
+  customCode2?: string;
+  blocked?: boolean;
+};
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // UUID를 22자 base64url로 표현하여 주문형 상품 ID 제한 안에 넣습니다.
 export const payProductId = (id: string) =>
@@ -40,6 +47,7 @@ export class NaverOrderService {
 
   private base(
     product: Awaited<ReturnType<NaverOrderService['load']>>[number],
+    unitPrice = product.price,
   ) {
     const origin = new URL(this.client.value('FRONTEND_URL')).origin;
     const image = product.images[0]?.url;
@@ -52,7 +60,7 @@ export class NaverOrderService {
       tag('id', payProductId(product.id)) +
       tag('merchantProductId', product.id) +
       tag('name', Array.from(product.name).slice(0, 100).join('')) +
-      tag('basePrice', product.price) +
+      tag('basePrice', unitPrice) +
       tag('taxType', 'TAX') +
       tag('infoUrl', `${origin}/shop/${encodeURIComponent(product.slug)}`) +
       tag('imageUrl', imageUrl.href)
@@ -73,7 +81,7 @@ export class NaverOrderService {
     return text;
   }
 
-  async register(dto: RegisterNaverOrderDto) {
+  async register(dto: RegisterNaverOrderDto, pricing?: NaverOrderPricing) {
     this.client.assertEnabled();
     const ids = [...new Set(dto.items.map((i) => i.productId))];
     const products = await this.load(ids);
@@ -117,7 +125,7 @@ export class NaverOrderService {
         }
       }
       productXml.push(
-        `<product>${this.base(product)}${selection}${shippingXml()}</product>`,
+        `<product>${this.base(product, pricing?.prices.get(id))}${selection}${shippingXml()}</product>`,
       );
     }
     const origin = new URL(this.client.value('FRONTEND_URL')).origin;
@@ -126,20 +134,24 @@ export class NaverOrderService {
         ? `${origin}/cart`
         : `${origin}/shop/${encodeURIComponent(products.find((p) => p.id === ids[0])!.slug)}`;
     const body = documentXml(
-      `<order>${tag('merchantId', this.client.value('NAVER_ORDER_MERCHANT_ID'))}${tag('certiKey', this.client.value('NAVER_ORDER_CERTI_KEY'))}${productXml.join('')}${tag('backUrl', backUrl)}<interface>${tag('naverInflowCode', dto.naverInflowCode ?? '')}${tag('cpaInflowCode', dto.cpaInflowCode ?? '')}${tag('saClickId', dto.saClickId ?? '')}</interface></order>`,
+      `<order>${tag('merchantId', this.client.value('NAVER_ORDER_MERCHANT_ID'))}${tag('certiKey', this.client.value('NAVER_ORDER_CERTI_KEY'))}${productXml.join('')}${tag('backUrl', backUrl)}<interface>${tag('naverInflowCode', dto.naverInflowCode ?? '')}${tag('cpaInflowCode', dto.cpaInflowCode ?? '')}${tag('saClickId', dto.saClickId ?? '')}${pricing?.customCode1 ? tag('merchantCustomCode1', pricing.customCode1) : ''}${pricing?.customCode2 ? tag('merchantCustomCode2', pricing.customCode2) : ''}</interface></order>`,
     );
     // 주문서 등록은 결제가 아닙니다. 자체 주문 paid 처리/재고 차감/장바구니 삭제 금지.
     return this.client.register(body);
   }
 
-  async productInfo(requests: Array<{ id: string }>, optionSearch: boolean) {
+  async productInfo(
+    requests: Array<{ id: string }>,
+    optionSearch: boolean,
+    pricing?: NaverOrderPricing,
+  ) {
     const ids = requests.map((r) => databaseProductId(r.id));
     const products = await this.load(ids);
     return documentXml(
       `<products>${requests
         .map((r, index) => {
           const product = products.find((p) => p.id === ids[index]);
-          if (!product)
+          if (!product || (pricing && !pricing.prices.has(product.id)))
             return `<product>${tag('id', r.id)}<status>NOT_SALE</status></product>`;
           const status =
             !this.client.getStatus().enabled ||
@@ -147,7 +159,7 @@ export class NaverOrderService {
             product.price < 1 ||
             !product.images.length
               ? 'NOT_SALE'
-              : product.stockQuantity > 0
+              : !pricing?.blocked && product.stockQuantity > 0
                 ? 'ON_SALE'
                 : 'SOLD_OUT';
           if (status === 'NOT_SALE')
@@ -156,7 +168,7 @@ export class NaverOrderService {
             optionSearch && product.options.length
               ? `<option><optionItem><type>SELECT</type>${tag('name', this.optionName())}${product.options.map((o) => `<value>${tag('id', o.id)}${tag('text', this.optionText(o))}<status>true</status></value>`).join('')}</optionItem></option>`
               : '';
-          return `<product>${this.base(product)}${tag('status', status)}${tag('stockQuantity', Math.max(0, product.stockQuantity))}<supplementSupport>false</supplementSupport>${tag('optionSupport', !!product.options.length)}${options}${shippingXml()}</product>`;
+          return `<product>${this.base(product, pricing?.prices.get(product.id))}${tag('status', status)}${tag('stockQuantity', pricing?.blocked ? 0 : Math.max(0, Math.min(product.stockQuantity, pricing?.quantities?.get(product.id) ?? product.stockQuantity)))}<supplementSupport>false</supplementSupport>${tag('optionSupport', !!product.options.length)}${options}${shippingXml()}</product>`;
         })
         .join('')}</products>`,
     );

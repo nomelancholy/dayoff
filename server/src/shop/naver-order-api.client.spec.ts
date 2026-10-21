@@ -81,6 +81,18 @@ describe('Naver order API client', () => {
       new NaverOrderApiClient(config()).details(['123']),
     ).rejects.toThrow('MISSING_ORDER_DETAILS');
   });
+  it('reads all product-order IDs before reconciling a complete order', async () => {
+    fetchMock
+      .mockResolvedValueOnce(json({ access_token: 'token', expires_in: 10800 }))
+      .mockResolvedValueOnce(json({ data: ['po1', 'po2'] }));
+    const result = await new NaverOrderApiClient(config()).productOrderIds(
+      'order1',
+    );
+    expect(result).toEqual(['po1', 'po2']);
+    expect(fetchMock.mock.calls[1][0]).toContain(
+      '/orders/order1/product-order-ids',
+    );
+  });
   it('fails closed for an unknown mode', async () => {
     const c = config();
     c.set('NAVER_ORDER_API_MODE', 'test');

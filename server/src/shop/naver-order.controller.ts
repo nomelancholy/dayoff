@@ -13,6 +13,7 @@ import {
 import type { Request } from 'express';
 import { NaverOrderSessionGuard } from './naver-order-session.guard';
 import { NaverOrderClient } from './naver-order.client';
+import { NaverCouponCheckoutService } from './naver-coupon-checkout.service';
 import { NaverOrderService } from './naver-order.service';
 import { RegisterNaverOrderDto } from './dto/naver-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -28,6 +29,7 @@ export class NaverOrderController {
   constructor(
     private readonly client: NaverOrderClient,
     private readonly orders: NaverOrderService,
+    private readonly coupons: NaverCouponCheckoutService,
   ) {}
 
   @Get('naver-order/config')
@@ -73,12 +75,16 @@ export class NaverOrderController {
   @Get('naver-order/products')
   @Header('Content-Type', 'application/xml; charset=utf-8')
   @Header('Cache-Control', 'no-store')
-  products(@Req() req: Request) {
+  async products(@Req() req: Request) {
     const params = new URL(req.originalUrl, 'http://localhost').searchParams;
     const ids = this.ids(params, /^product\[\d+\]\[id\]$/);
     return this.orders.productInfo(
       ids.map((id) => ({ id })),
       params.get('optionSearch') === 'true',
+      await this.coupons.productPricing(
+        params.get('merchantCustomCode1'),
+        params.get('merchantCustomCode2'),
+      ),
     );
   }
 

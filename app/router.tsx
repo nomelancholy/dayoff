@@ -37,7 +37,7 @@ export const router = createBrowserRouter([
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'business-info', element: <BusinessInfoPage /> },
       { path: 'cart', element: <CartPage /> },
-      { path: 'order-review', element: import.meta.env.DEV ? <OrderReviewPage /> : <Navigate to="/cart" replace /> },
+      { path: 'order-review', element: <OrderReviewPage /> },
       { path: 'checkout', element: <Navigate to="/cart" replace /> },
       { path: 'checkout/success', element: <CheckoutSuccessPage /> },
       { path: 'checkout/fail', element: <CheckoutFailPage /> },

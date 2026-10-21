@@ -16,19 +16,21 @@ export function NaverOrderButton({
   disabled = false,
   validate,
   showGuestNotice = false,
+  register,
 }: {
   items: NaverOrderItem[]
   disabled?: boolean
   validate?: () => string | null
   showGuestNotice?: boolean
+  register?: () => Promise<{ key: string; merchantNo: string }>
 }) {
   const id = `npay-${useId().replace(/:/g, '')}`
   const container = useRef<HTMLDivElement>(null)
   const generation = useRef(0)
-  const current = useRef({ items, disabled, validate })
+  const current = useRef({ items, disabled, validate, register })
   useEffect(() => {
-    current.current = { items, disabled, validate }
-  }, [items, disabled, validate])
+    current.current = { items, disabled, validate, register }
+  }, [items, disabled, validate, register])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [initializationFailed, setInitializationFailed] = useState(false)
@@ -77,7 +79,9 @@ export function NaverOrderButton({
             setBusy(true)
             setError(null)
             try {
-              return await registerNaverOrder(state.items)
+              return await (state.register
+                ? state.register()
+                : registerNaverOrder(state.items))
             } catch (err) {
               if (!cancelled)
                 setError(
@@ -171,10 +175,13 @@ export function NaverOrderButton({
               <p className="mt-1 break-keep text-xs leading-relaxed text-[#59665C]">
                 네이버페이로 회원가입 없이 간편하게 구매할 수 있어요.
                 <br />
-                DOT 회원으로 가입하시면 쿠폰 등 회원 전용 혜택을 받으실 수 있어요.
+                DOT 회원으로 가입하시면 쿠폰 등 회원 전용 혜택을 받으실 수
+                있어요.
               </p>
               <p className="mt-2 break-keep text-xs leading-relaxed text-[#59665C]">
-                사이트 쿠폰은 네이버페이 주문에 적용되지 않습니다.
+                {config.couponCheckoutEnabled
+                  ? '회원은 주문 확인 화면에서 쿠폰을 먼저 적용할 수 있어요.'
+                  : '사이트 쿠폰은 네이버페이 주문에 적용되지 않습니다.'}
                 <br />
                 주문·배송 조회와 취소·반품은 네이버페이에서 이용해 주세요.
               </p>

@@ -1,3 +1,4 @@
+import { useNaverOrderConfig } from '@/features/naver-order/hooks/useNaverOrderConfig'
 import { ReviewOrderLink } from '@/features/order-review/components/ReviewOrderLink'
 import { useCart } from '../hooks/useCart'
 import { cartItemIssue, cartSelectionIssue } from '../lib/guestCart'
@@ -15,6 +16,10 @@ import { ProductPrice } from '@/features/shop/components/ProductPrice'
 
 export const CartPage = () => {
   const queryClient = useQueryClient()
+  const { data: npayConfig } = useNaverOrderConfig()
+  const couponCheckout = !!(
+    npayConfig?.enabled && npayConfig.couponCheckoutEnabled
+  )
   const token = getStoredToken()
   const [hasUserTouchedSelection, setHasUserTouchedSelection] = useState(false)
   const [userSelectedCartItemIds, setUserSelectedCartItemIds] = useState<
@@ -313,35 +318,47 @@ export const CartPage = () => {
 
               <p className="mt-6 text-sm leading-relaxed text-dot-secondary">
                 배송지에 따른 최종 배송비는 네이버 주문서에서 확인해 주세요.
-                사이트 쿠폰은 네이버페이 주문에 사용할 수 없습니다.
+                {couponCheckout
+                  ? '회원 쿠폰은 주문 확인 화면에서 적용할 수 있습니다.'
+                  : '사이트 쿠폰은 네이버페이 주문에 사용할 수 없습니다.'}
               </p>
               {selectionIssue && (
                 <p className="mt-4 text-sm text-red-700">{selectionIssue}</p>
               )}
-              {import.meta.env.DEV && (
+              {(couponCheckout || import.meta.env.DEV) && (
                 <div className="mt-6">
                   <ReviewOrderLink
                     source="cart"
-                    items={selectedItems.map(item => ({ productId: item.productId, optionId: item.optionId, quantity: item.quantity }))}
-                    disabled={!!selectionIssue || updateMutation.isPending || removeMutation.isPending}
+                    items={selectedItems.map((item) => ({
+                      productId: item.productId,
+                      optionId: item.optionId,
+                      quantity: item.quantity,
+                    }))}
+                    disabled={
+                      !!selectionIssue ||
+                      updateMutation.isPending ||
+                      removeMutation.isPending
+                    }
                   />
                 </div>
               )}
               <div className="mt-6">
-                <NaverOrderButton
-                  showGuestNotice={!token}
-                  validate={() => selectionIssue}
-                  items={selectedItems.map((item) => ({
-                    productId: item.productId,
-                    optionId: item.optionId,
-                    quantity: item.quantity,
-                  }))}
-                  disabled={
-                    !!selectionIssue ||
-                    updateMutation.isPending ||
-                    removeMutation.isPending
-                  }
-                />
+                {(!couponCheckout || !token) && (
+                  <NaverOrderButton
+                    showGuestNotice={!token}
+                    validate={() => selectionIssue}
+                    items={selectedItems.map((item) => ({
+                      productId: item.productId,
+                      optionId: item.optionId,
+                      quantity: item.quantity,
+                    }))}
+                    disabled={
+                      !!selectionIssue ||
+                      updateMutation.isPending ||
+                      removeMutation.isPending
+                    }
+                  />
+                )}
               </div>
             </aside>
           </>

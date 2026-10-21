@@ -1,0 +1,39 @@
+name: Test Npay coupon sandbox
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        type: choice
+        required: true
+        options: [prepare, sync]
+      result_public_key:
+        description: Base64 PEM public key for encrypted checkout URLs (prepare only)
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: dayoff-production
+  cancel-in-progress: false
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Exercise coupon checkout with isolated sandbox orders
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          SANDBOX_RESULT_PUBLIC_KEY: ${{ inputs.result_public_key }}
+          SANDBOX_ACTION: ${{ inputs.action }}
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          envs: SANDBOX_ACTION,SANDBOX_RESULT_PUBLIC_KEY
+          command_timeout: 12m
+          script: |
+            set -eu
+            cd "${{ secrets.DROPLET_APP_PATH }}"
+            test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+            sh deploy/test-npay-coupon-sandbox.sh "$SANDBOX_ACTION"

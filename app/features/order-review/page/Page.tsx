@@ -2,7 +2,14 @@ import { useState, useSyncExternalStore } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { getStoredToken, getApiErrorMessage } from '@/features/auth/api/auth'
-import { fetchOrderReview, readReviewDraft } from '../api/review'
+import { NaverOrderButton } from '@/features/naver-order/components/NaverOrderButton'
+import {
+  fetchOrderReview,
+  readReviewDraft,
+  registerReviewedOrder,
+  resumeCouponOrder,
+  releaseCouponOrder,
+} from '../api/review'
 
 let lastToken: string | null | undefined
 let session = 0
@@ -34,6 +41,7 @@ export function OrderReviewPage() {
 function ReviewContent({ sessionId }: { sessionId: number }) {
   const [draft] = useState(readReviewDraft)
   const [choice, setChoice] = useState('best')
+  const [releaseError, setReleaseError] = useState<string | null>(null)
   const { data, isPending, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['order-review', sessionId, draft, choice],
     queryFn: () => fetchOrderReview(draft!, choice),
@@ -67,6 +75,57 @@ function ReviewContent({ sessionId }: { sessionId: number }) {
   ) : (
     <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
       <div className="min-w-0 space-y-8">
+        {data.pendingCheckouts?.map((pending) => (
+          <section
+            key={pending.id}
+            aria-label="진행 중인 쿠폰 주문"
+            className="rounded-sm border border-[#dce8de] bg-[#f3f7f2] p-5"
+          >
+            <h2 className="font-semibold">진행 중인 쿠폰 주문</h2>
+            <p className="mt-2 break-keep text-sm leading-relaxed">
+              {pending.items.map((i) => `${i.name} ${i.quantity}개`).join(', ')}
+              <br />
+              쿠폰 할인 {money(pending.discountAmount)} · 기본 배송비 포함{' '}
+              {money(pending.total)}
+            </p>
+            {pending.canResume ? (
+              <div className="mt-4">
+                <NaverOrderButton
+                  items={pending.items}
+                  register={() => resumeCouponOrder(pending.id)}
+                />
+              </div>
+            ) : (
+              <p className="mt-3 text-sm">
+                네이버페이 주문내역에서 결제 또는 취소 상태를 확인해 주세요.
+              </p>
+            )}
+            {pending.canRelease && (
+              <button
+                type="button"
+                className="mt-3 text-sm underline"
+                onClick={async () => {
+                  try {
+                    await releaseCouponOrder(pending.id)
+                    setReleaseError(null)
+                    await refetch()
+                  } catch (e) {
+                    setReleaseError(
+                      getApiErrorMessage(e, '주문 상태를 확인해 주세요.')
+                    )
+                  }
+                }}
+              >
+                이 주문의 쿠폰 예약 해제
+              </button>
+            )}
+          </section>
+        ))}
+        {releaseError && (
+          <p role="alert" className="text-sm text-red-700">
+            {releaseError}
+          </p>
+        )}
         <section aria-labelledby="review-products">
           <h2 id="review-products" className="mb-5 text-lg font-semibold">
             주문 상품
@@ -95,7 +154,14 @@ function ReviewContent({ sessionId }: { sessionId: number }) {
                 <p className="mt-2 text-sm text-dot-secondary">
                   수량 {item.quantity}개 · 개당 {money(item.unitPrice)}
                 </p>
-                <p className="mt-2 font-medium">{money(item.amount)}</p>
+                <p className="mt-2 font-medium">
+                  {money(item.discountedUnitPrice * item.quantity)}
+                  {item.discountedUnitPrice < item.unitPrice && (
+                    <span className="ml-2 text-xs font-normal text-dot-secondary line-through">
+                      {money(item.amount)}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           ))}
@@ -188,20 +254,35 @@ function ReviewContent({ sessionId }: { sessionId: number }) {
         <p className="mt-3 break-keep text-xs leading-relaxed text-dot-secondary">
           할인 적용 후 상품 금액 10만 원 이상은 기본 배송비가 무료입니다.
         </p>
-        <button
-          type="button"
-          disabled
-          className="mt-6 w-full rounded-sm bg-[#03c75a] px-4 py-4 text-sm font-semibold text-[#123b20] opacity-60"
-        >
-          네이버페이로 결제하기
-        </button>
+        <p className="mt-3 break-keep text-xs leading-relaxed text-dot-secondary">
+          {data.roundingPolicy}
+        </p>
+        <div className="mt-6">
+          {data.paymentEnabled ? (
+            <NaverOrderButton
+              items={draft.items}
+              disabled={isFetching}
+              register={() => registerReviewedOrder(draft, data)}
+            />
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full bg-[#03c75a] px-4 py-4 text-sm opacity-60"
+            >
+              네이버페이로 결제하기
+            </button>
+          )}
+        </div>
         <p
           role="status"
           className="mt-3 break-keep text-xs leading-relaxed text-dot-secondary"
         >
           {isFetching
             ? '금액을 다시 확인하고 있습니다.'
-            : '주문 확인 화면 미리보기입니다. 결제와 쿠폰 사용 처리는 진행되지 않습니다.'}
+            : data.previewOnly
+              ? '주문 확인 화면 미리보기입니다. 결제와 쿠폰 사용 처리는 진행되지 않습니다.'
+              : '쿠폰은 결제 대기 중 다른 주문에 사용할 수 없습니다. 전체 주문 취소가 완료되면 원래 유효기간으로 복원됩니다.'}
         </p>
       </aside>
     </div>

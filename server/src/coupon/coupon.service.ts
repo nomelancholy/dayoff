@@ -197,6 +197,20 @@ export class CouponService {
 
     await this.db.transaction(async (tx) => {
       await tx
+        .select()
+        .from(schema.coupons)
+        .where(eq(schema.coupons.id, id))
+        .for('update');
+      const linked = await tx
+        .select({ id: schema.naverCouponCheckouts.id })
+        .from(schema.naverCouponCheckouts)
+        .where(eq(schema.naverCouponCheckouts.couponId, id))
+        .limit(1);
+      if (linked.length)
+        throw new ConflictException(
+          '네이버페이 주문에 연결된 쿠폰은 삭제 대신 비활성화해 주세요.',
+        );
+      await tx
         .delete(schema.userCoupons)
         .where(eq(schema.userCoupons.couponId, id));
       await tx
@@ -311,7 +325,7 @@ export class CouponService {
         eq(schema.userCoupons.userId, userId),
         eq(schema.userCoupons.couponId, coupon.id),
       ),
-      columns: { usedAt: true },
+      columns: { id: true, usedAt: true },
     });
     if (
       myCoupons.length > 0 &&
@@ -319,6 +333,25 @@ export class CouponService {
     ) {
       throw new BadRequestException('이미 사용한 쿠폰입니다.');
     }
+
+    const held = await this.db
+      .select({ id: schema.naverCouponCheckouts.userCouponId })
+      .from(schema.naverCouponCheckouts)
+      .where(
+        and(
+          eq(schema.naverCouponCheckouts.mode, 'production'),
+          eq(schema.naverCouponCheckouts.userId, userId),
+          eq(schema.naverCouponCheckouts.couponId, coupon.id),
+          isNull(schema.naverCouponCheckouts.releasedAt),
+        ),
+      );
+    if (
+      myCoupons.length &&
+      myCoupons.every((c) => c.usedAt || held.some((h) => h.id === c.id))
+    )
+      throw new BadRequestException(
+        '다른 네이버페이 주문에서 사용 대기 중인 쿠폰입니다.',
+      );
 
     if (coupon.minOrderAmount != null && orderAmount < coupon.minOrderAmount) {
       throw new BadRequestException(

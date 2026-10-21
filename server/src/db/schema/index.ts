@@ -5,3 +5,5 @@ export * from './shop';
 export * from './content';
 
 export * from './naver-order-sync';
+
+export * from './naver-coupon-checkouts';

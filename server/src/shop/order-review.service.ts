@@ -5,10 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { asc, inArray } from 'drizzle-orm';
+import { asc, inArray, and, eq, isNull } from 'drizzle-orm';
 import { DRIZZLE } from '../common/database/database.module';
 import * as schema from '../db/schema';
 import { CouponService } from '../coupon/coupon.service';
+import { allocateCoupon } from './coupon-pricing';
 import type { ReviewOrderDto } from './order-review.controller';
 
 @Injectable()
@@ -71,6 +72,22 @@ export class OrderReviewService {
     });
     const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
     const owned = userId ? await this.coupons.getMyCoupons(userId) : [];
+    const holds = userId
+      ? await this.db
+          .select({ id: schema.naverCouponCheckouts.userCouponId })
+          .from(schema.naverCouponCheckouts)
+          .where(
+            and(
+              eq(schema.naverCouponCheckouts.userId, userId),
+              eq(schema.naverCouponCheckouts.mode, 'production'),
+              isNull(schema.naverCouponCheckouts.releasedAt),
+            ),
+          )
+      : [];
+    const allocations = new Map<
+      string,
+      ReturnType<typeof allocateCoupon<(typeof items)[number]>>
+    >();
     const coupons = await Promise.all(
       owned.map(async (row) => {
         const base = {
@@ -79,14 +96,20 @@ export class OrderReviewService {
           validUntil: row.coupon.validUntil,
         };
         try {
+          if (holds.some((h) => h.id === row.id))
+            throw new BadRequestException(
+              '네이버페이 주문에서 사용 대기 중입니다.',
+            );
           const result = await this.coupons.validateCode(
             userId!,
             row.coupon.code,
             subtotal,
           );
+          const allocation = allocateCoupon(items, result.discountAmount);
+          allocations.set(row.id, allocation);
           return {
             ...base,
-            discountAmount: result.discountAmount,
+            discountAmount: allocation.discountAmount,
             reason: null as string | null,
           };
         } catch (error) {
@@ -116,12 +139,15 @@ export class OrderReviewService {
         selected?.reason ?? '보유한 쿠폰을 다시 선택해 주세요.',
       );
     if (dto.useCoupon === false) selected = undefined;
-    const discountAmount = selected?.discountAmount ?? 0;
+    const allocation = selected
+      ? allocations.get(selected.userCouponId)!
+      : allocateCoupon(items, 0);
+    const discountAmount = allocation.discountAmount;
     const discountedSubtotal = subtotal - discountAmount;
     // Preview follows the existing site checkout's post-discount free-shipping threshold.
     const shippingFee = discountedSubtotal >= 100000 ? 0 : 4000;
     return {
-      items,
+      items: allocation.items,
       coupons,
       selectedUserCouponId: selected?.userCouponId ?? null,
       subtotal,
@@ -132,6 +158,8 @@ export class OrderReviewService {
       isMember: !!userId,
       paymentEnabled: false,
       previewOnly: true,
+      roundingPolicy:
+        '상품별 개당 정수 금액으로 할인하며, 나눌 수 없는 원 단위 차액은 할인액에서 제외됩니다.',
     };
   }
 }
