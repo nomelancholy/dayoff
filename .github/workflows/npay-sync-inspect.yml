@@ -16,6 +16,12 @@ jobs:
             set -eu
             cd "${{ secrets.DROPLET_APP_PATH }}"
             docker compose -f docker-compose.prod.yml --env-file .env.deploy logs --since 4h --no-color api 2>&1 | python3 -c 'import sys,re; t=sys.stdin.read(); print("XML_HTTP_ERRORS", re.findall(r"GET /shop/naver-order/products -> ([0-9]{3})",t)); print("XML_STACK_FUNCTIONS",re.findall(r"at ((?:Naver|Order|Coupon)[A-Za-z0-9_.]+)",t)[-25:])'
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy logs --since 3h --no-color web 2>&1 | python3 -c 'import sys,re,json,urllib.parse; lines=[l for l in sys.stdin if "naver-order/products?" in l]; out=[]
+            for l in lines[-12:]:
+                m=re.search(r"(GET|POST) ([^ ]+) HTTP/[0-9.]+\" ([0-9]+)",l)
+                if not m:continue
+                q=urllib.parse.parse_qs(urllib.parse.urlsplit(m[2]).query);out.append({"method":m[1],"status":m[3],"keys":list(q),"code1Length":len(q.get("merchantCustomCode1",[""])[0]),"code2Length":len(q.get("merchantCustomCode2",[""])[0]),"optionSearch":q.get("optionSearch"),"supplementSearch":q.get("supplementSearch")})
+            print("XML_REQUESTS",json.dumps(out))'
             docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node - <<'JS'
             const {Pool}=require('pg');
             (async()=>{const db=new Pool({connectionString:process.env.DATABASE_URL});try{
@@ -25,7 +31,7 @@ jobs:
               console.log(JSON.stringify({state:row.state,xmlRequested:!!row.validated_at,discount:row.discount_amount,expectedPrices:row.items.map(i=>i.discountedUnitPrice)}));
               for(const base of ['http://127.0.0.1:'+process.env.PORT,process.env.FRONTEND_URL]){
                 const r=await fetch(base+'/shop/naver-order/products?'+params,{signal:AbortSignal.timeout(10000)}),text=await r.text();
-                console.log(JSON.stringify({via:base.startsWith('http:')?'internal':'public',http:r.status,contentType:r.headers.get('content-type'),xmlRoot:text.slice(0,160),prices:[...text.matchAll(/<basePrice>(.*?)<\/basePrice>/g)].map(m=>m[1]),stock:[...text.matchAll(/<stockQuantity>(.*?)<\/stockQuantity>/g)].map(m=>m[1]),statuses:[...text.matchAll(/<status>(.*?)<\/status>/g)].map(m=>m[1]),bodyLength:text.length}));
+                console.log(JSON.stringify({via:base.startsWith('http:')?'internal':'public',http:r.status,contentType:r.headers.get('content-type'),xml:text,prices:[...text.matchAll(/<basePrice>(.*?)<\/basePrice>/g)].map(m=>m[1]),stock:[...text.matchAll(/<stockQuantity>(.*?)<\/stockQuantity>/g)].map(m=>m[1]),statuses:[...text.matchAll(/<status>(.*?)<\/status>/g)].map(m=>m[1]),bodyLength:text.length}));
               }
             }finally{await db.end()}})().catch(()=>{console.error('INSPECTION_FAILED');process.exit(1)});
             JS
