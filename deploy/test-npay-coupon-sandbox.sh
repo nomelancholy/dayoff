@@ -21,6 +21,7 @@ for p in sorted(Path('.').glob('.env.deploy.before-npay-production.*.local')):
 else: raise SystemExit('Sandbox credential backup not found')
 PYKEY
     ;;
+  enable-production) sh deploy/enable-npay-coupons.sh ;;
   *) exit 2 ;;
 esac
 compose exec -T api node scripts/check-npay-production-health.cjs

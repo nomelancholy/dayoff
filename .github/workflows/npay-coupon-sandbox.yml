@@ -5,7 +5,7 @@ on:
       action:
         type: choice
         required: true
-        options: [prepare, sync]
+        options: [prepare, sync, enable-production]
       result_public_key:
         description: Base64 PEM public key for encrypted checkout URLs (prepare only)
         type: string
