@@ -138,7 +138,7 @@ export function NaverOrderButton({
         </p>
       )}
       {busy && (
-        <p role="status" className="text-sm text-dot-secondary">
+        <p role="status" className="sr-only">
           네이버 주문서를 준비 중입니다.
         </p>
       )}
