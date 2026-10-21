@@ -1,39 +1,30 @@
-name: Refresh Npay sandbox checkout
+name: Inspect Npay payment boundary
 on:
   workflow_dispatch:
-    inputs:
-      result_public_key:
-        type: string
-        required: true
 permissions:
   contents: read
 concurrency:
   group: dayoff-production
   cancel-in-progress: false
 jobs:
-  refresh:
+  inspect:
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1.2.5
-        env:
-          SANDBOX_RESULT_PUBLIC_KEY: ${{ inputs.result_public_key }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          envs: SANDBOX_RESULT_PUBLIC_KEY
           script: |
             set -eu
             cd "${{ secrets.DROPLET_APP_PATH }}"
-            sh deploy/test-npay-coupon-sandbox.sh sync
+            docker compose -f docker-compose.prod.yml --env-file .env.deploy logs --since 2h --no-color web 2>&1 | python3 -c 'import sys,json; lines=[l.strip() for l in sys.stdin if "npay_xml at=" in l];print("XML_TIMINGS",json.dumps(lines[-30:]))'
             docker compose -f docker-compose.prod.yml --env-file .env.deploy exec -T api node - <<'JS'
             const {Pool}=require('pg');
             (async()=>{const db=new Pool({connectionString:process.env.DATABASE_URL});try{
-              await db.query('BEGIN');
-              const {rows}=await db.query("SELECT c.id,c.state,c.redeemed_at,c.provider_order_id,c.created_at FROM naver_coupon_checkouts c JOIN users u ON c.user_id=u.id WHERE c.mode='sandbox' AND u.email='npay_test@dayoff.invalid' AND c.released_at IS NULL FOR UPDATE OF c");
-              if(rows.some(r=>r.state!=='registered'||r.redeemed_at||r.provider_order_id||Date.now()-r.created_at.getTime()>23*3600000))throw Error('SANDBOX_ORDER_REQUIRES_REVIEW');
-              for(const r of rows)await db.query("UPDATE naver_coupon_checkouts SET state='failed',released_at=now(),updated_at=now() WHERE id=$1 AND mode='sandbox'",[r.id]);
-              await db.query('COMMIT');console.log(JSON.stringify({sandboxOnly:true,oldCheckoutTokensBlocked:rows.length}));
-            }catch(e){await db.query('ROLLBACK');throw e}finally{await db.end()}})().catch(()=>{console.error('REFRESH_BLOCKED');process.exit(1)});
+              const {rows:history}=await db.query("SELECT mode,status,payment_date IS NOT NULL AS payment_seen,applied_consumed FROM naver_order_inventory WHERE mode='sandbox' AND product_order_id='2026101754129520'");
+              console.log(JSON.stringify({previousSuccessfulTest:history}));
+              const {rows}=await db.query("SELECT state,validated_at,redeemed_at IS NOT NULL AS payment_seen,provider_order_id IS NOT NULL AS provider_order_seen FROM naver_coupon_checkouts WHERE mode='sandbox' ORDER BY created_at DESC LIMIT 1");
+              console.log(JSON.stringify({latestSandbox:rows,productionCouponEnabled:process.env.NAVER_COUPON_CHECKOUT_ENABLED==='true'}));
+            }finally{await db.end()}})().catch(()=>{console.error('INSPECTION_FAILED');process.exit(1)});
             JS
-            sh deploy/test-npay-coupon-sandbox.sh prepare
