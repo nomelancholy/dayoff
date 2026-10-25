@@ -52,6 +52,17 @@ export const Footer = () => {
           사업자 정보 확인
         </Link>
       </nav>
+      <p className="mt-6 text-[0.8rem] text-dot-secondary">
+        <a
+          href="https://takeknowledge-dev.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-4 transition-opacity hover:opacity-70"
+          aria-label="개발 담당자 포트폴리오 (새 탭에서 열림)"
+        >
+          개발 담당자
+        </a>
+      </p>
     </footer>
   )
 }
