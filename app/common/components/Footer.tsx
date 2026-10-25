@@ -25,7 +25,7 @@ export const Footer = () => {
       </div>
       <nav
         className="mt-6 flex flex-wrap items-center justify-center gap-x-1 gap-y-2 text-[0.85rem] md:text-[0.9rem]"
-        aria-label="법적 고지"
+        aria-label="푸터 링크"
       >
         <Link
           to="/terms"
@@ -45,24 +45,27 @@ export const Footer = () => {
         <span className="mx-2 text-dot-secondary" aria-hidden>
           |
         </span>
-        <Link
-          to="/business-info"
-          className="text-dot-primary underline underline-offset-4 transition-opacity hover:opacity-70"
-        >
-          사업자 정보 확인
-        </Link>
+        <span className="inline-flex items-center gap-x-1 whitespace-nowrap">
+          <Link
+            to="/business-info"
+            className="text-dot-primary underline underline-offset-4 transition-opacity hover:opacity-70"
+          >
+            사업자 정보 확인
+          </Link>
+          <span className="mx-2 text-dot-secondary" aria-hidden>
+            |
+          </span>
+          <a
+            href="https://takeknowledge-dev.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-dot-primary underline underline-offset-4 transition-opacity hover:opacity-70"
+            aria-label="개발 담당자 포트폴리오 (새 탭에서 열림)"
+          >
+            개발 담당자
+          </a>
+        </span>
       </nav>
-      <p className="mt-6 text-[0.8rem] text-dot-secondary">
-        <a
-          href="https://takeknowledge-dev.vercel.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-4 transition-opacity hover:opacity-70"
-          aria-label="개발 담당자 포트폴리오 (새 탭에서 열림)"
-        >
-          개발 담당자
-        </a>
-      </p>
     </footer>
   )
 }
