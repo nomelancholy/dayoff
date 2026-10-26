@@ -59,10 +59,16 @@ export const Footer = () => {
             href="https://takeknowledge-dev.vercel.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-dot-primary underline underline-offset-4 transition-opacity hover:opacity-70"
-            aria-label="개발 담당자 포트폴리오 (새 탭에서 열림)"
+            className="inline-flex flex-col items-start gap-y-0.5 text-left leading-tight transition-opacity hover:opacity-70 sm:flex-row sm:items-baseline sm:gap-x-2"
+            aria-label="개발 담당 Take Knowledge 포트폴리오 (새 탭에서 열림)"
           >
-            개발 담당자
+            <span className="text-[0.65rem] text-dot-secondary sm:text-[0.7rem]">
+              개발 담당
+            </span>
+            <strong className="mono text-[0.9rem] font-semibold text-dot-primary underline underline-offset-4 sm:text-base">
+              Take Knowledge
+              <span className="ml-1" aria-hidden>↗</span>
+            </strong>
           </a>
         </span>
       </nav>
