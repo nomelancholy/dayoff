@@ -3,13 +3,16 @@ set -eu
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 compose() { docker compose -f docker-compose.prod.yml --env-file .env.deploy "$@"; }
 compose exec -T api node scripts/check-npay-production-health.cjs
-# Full Sandbox lifecycle, including provider XML revalidation, must have been observed first.
-compose exec -T api node - <<'CHECK'
+# Prefer a verified sandbox lifecycle; an explicit owner-directed rollout can
+# proceed without it. Production health and rollback checks remain mandatory.
+compose exec -T -e COUPON_MANUAL_ACTIVATION="${COUPON_MANUAL_ACTIVATION:-false}" api node - <<'CHECK'
 const {Pool}=require('pg');
 (async()=>{const db=new Pool({connectionString:process.env.DATABASE_URL});try{
  const r=await db.query("select exists(select 1 from naver_coupon_checkouts where mode='sandbox' and state='cancelled' and validated_at is not null and redeemed_at is not null and released_at is not null and created_at>now()-interval '7 days') as verified");
- if(!r.rows[0].verified)throw Error('SANDBOX_COUPON_LIFECYCLE_NOT_VERIFIED');
- console.log('Sandbox coupon payment and cancellation verified');
+ if(!r.rows[0].verified){
+   if(process.env.COUPON_MANUAL_ACTIVATION!=='true')throw Error('SANDBOX_COUPON_LIFECYCLE_NOT_VERIFIED');
+   console.log('Owner-directed activation: sandbox payment/cancellation remains unverified');
+ }else console.log('Sandbox coupon payment and cancellation verified');
 }finally{await db.end()}})().catch(e=>{console.error(e.message==='SANDBOX_COUPON_LIFECYCLE_NOT_VERIFIED'?e.message:'COUPON_CHECK_FAILED');process.exit(1)});
 CHECK
 umask 077

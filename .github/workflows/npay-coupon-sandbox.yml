@@ -10,6 +10,10 @@ on:
         description: Base64 PEM public key for encrypted checkout URLs (prepare only)
         type: string
         required: false
+      manual_activation:
+        description: Activate on owner's request before sandbox payment/cancellation verification
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -26,11 +30,12 @@ jobs:
         env:
           SANDBOX_RESULT_PUBLIC_KEY: ${{ inputs.result_public_key }}
           SANDBOX_ACTION: ${{ inputs.action }}
+          COUPON_MANUAL_ACTIVATION: ${{ inputs.manual_activation }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          envs: SANDBOX_ACTION,SANDBOX_RESULT_PUBLIC_KEY
+          envs: SANDBOX_ACTION,SANDBOX_RESULT_PUBLIC_KEY,COUPON_MANUAL_ACTIVATION
           command_timeout: 12m
           script: |
             set -eu
