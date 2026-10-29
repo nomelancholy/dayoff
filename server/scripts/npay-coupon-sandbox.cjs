@@ -124,6 +124,9 @@ const {
           eq(schema.naverCouponCheckouts.mode, 'sandbox'),
           eq(schema.naverCouponCheckouts.userId, owner.id),
           isNull(schema.naverCouponCheckouts.releasedAt),
+          // Provider buy keys expire. Retain old evidence but prepare a fresh isolated
+          // test when the previous uncompleted checkout is older than one hour.
+          gt(schema.naverCouponCheckouts.createdAt, new Date(Date.now() - 3600000)),
         ),
       });
       if (existing) {
