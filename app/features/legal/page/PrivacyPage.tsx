@@ -11,7 +11,7 @@ export const PrivacyPage = () => {
         개인정보 처리방침
       </h1>
       <p className={`${pClass} mt-6`}>
-        DOT(이하 &quot;회사&quot;)는 「개인정보 보호법」 등 관련 법령에 따라
+        디오티(DOT)(이하 &quot;회사&quot;)가 운영하는 DOT. 서비스는 「개인정보 보호법」 등 관련 법령에 따라
         이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하게 처리하기 위하여
         다음과 같이 개인정보 처리방침을 수립·공개합니다. 본 방침은 온라인 쇼핑몰
         회원 가입·관리, 상품 주문 및 배송 등 서비스에 적용됩니다.
@@ -43,6 +43,64 @@ export const PrivacyPage = () => {
         </ul>
       </section>
 
+      <section className={sectionClass} aria-labelledby="google-data-heading">
+        <h2 id="google-data-heading" className={h2Class}>
+          1-1. Google 로그인을 통한 개인정보 처리
+        </h2>
+        <p className={pClass}>
+          회사는 Google 계정을 이용한 회원 가입·로그인 시 이용자가 Google 동의
+          화면에서 허용한 이메일 및 기본 프로필 정보에 접근합니다. Google 로그인으로
+          제공받은 정보에도 본 처리방침이 적용되며, 구체적인 처리 내용은 다음과 같습니다.
+        </p>
+        <ul className={listClass}>
+          <li>
+            <strong className="text-dot-primary">수집·저장 항목</strong>: Google
+            계정 식별자, 이메일 주소, 이름. 기본 프로필에 포함될 수 있는 프로필
+            사진은 회원정보로 저장하거나 서비스에 표시하지 않습니다.
+          </li>
+          <li>
+            <strong className="text-dot-primary">이용 목적</strong>: 회원 식별,
+            계정 생성·관리, 로그인 인증, 가입 안내 메일 발송, 가입 축하 쿠폰 및
+            회원 혜택 제공, 주문 내역과 회원 계정 연결 등 온라인 스토어 서비스 제공.
+            이메일 마케팅에는 별도의 수신 동의를 받은 경우에만 이용합니다.
+          </li>
+          <li>
+            <strong className="text-dot-primary">접근 범위</strong>: 이메일 및
+            기본 프로필 권한만 요청하며, Gmail 메일 내용, Google Drive 파일,
+            캘린더 및 연락처에는 접근하지 않습니다. Google 계정 비밀번호는
+            제공받지 않으며, Google 액세스 토큰과 갱신 토큰은 회원정보로 저장하지 않습니다.
+          </li>
+          <li>
+            <strong className="text-dot-primary">보관 및 보호</strong>: 수집한
+            계정 정보는 서비스 데이터베이스에 저장하고, 인증 및 업무상 필요한
+            권한에 따라 접근을 제한합니다. 서비스와의 통신에는 HTTPS를 사용합니다.
+          </li>
+          <li>
+            <strong className="text-dot-primary">보유 기간 및 삭제</strong>:
+            Google 계정 식별자, 이메일 주소 및 이름은 회원 계정 유지 기간 동안
+            보유하며, 회원 탈퇴 처리 시 서비스의 회원정보에서 삭제합니다. 별도로
+            처리하는 거래 기록 등의 보관에는 제3조가 적용됩니다.
+          </li>
+          <li>
+            <strong className="text-dot-primary">외부 처리</strong>: 가입·주문·혜택
+            안내 메일 발송 시 이메일 주소, 이름 및 해당 안내에 필요한 내용이
+            메일 발송 서비스인 Resend에 전달됩니다. 자세한 내용은 제4조에 안내합니다.
+          </li>
+        </ul>
+        <p className={`${pClass} mt-4`}>
+          회사는 Google에서 제공받은 정보를 본 방침에 안내한 목적 범위에서만
+          처리하며, Google API 서비스 사용자 데이터 정책을 준수합니다.
+        </p>
+        <a
+          href="https://developers.google.com/terms/api-services-user-data-policy?hl=ko"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${pClass} mt-3 inline-block underline underline-offset-4`}
+        >
+          Google API 서비스 사용자 데이터 정책 (새 탭)
+        </a>
+      </section>
+
       <section className={sectionClass}>
         <h2 className={h2Class}>2. 개인정보의 수집·이용 목적</h2>
         <p className={pClass}>회사는 수집한 개인정보를 다음의 목적 범위에서만 이용합니다.</p>
@@ -61,6 +119,11 @@ export const PrivacyPage = () => {
           ① 회사는 원칙적으로 개인정보 수집·이용 목적이 달성된 후에는 해당 정보를
           지체 없이 파기합니다. 다만 관계 법령에 따라 일정 기간 보관이 필요한
           경우에는 법령에서 정한 기간 동안 보관합니다.
+        </p>
+        <p className={`${pClass} mt-3`}>
+          Google 로그인을 포함한 회원 계정의 식별자, 이메일 주소 및 이름은 회원
+          탈퇴 처리 시 회원정보에서 삭제합니다. 법령에 따라 별도로 보관해야 하는
+          기록은 해당 의무를 이행하기 위한 목적으로만 처리합니다.
         </p>
         <p className={`${pClass} mt-3`}>
           ② 예시: 전자상거래 등에서의 소비자보호에 관한 법률에 따른 계약·청약철회
@@ -84,6 +147,14 @@ export const PrivacyPage = () => {
           ③ 결제 서비스는 PG사 등 결제대행 업체를 통해 이루어질 수 있으며, 해당
           업체는 결제 처리에 필요한 범위에서 정보를 처리합니다.
         </p>
+        <p className={`${pClass} mt-3`}>
+          ④ 회사는 메일 발송 서비스 Resend를 이용해 가입, 주문, 배송, 쿠폰 및
+          문의 관련 메일을 발송합니다. 이 과정에서 수신자 이메일 주소와 메일
+          본문에 포함된 이름, 주문·혜택·문의 관련 정보가 메일 발송 및 전달을 위해
+          처리됩니다. Google 계정으로 가입한 회원의 이메일 주소와 이름도 동일하게
+          처리되며, Google 계정 비밀번호나 Google 액세스 토큰·갱신 토큰은 메일
+          발송 업체에 전달하지 않습니다.
+        </p>
       </section>
 
       <section className={sectionClass}>
@@ -93,6 +164,26 @@ export const PrivacyPage = () => {
           있으며, 회사에 서면·전자우편 등으로 열람·정정·삭제·처리정지를 요청할 수
           있습니다. 회사는 지체 없이 필요한 조치를 하겠습니다.
         </p>
+        <p className={`${pClass} mt-3`}>
+          회원 탈퇴는 로그인 후 내 정보의 프로필에서 &quot;회원 탈퇴&quot;를 선택하여
+          요청할 수 있습니다. 발송을 기다리는 주문이 있는 경우 주문 취소 또는
+          상품 발송 후 다시 요청해 주세요. 로그인이 어렵거나 별도의 삭제 요청이
+          필요한 경우 제9조의 이메일로 연락하시면 본인 확인 후 처리합니다.
+        </p>
+        <p className={`${pClass} mt-3`}>
+          Google 계정의 서드 파티 연결 관리에서도 DOT.에 대한 연결을
+          해제할 수 있습니다. Google 연결 해제는 사이트 회원 탈퇴와 별개이므로,
+          이미 저장된 회원정보의 삭제를 원하시면 사이트에서 회원 탈퇴하거나
+          이메일로 삭제를 요청해 주세요. 회원 탈퇴가 Google 계정 자체를 삭제하지는 않습니다.
+        </p>
+        <a
+          href="https://myaccount.google.com/connections"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${pClass} mt-3 inline-block underline underline-offset-4`}
+        >
+          Google 계정 연결 관리 (새 탭)
+        </a>
       </section>
 
       <section className={sectionClass}>
@@ -108,8 +199,9 @@ export const PrivacyPage = () => {
         <h2 className={h2Class}>7. 개인정보의 안전성 확보 조치</h2>
         <p className={pClass}>
           회사는 개인정보의 분실·도난·유출·변조·훼손을 방지하기 위해 접근권한 관리,
-          비밀번호 암호화, 전송 구간 보안(SSL 등), 백신·방화벽 운영 등 관련 법령이
-          요구하는 수준의 기술적·관리적 조치를 취합니다.
+          이메일 로그인 비밀번호의 해시 처리, HTTPS를 통한 전송 구간 보호 등
+          기술적·관리적 조치를 취합니다. Google 로그인 계정의 비밀번호는
+          회사가 수집하거나 저장하지 않습니다.
         </p>
       </section>
 
@@ -125,10 +217,19 @@ export const PrivacyPage = () => {
       <section className={sectionClass}>
         <h2 className={h2Class}>9. 개인정보 보호책임자</h2>
         <p className={pClass}>
-          개인정보 처리에 관한 문의·불만·피해 구제는 몰의 CONTACT 페이지에 안내된
-          연락처(이메일 등)로 요청해 주시기 바랍니다. 회사는 신속히 답변 및 조치를
-          하겠습니다.
+          개인정보 열람·정정·삭제·처리정지 및 Google 로그인 정보에 관한 문의는
+          아래 이메일 또는 CONTACT 페이지로 요청해 주세요. 회사는 요청자 본인
+          여부를 확인한 후 신속히 답변 및 조치하겠습니다.
         </p>
+        <ul className={listClass}>
+          <li>운영자: 디오티(DOT)</li>
+          <li>
+            개인정보 문의 이메일:{' '}
+            <a href="mailto:eundi2c@naver.com" className="underline underline-offset-4">
+              eundi2c@naver.com
+            </a>
+          </li>
+        </ul>
       </section>
 
       <section className={sectionClass}>
@@ -145,6 +246,11 @@ export const PrivacyPage = () => {
         <p className={pClass}>
           본 개인정보 처리방침은 2019년부터 적용됩니다. 시행일은 몰 하단 공지에
           따릅니다.
+        </p>
+        <p className={`${pClass} mt-3`}>
+          Google 로그인 정보의 수집·이용·보관·삭제 및 메일 발송 처리 안내를
+          보완한 개정본 작성일은 2026년 11월 7일입니다. 공고일과 시행일은 별도
+          공지에 따릅니다.
         </p>
       </section>
     </article>
